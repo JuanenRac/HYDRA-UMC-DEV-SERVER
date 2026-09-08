@@ -98,10 +98,10 @@ commandes réelle et complète.
   réutilisé ici, pas réinventé.
 - **La propriété de l'état et les relations entre projets ne sont pas à
   redéfinir par ce dépôt.** [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
-  et [docs/OPS_INTEGRATION.md](docs/OPS_INTEGRATION.md) reproduisent,
-  sans la réinterpréter, la table des propriétaires d'état du plan privé
-  de préparation logicielle et son regroupement des 17 relations entre
-  projets en nécessaires/optionnelles/développement uniquement.
+  et [docs/OPS_INTEGRATION.md](docs/OPS_INTEGRATION.md) documentent la
+  propre table des propriétaires d'état de ce dépôt et son regroupement
+  des 17 relations entre projets en
+  nécessaires/optionnelles/développement uniquement.
 - **stdlib uniquement pour cette livraison.** `config validate` et
   `inventory scan` n'ont besoin d'aucune dépendance tierce - une
   livraison future n'en ajoute une que lorsque son propre code en a
@@ -127,8 +127,8 @@ HYDRA-UMC-DEV-SERVER/
 ├── docs/
 │   ├── CLI_REFERENCE.md    # Chaque sous-commande, ses options et le contrat des codes de sortie
 │   ├── CONFIG_SCHEMA.md    # La forme JSON réelle des trois documents de configuration
-│   ├── ARCHITECTURE.md     # Objectif, modes de travail, périmètre initial, disque (plan 13.1/13.3-13.5)
-│   └── OPS_INTEGRATION.md  # La carte des 17 relations + table des propriétaires (plan 13.2.1/13.2.2)
+│   ├── ARCHITECTURE.md     # Objectif, modes de travail, périmètre initial, disque
+│   └── OPS_INTEGRATION.md  # La carte des 17 relations + table des propriétaires
 ├── images/                # Médias et icônes de l'application
 ├── tools/
 │   ├── build_test.py      # Vérification de compilation non versionnante
@@ -173,16 +173,15 @@ de tests locale complète.
 
 ## 🚀 FEUILLE DE ROUTE
 
-Cette version n'apporte que DS01. Ce qui reste, dans l'ordre propre du
-plan :
+Cette version n'apporte que DS01. Ce qui reste, dans l'ordre de
+livraison :
 
 - **DS02 - Station distante reproductible.** Vérifications préalables,
   un profil d'outils minimal, accès distant via VS Code sous une
   identité réelle.
 - **DS03 - Migration conservatrice.** Inventaire et copie par lots
   depuis le PC de l'utilisateur avec hachages, changements locaux et
-  confidentialité traités explicitement - voir la section 13.6 du plan
-  lui-même.
+  confidentialité traités explicitement.
 - **DS04 - Espace de travail et exécuteur borné.** Isolation réelle par
   tâche : deux tâches ne se percutent jamais, un chemin hors de l'espace
   de travail est rejeté.

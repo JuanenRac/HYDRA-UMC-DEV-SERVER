@@ -79,9 +79,9 @@ $ hydra-umc-dev-server inventory scan --root ..
   `inventory.py`）——在此复用，而非重新发明。
 - **状态归属与项目间关系不由本仓库重新决定。**
   [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) 与
-  [docs/OPS_INTEGRATION.md](docs/OPS_INTEGRATION.md) 原样复述、
-  而非重新诠释私有软件准备计划自身的状态归属表，
-  以及其将 17 项跨项目关系划分为必要/可选/仅开发用途的分组。
+  [docs/OPS_INTEGRATION.md](docs/OPS_INTEGRATION.md) 记录了本仓库
+  自身的状态归属表，以及其将 17 项跨项目关系划分为
+  必要/可选/仅开发用途的分组。
 - **本次交付仅使用标准库。** `config validate` 与 `inventory scan`
   不需要任何第三方依赖——只有当后续交付自身的代码真正需要时才会添加依赖
   （DS05 的持久队列驱动、DS06 的 AI 提供方 SDK），绝不投机性地预先添加。
@@ -104,8 +104,8 @@ HYDRA-UMC-DEV-SERVER/
 ├── docs/
 │   ├── CLI_REFERENCE.md    # 每个子命令、其参数与退出码契约
 │   ├── CONFIG_SCHEMA.md    # 三份配置文档的真实 JSON 结构
-│   ├── ARCHITECTURE.md     # 目的、工作模式、初始范围、磁盘布局（计划 13.1/13.3-13.5）
-│   └── OPS_INTEGRATION.md  # 17 项关系图谱 + 归属表（计划 13.2.1/13.2.2）
+│   ├── ARCHITECTURE.md     # 目的、工作模式、初始范围、磁盘布局
+│   └── OPS_INTEGRATION.md  # 17 项关系图谱 + 归属表
 ├── images/                # 媒体与应用图标
 ├── tools/
 │   ├── build_test.py      # 非版本变更的构建/编译检查
@@ -145,12 +145,12 @@ chmod +x build.sh   # 一次性
 
 ## 🚀 路线图
 
-本版本仅交付 DS01。按计划自身的顺序，剩余部分为：
+本版本仅交付 DS01。按交付顺序，剩余部分为：
 
 - **DS02 - 可复现的远程站点。** 预检、最小工具配置文件、在真实身份下通过
   VS Code 的远程访问。
 - **DS03 - 保守迁移。** 从用户 PC 进行库存清点与批量复制，明确处理哈希值、
-  本地更改与隐私——见计划自身的 13.6 节。
+  本地更改与隐私。
 - **DS04 - 工作区与受限执行器。** 真正按任务隔离：两个任务永不冲突，
   工作区之外的路径会被拒绝。
 - **DS05 - 持久队列与可追溯结果。** ID、租约，一份能在重启后存活的真实执行日志。

@@ -11,8 +11,8 @@ bumped manually only. See `bump_version.py`.
 
 ## [0.0.1] - DS01: contracts, limits and a verifiable skeleton
 
-First delivery of ten (this project's own private development plan,
-DS01-DS10). This one only: a real, tested configuration schema
+First delivery of ten (DS01-DS10, see the README's own Roadmap section).
+This one only: a real, tested configuration schema
 (`HostProfile`/`ToolchainPolicy`/`TaskPolicy`, `src/hydra_umc_dev_server/
 config.py`) whose default policy grants no task deployment permission
 (`TaskPolicy.allow_deploy` defaults to `False` and is only ever `True`
@@ -21,15 +21,14 @@ including that a non-boolean value never grants it), and read-only
 manifest discovery (`inventory.py`, the same real, tested pattern
 HYDRA-UMC-OPS-AGENT's own edge role already uses) that can find and
 validate this ecosystem's own `hydra-umc.project.json` files - including
-this repository's own, which is exactly DS01's own acceptance criterion
-("el catalogo reconoce el nuevo manifiesto en fixtures").
+this repository's own, which is exactly this delivery's own acceptance
+criterion: the catalog recognizes a new manifest in its own fixtures.
 
 No remote host, workspace, task runner, durable queue or AI provider
 integration exists yet - those are DS02, DS04, DS05 and DS06, later
 deliveries. This repository does not yet decide that a machine is safe,
 does not yet run a task, and does not yet talk to HYDRA-UMC-OPS-AGENT.
 
-`docs/ARCHITECTURE.md` and `docs/OPS_INTEGRATION.md` restate, without
-reinterpreting, this project's own private development plan's state-ownership table (section 13.2.2) and its
-grouping of the 17 cross-project relationships into necessary/optional/
-development-only (13.2.1).
+`docs/ARCHITECTURE.md` and `docs/OPS_INTEGRATION.md` document this
+repository's own state-ownership table and its grouping of the 17
+cross-project relationships into necessary/optional/development-only.
