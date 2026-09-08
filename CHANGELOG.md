@@ -11,7 +11,7 @@ bumped manually only. See `bump_version.py`.
 
 ## [0.0.1] - DS01: contracts, limits and a verifiable skeleton
 
-First delivery of ten (PLAN_PREPARACION_SOFTWARE_SIN_HARDWARE section 13,
+First delivery of ten (this project's own private development plan,
 DS01-DS10). This one only: a real, tested configuration schema
 (`HostProfile`/`ToolchainPolicy`/`TaskPolicy`, `src/hydra_umc_dev_server/
 config.py`) whose default policy grants no task deployment permission
@@ -30,6 +30,6 @@ deliveries. This repository does not yet decide that a machine is safe,
 does not yet run a task, and does not yet talk to HYDRA-UMC-OPS-AGENT.
 
 `docs/ARCHITECTURE.md` and `docs/OPS_INTEGRATION.md` restate, without
-reinterpreting, the plan's own state-ownership table (13.2.2) and its
+reinterpreting, this project's own private development plan's state-ownership table (section 13.2.2) and its
 grouping of the 17 cross-project relationships into necessary/optional/
 development-only (13.2.1).
