@@ -1,0 +1,6 @@
+{
+  "hostname": "hydra-umc-dev",
+  "arch": "aarch64",
+  "storage_root": "/srv/hydra-umc-dev",
+  "created_from": "fresh-image"
+}

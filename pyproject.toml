@@ -1,0 +1,32 @@
+[build-system]
+requires = ["setuptools>=68.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "hydra-umc-dev-server"
+version = "0.0.1"
+description = "Reproducible development host for the HYDRA-UMC/URTC ecosystem: hosts this ecosystem's own source code and a bounded, policy-gated task runner for isolated programming/build/test work, coordinating (not replacing) HYDRA-UMC-OPS-AGENT's own incident lifecycle. DS01 only: contracts, ownership map and a real, tested configuration schema whose default policy grants no task deployment permission."
+readme = "README.md"
+requires-python = ">=3.11"
+license = { file = "LICENSE.md" }
+authors = [
+    { name = "JuanenRac (Electro Hobby 3D)", email = "electrohobby3d@gmail.com" },
+]
+keywords = ["hydra-umc", "urtc", "dev-server", "workspace", "task-runner", "remote-development"]
+# Deliberately stdlib-only for DS01 (config schema + manifest inventory) -
+# later deliveries (DS04 workspace/runner, DS05 durable queue, DS06 AI
+# provider) each add their own extras only once that delivery's own code
+# actually needs them, same convention HYDRA-UMC-OPS-AGENT already uses.
+dependencies = []
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0"]
+
+[project.urls]
+Homepage = "https://github.com/JuanenRac/HYDRA-UMC-DEV-SERVER"
+
+[project.scripts]
+hydra-umc-dev-server = "hydra_umc_dev_server.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]

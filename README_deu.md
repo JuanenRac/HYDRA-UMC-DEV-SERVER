@@ -1,0 +1,309 @@
+<p align="center">
+  <img src="images/HYDRA_UMC_BANNER.svg" alt="HYDRA-UMC-DEV-SERVER Banner" width="100%">
+</p>
+
+# 🖥️ HYDRA-UMC-DEV-SERVER
+
+<p align="center"><a href="README.md">🇺🇸 English</a> | <a href="README_spa.md">🇪🇸 Español</a> | <a href="README_fra.md">🇫🇷 Français</a> | <a href="README_ita.md">🇮🇹 Italiano</a> | 🇩🇪 <b>Deutsch</b> | <a href="README_zho.md">🇨🇳 简体中文</a> | <a href="README_jpn.md">🇯🇵 日本語</a></p>
+
+### 🏗️ Reproduzierbarer Entwicklungsserver für das Gesamte Ökosystem
+
+<p align="center">
+  <img src="https://img.shields.io/badge/Lizenz-GPL%203.0-blue.svg" alt="GPL 3.0">
+  <img src="https://img.shields.io/badge/Sprache-Python%203.11%2B-blue.svg" alt="Python">
+  <img src="https://img.shields.io/badge/Kern-nur%20stdlib-brightgreen.svg" alt="Nur-stdlib-Kern">
+  <img src="https://img.shields.io/badge/Lieferung-DS01%20von%2010-367BF5.svg" alt="DS01 von 10">
+</p>
+
+> **Status: v0.0.1, Scaffolding - DS01 von 10 (Verträge, Grenzen und ein
+> überprüfbares Gerüst).** Ein reales, getestetes Konfigurationsschema
+> (`config validate`), dessen Standardrichtlinie **keiner Aufgabe eine
+> Deployment-Berechtigung erteilt**, sowie eine schreibgeschützte
+> Manifest-Erkennung (`inventory scan`), die die eigenen
+> `hydra-umc.project.json`-Dateien dieses Ökosystems findet -
+> einschließlich der eigenen dieses Repositories. Es gibt noch keinen
+> entfernten Host, keinen Workspace, keinen Aufgaben-Runner, keine
+> dauerhafte Warteschlange und keine KI-Provider-Integration - das sind
+> DS02, DS04, DS05 und DS06, spätere Lieferungen. Siehe
+> [docs/CLI_REFERENCE.md](docs/CLI_REFERENCE.md) für die exakte
+> Kommandooberfläche, die heute existiert.
+
+---
+
+## 1. 🛠️ TECHNISCHER ÜBERBLICK
+
+HYDRA-UMC-DEV-SERVER ist Entwicklungsinfrastruktur für das
+HYDRA-UMC/URTC-Ökosystem: ein reproduzierbarer Host (Ziel: ein
+Raspberry Pi 5 oder Compute Module 5, 8GB, von NVMe gestartet), der den
+eigenen Quellcode dieses Ökosystems hostet und begrenzte,
+richtliniengesteuerte Programmier-/Build-/Test-Aufgaben ausführt - für
+Menschen ebenso wie für KI-Assistenten. Es ist **keine** neue KI, die
+trainiert werden muss, **kein** Ersatz-Betriebssystem, und es
+entscheidet niemals selbst, dass eine Maschine sicher zu verändern ist.
+
+Diese Lieferung (DS01) bringt zwei reale, unabhängig nützliche Teile:
+
+1. **Konfigurationsschema** (`config validate`) - drei JSON-Dokumente
+   (`HostProfile`, `ToolchainPolicy`, `TaskPolicy`), jedes mit echter
+   Validierung und einem echten Negativtest für jede abgelehnte Form.
+   Die vom ersten Tag an wichtigste Invariante:
+   `TaskPolicy.allow_deploy` ist standardmäßig `False`, und nur ein
+   Dokument, das den wörtlichen JSON-Boolean `true` setzt, kann eine
+   Richtlinie erzeugen, in der das erlaubt ist.
+2. **Manifest-Erkennung** (`inventory scan`) - dasselbe reale, getestete
+   Muster, das die Edge-Rolle von HYDRA-UMC-OPS-AGENT bereits verwendet,
+   um ein `hydra-umc.project.json` zu finden und zu validieren - hier
+   wiederverwendet statt neu geschrieben.
+
+```
+$ hydra-umc-dev-server config validate configs/task-policy.example.json --kind task-policy
+VALID: configs/task-policy.example.json (task-policy)
+{
+  "allow_deploy": false,
+  "max_concurrent_tasks": 2,
+  "allowed_commands": ["pytest", "build.sh", "build-test.sh"]
+}
+
+$ hydra-umc-dev-server inventory scan --root ..
+{
+  "root": "..",
+  "projects": [
+    {"name": "HYDRA-UMC-DEV-SERVER", "version": "0.0.1", "maturity": "scaffolding", "manifest_path": "../HYDRA-UMC-DEV-SERVER/hydra-umc.project.json"},
+    ...
+  ],
+  "issues": []
+}
+```
+
+Es gibt keinen Standardaufruf ohne Argumente außer der Demo, die
+`run.sh` ausführt, und diese Lieferung hat keine grafische
+Oberfläche - siehe [docs/CLI_REFERENCE.md](docs/CLI_REFERENCE.md) für
+die vollständige, reale Kommandooberfläche.
+
+## 2. 🧱 ARCHITEKTUR UND DESIGN-ENTSCHEIDUNGEN
+
+- **Keine Aufgabe hat standardmäßig eine Deployment-Berechtigung.** Das
+  ist das wörtliche Abnahmekriterium von DS01, erzwungen durch den
+  eigenen Standardwert der `TaskPolicy`-Dataclass - nicht nur in Prosa
+  behauptet - und durch einen eigenen Test für jede Art abgedeckt, wie
+  ein Dokument versuchen könnte, es einzuschleusen (ein fehlendes,
+  falsch geschriebenes oder nicht-boolesches Feld).
+- **Ein Collector meldet ein reales, ehrliches Scheitern - er rät
+  niemals.** Dass `scan_project_manifests()` für ein vorhandenes, aber
+  defektes Manifest ein `ManifestScanIssue` zurückgibt, statt es
+  stillschweigend zu verwerfen, ist das in diesem Ökosystem bereits
+  etablierte Muster (siehe das eigene `inventory.py` von
+  HYDRA-UMC-OPS-AGENT) - hier wiederverwendet, nicht neu erfunden.
+- **Zustandseigentum und Beziehungen zwischen Projekten sind nicht von
+  diesem Repository neu zu entscheiden.**
+  [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) und
+  [docs/OPS_INTEGRATION.md](docs/OPS_INTEGRATION.md) geben, ohne sie
+  neu zu interpretieren, die Zustandseigentümer-Tabelle des privaten
+  Software-Vorbereitungsplans und dessen Gruppierung der 17
+  Projektbeziehungen in notwendig/optional/nur-Entwicklung wieder.
+- **Nur stdlib für diese Lieferung.** `config validate` und `inventory
+  scan` benötigen keine externe Abhängigkeit - eine spätere Lieferung
+  fügt eine erst hinzu, wenn deren eigener Code sie wirklich braucht
+  (ein Treiber für die dauerhafte Warteschlange bei DS05, ein
+  KI-Provider-SDK bei DS06), nie spekulativ.
+- **Diese Lieferung validiert und entdeckt nur - sie führt noch nichts
+  aus.** Es gibt in diesem Repository noch keinen Workspace, keine
+  Aufgabenausführung, keine Warteschlange und keinen Netzwerkaufruf.
+
+## 📂 VERZEICHNISSTRUKTUR
+
+```
+HYDRA-UMC-DEV-SERVER/
+├── src/hydra_umc_dev_server/
+│   ├── config.py        # Schema und Validierung von HostProfile/ToolchainPolicy/TaskPolicy
+│   ├── inventory.py     # Reale, schreibgeschützte Erkennung von hydra-umc.project.json
+│   └── cli.py            # Einstiegspunkt der Unterbefehle config/inventory
+├── configs/
+│   ├── host-profile.example.json
+│   ├── toolchains.example.json
+│   └── task-policy.example.json   # allow_deploy: false, so veröffentlicht und getestet
+├── tests/                # Reale Tests für jedes obige Modul, inkl. der veröffentlichten Beispiel-Configs
+├── docs/
+│   ├── CLI_REFERENCE.md    # Jeder Unterbefehl, seine Flags und der Exit-Code-Vertrag
+│   ├── CONFIG_SCHEMA.md    # Die reale JSON-Form der drei Konfigurationsdokumente
+│   ├── ARCHITECTURE.md     # Zweck, Arbeitsmodi, anfänglicher Umfang, Festplatte (Plan 13.1/13.3-13.5)
+│   └── OPS_INTEGRATION.md  # Die 17-Beziehungs-Karte + Eigentümer-Tabelle (Plan 13.2.1/13.2.2)
+├── images/                # Medien und App-Icons
+├── tools/
+│   ├── build_test.py      # Nicht-versionierende Build-/Kompilierungsprüfung
+│   └── ci_validate.py     # Manifest-/CHANGELOG-/Doku-Validierung, von der CI verwendet
+├── build.sh / build.bat   # venv + editierbare Installation + Prüfung + Tests
+├── build-test.sh / .bat   # Nur nicht-mutierende Build-Validierung
+├── run.sh / run.bat       # Reale Demo inventory scan + config validate (ohne Argumente), oder leitet einen echten CLI-Befehl weiter
+├── bump_version.py        # Ökosystemweiter "Kilometerzähler"-Versionssprung (pyproject.toml + __init__.py)
+└── bump_manifest_version.py # Synchronisiert die Version von hydra-umc.project.json mit der nativen (--sync)
+```
+
+## ⚙️ BUILD- UND AUSFÜHRUNGSANLEITUNG
+
+```bash
+chmod +x build.sh   # einmalig
+./build.sh          # erstellt .venv, pip install -e ".[dev]", Prüfung + Tests
+./run.sh                                  # reale Demo: inventory scan gegen diesen
+                                           # GitHub-Workspace, dann config validate
+./run.sh inventory scan --root DIR
+./run.sh config validate configs/task-policy.example.json --kind task-policy
+```
+
+Unter Windows: `build.bat`, dann `run.bat` (gleiche Demo ohne
+Argumente) / `run.bat inventory scan ...` / `run.bat config
+validate ...`. `build-test.sh`/`.bat` führt dieselbe nicht-mutierende
+Python-Syntaxprüfung durch, die auch der eigene CI-Workflow des
+Projekts durchführt, ohne die Projektversion oder das CHANGELOG
+anzurühren - es führt NICHT die Testsuite selbst aus; führen Sie
+`./build.sh`/`build.bat` (oder direkt `pytest tests/`) für die
+vollständige lokale Testsuite aus.
+
+**Fehlerbehebung**
+
+- `config validate` beendet sich mit Code `1` und `INVALID: ...`: Lesen
+  Sie die Meldung - sie listet jedes fehlgeschlagene Feld auf, nicht
+  nur das erste. Siehe
+  [docs/CONFIG_SCHEMA.md](docs/CONFIG_SCHEMA.md) für die genaue
+  erwartete Form.
+- `inventory scan` meldet ein Problem in einem Verzeichnis, das Sie für
+  sauber hielten: Dieses Verzeichnis hat ein vorhandenes, aber
+  unlesbares, fehlerhaftes oder unvollständiges
+  `hydra-umc.project.json` - ein Verzeichnis ganz ohne Manifest wird
+  niemals als Problem gemeldet.
+
+## 🚀 ROADMAP
+
+Diese Version bringt nur DS01. Was in der eigenen Reihenfolge des
+Plans noch bleibt:
+
+- **DS02 - Reproduzierbare Remote-Station.** Vorabprüfungen, ein
+  minimales Werkzeugprofil, Remote-Zugriff via VS Code unter einer
+  echten Identität.
+- **DS03 - Konservative Migration.** Inventar und Stapelkopie vom PC
+  des Nutzers mit Hashes, lokalen Änderungen und explizit behandelter
+  Privatsphäre - siehe Abschnitt 13.6 des Plans selbst.
+- **DS04 - Workspace und begrenzter Runner.** Echte Isolation pro
+  Aufgabe: zwei Aufgaben kollidieren nie, ein Pfad außerhalb des
+  Workspace wird abgelehnt.
+- **DS05 - Dauerhafte Warteschlange und nachvollziehbare Ergebnisse.**
+  IDs, Leases, ein echtes Ausführungsjournal, das einen Neustart
+  übersteht.
+- **DS06 - Austauschbarer KI-Provider.** Zuerst ein deterministischer
+  Fake-Provider, danach ein echter autorisierter.
+- **DS07-DS10** - koordinierte Vorfälle mit HYDRA-UMC-OPS-AGENT, ein
+  erster vollständig kontrollierter Reparaturzyklus, stabiler Betrieb/
+  Wiederherstellung, und ein Lieferpaket mit ehrlicher
+  Reifegradbewertung.
+
+Nichts davon existiert bisher in diesem Repository - siehe
+[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) dafür, was jede Lieferung
+explizit ein- und ausschließt.
+
+## 🔗 Verwandte Projekte
+
+Dieses Projekt ist Teil des HYDRA-UMC-Robotik-Ökosystems desselben Autors (JuanenRac / Electro Hobby 3D). Gut zu wissen, da eine Anfrage sich eigentlich auf eines dieser Projekte statt auf dieses Repository beziehen könnte.
+
+**Direkt Verwandt**
+- **[HYDRA-UMC-OPS-AGENT](https://github.com/JuanenRac/HYDRA-UMC-OPS-AGENT)** — besitzt den Lebenszyklus von Wartungsvorfällen (Beweise, Diagnose, menschlich genehmigte Änderung, Canary-Deployment, Verifizierung); DEV-SERVER koordiniert mit ihm, statt ihn zu ersetzen, und genehmigt niemals seine eigenen Aufgaben.
+- **[HYDRA-UMC-SDK](https://github.com/JuanenRac/HYDRA-UMC-SDK)** — der gemeinsame JSON-Schema-Vertrag, gegen den jeder Aufgaben-/Ergebnisaustausch zwischen DEV-SERVER und dem Rest des Ökosystems validiert wird, sobald dieser Vertrag existiert.
+- **[HYDRA-UMC-UPDATER](https://github.com/JuanenRac/HYDRA-UMC-UPDATER)** — der eigentliche Konsument eines von DEV-SERVER gebauten, von OPS-AGENT genehmigten Kandidaten; die Auslieferung an einen Knoten läuft immer über UPDATERs eigenen atomaren-per-Verifizierung-Pfad, nie über eine direkte Kopie von einem Runner.
+- **[HYDRA-UMC-OS-REBUILDER](https://github.com/JuanenRac/HYDRA-UMC-OS-REBUILDER)** — ein weiterer "Ecosystem Operations"-Geschwisterprojekt: baut ein frisches CM5-Image, statt Entwicklungsarbeit zu hosten.
+
+**Ebenfalls Teil des Ökosystems**
+
+*Kern-Hardware & Plattform*
+- **[HYDRA-UMC](https://github.com/JuanenRac/HYDRA-UMC)** — die physische Hauptplatine des Roboterarms: CM5-Host + Dual-Core-STM32H745, orchestriert bis zu 8 Werkzeugarme über CAN-OTA/SPI-OTA.
+- **[HYDRA-UMC-OS](https://github.com/JuanenRac/HYDRA-UMC-OS)** — reproduzierbare Raspberry-Pi-OS-Produktschicht für die CM5: schreibgeschützter Agent, validierte Konfiguration/Profile, WiFi-Erstkontakt-Provisionierung.
+
+*Kern-Backend & Clients*
+- **[HYDRA-UMC-SERVER](https://github.com/JuanenRac/HYDRA-UMC-SERVER)** — das echte Headless-Backend (REST/WebSocket), mit dem jeder Steuerungsclient tatsächlich spricht.
+- **[HYDRA-UMC-STUDIO](https://github.com/JuanenRac/HYDRA-UMC-STUDIO)** — Web-Steuerungs-Dashboard mit Echtzeit-3D-Visualisierung mehrerer Roboter.
+- **[HYDRA-UMC-SUITE](https://github.com/JuanenRac/HYDRA-UMC-SUITE)** — Desktop-Schwarmkommandozentrale (PySide6) für mehrere Server gleichzeitig.
+- **[HYDRA-UMC-ANDROID-CONTROL](https://github.com/JuanenRac/HYDRA-UMC-ANDROID-CONTROL)** — native Android-Steuerungs-App mit biometrischem Login und einem gekoppelten Wear-OS-Begleiter.
+- **[HYDRA-UMC-IOS-CONTROL](https://github.com/JuanenRac/HYDRA-UMC-IOS-CONTROL)** — iOS/iPadOS-Steuerungs-App (Flutter) mit Echtzeit-WebSocket-Synchronisation.
+- **[HYDRA-UMC-DSI](https://github.com/JuanenRac/HYDRA-UMC-DSI)** — native Touch-Oberfläche für den eingebauten 7"-DSI-Touchscreen, direkt auf der CM5 eingebettet.
+- **[HYDRA-UMC-EDITOR-URDF](https://github.com/JuanenRac/HYDRA-UMC-EDITOR-URDF)** — grafischer Desktop-URDF-Ersteller/-Editor, der fertige Modelle in den eigenen Katalog von STUDIO überträgt.
+- **[HYDRA-UMC-BRIDGE-AMR](https://github.com/JuanenRac/HYDRA-UMC-BRIDGE-AMR)** — Koordinationsgrenze für AGV/AMR-Flotten über einen echten VDA-5050-MQTT-Publisher.
+- **[HYDRA-UMC-BRIDGE-CNC](https://github.com/JuanenRac/HYDRA-UMC-BRIDGE-CNC)** — CNC-Zellen-Koordinator auf hoher Ebene mit echtem GRBL-Status-/Steuerbyte-Zugriff.
+- **[HYDRA-UMC-BRIDGE-DROIDS](https://github.com/JuanenRac/HYDRA-UMC-BRIDGE-DROIDS)** — Koordinationsgrenze für Lauf-/humanoide Droiden, mit einem echten Boston-Dynamics-Spot-Befehlssender.
+- **[HYDRA-UMC-BRIDGE-LASER](https://github.com/JuanenRac/HYDRA-UMC-BRIDGE-LASER)** — Sicherheitskoordinator für Laserzellen, liest 3 echte GPIO-Sicherungen für Schlüssel/Gehäuse/Interlock.
+- **[HYDRA-UMC-BRIDGE-OPENPNP](https://github.com/JuanenRac/HYDRA-UMC-BRIDGE-OPENPNP)** — sicherer Koordinator auf hoher Ebene des Platinenflusses für OpenPnP-Pick-and-Place.
+- **[HYDRA-UMC-BRIDGE-PRINTER3D](https://github.com/JuanenRac/HYDRA-UMC-BRIDGE-PRINTER3D)** — sichere Koordinationsgrenze für Moonraker/Klipper-3D-Drucker, mit real gesteuerten Auftragsbefehlen.
+- **[HYDRA-UMC-BRIDGE-ROS2](https://github.com/JuanenRac/HYDRA-UMC-BRIDGE-ROS2)** — Sicherheitskoordinator mit einem echten, lazy importierten ROS-2-rclpy-Transport.
+- **[HYDRA-UMC-BRIDGE-UAV](https://github.com/JuanenRac/HYDRA-UMC-BRIDGE-UAV)** — Koordinationsgrenze für kameraausgestattete UAVs, mit einem echten MAVLink-Befehlssender.
+
+*URTC-Werkzeugplattform*
+- **[URTC](https://github.com/JuanenRac/URTC)** — Firmware für die physische Universal-Robot-Tool-Controller-Platine, 25+ Werkzeugprofile über CAN-Bus.
+- **[URTC-FLASHER](https://github.com/JuanenRac/URTC-FLASHER)** — Desktop-GUI-Flashing-Tool für URTC-Platinen, CAN-OTA plus Full-Chip-SWD/JTAG.
+- **[URTC-TESTER](https://github.com/JuanenRac/URTC-TESTER)** — Desktop-Live-CAN-Bus-Diagnosetool für URTC-Platinen, ein Panel pro Werkzeugprofil.
+- **[URTC-WEB-STUDIO](https://github.com/JuanenRac/URTC-WEB-STUDIO)** — browserbasierte Alternative zu URTC-TESTER über die Web-Serial-API, keine lokale Installation nötig.
+
+*Vision-KI-Knoten (Hailo-8)*
+- **[HYDRA-UMC-VISION-NODE](https://github.com/JuanenRac/HYDRA-UMC-VISION-NODE)** — Integrations-Hub für die Hailo-8-Vision-Pipeline, mit einer echten Hardware-Bereitschaftsprüfung pro Stufe.
+- **[HYDRA-UMC-DETECTION-HEF](https://github.com/JuanenRac/HYDRA-UMC-DETECTION-HEF)** — echtes Register kompilierter Modelle mit Hailo-Architektur-/Prüfsummen-Sicherheitsladeverifizierung.
+- **[HYDRA-UMC-VISION-STREAMER](https://github.com/JuanenRac/HYDRA-UMC-VISION-STREAMER)** — echte GStreamer-Pipeline + MediaMTX-Konfigurationsgenerator mit einer echten HailoRT-Integrationsgrenze.
+- **[HYDRA-UMC-VISUAL-SERVOING-API](https://github.com/JuanenRac/HYDRA-UMC-VISUAL-SERVOING-API)** — echtes positionsbasiertes visuelles Servoing-Korrekturgesetz, sicherheitsgesperrt nach vorgelagertem Zonenstatus.
+- **[HYDRA-UMC-SAFETY-ZONES](https://github.com/JuanenRac/HYDRA-UMC-SAFETY-ZONES)** — echte Zonenverletzungsprüfung und E-STOP-Anforderung, mit Durchsetzung der Kalibrierfrische.
+
+*Kognitiver KI-Knoten (Hailo-10)*
+- **[HYDRA-UMC-COGNITIVE-NODE](https://github.com/JuanenRac/HYDRA-UMC-COGNITIVE-NODE)** — Integrations-Hub für die Hailo-10-Kognitions-Pipeline (LLM/VLA/Sprach-Orchestrierung).
+- **[HYDRA-UMC-VLA-ENGINE](https://github.com/JuanenRac/HYDRA-UMC-VLA-ENGINE)** — echte Action-Token-Kodierung/-Dekodierung und Trajektoriengenerierung für ein Vision-Language-Action-Modell.
+- **[HYDRA-UMC-VOICE-UI](https://github.com/JuanenRac/HYDRA-UMC-VOICE-UI)** — echtes Sprach-Frontend (VAD + Intent-Parser) mit einem begrenzten, bestätigungspflichtigen Watch-Relay.
+- **[HYDRA-UMC-SEMANTIC-PLANNER](https://github.com/JuanenRac/HYDRA-UMC-SEMANTIC-PLANNER)** — echte regelbasierte Aufgabenzerlegung und semantische Fehlerbehebung über MCU-Fehlercodes.
+- **[HYDRA-UMC-DOCS-QA](https://github.com/JuanenRac/HYDRA-UMC-DOCS-QA)** — echte reine-stdlib-TF-IDF-Dokumentensuche über die eigene Markdown-Dokumentation dieses Ökosystems.
+
+*Orchestrierung & Schwarm*
+- **[HYDRA-UMC-ORCHESTRATOR](https://github.com/JuanenRac/HYDRA-UMC-ORCHESTRATOR)** — Integrations-Hub mit einem echten gRPC/Protobuf-Health-Report-Vertrag und einer Missions-Zustandsmaschine.
+- **[HYDRA-UMC-JOB-DISPATCHER](https://github.com/JuanenRac/HYDRA-UMC-JOB-DISPATCHER)** — echte prioritätsbasierte Job-Warteschlange mit Deduplizierung, über eine echte HTTP-API.
+- **[HYDRA-UMC-NODE-HEALING](https://github.com/JuanenRac/HYDRA-UMC-NODE-HEALING)** — echter gRPC-basierter Flotten-Gesundheitswächter mit eigenem Retry/Backoff und Identitätsabweichungserkennung.
+- **[HYDRA-UMC-PATH-PLANNER-3D](https://github.com/JuanenRac/HYDRA-UMC-PATH-PLANNER-3D)** — echter RRT-basierter 3D-Pfadplaner mit echter Hindernis-/Arbeitsraum-Kollisionsvalidierung.
+- **[HYDRA-UMC-SWARM-SYNC](https://github.com/JuanenRac/HYDRA-UMC-SWARM-SYNC)** — echte CRDT-LWW-Element-Map-Zustandssynchronisation, eigenschaftsgetestet für Multi-Zellen-Konvergenz.
+
+*Digitaler Zwilling & Simulation*
+- **[HYDRA-UMC-TWIN](https://github.com/JuanenRac/HYDRA-UMC-TWIN)** — Integrations-Hub für die Digital-Twin-Engine, mit einem echten Versionskompatibilitäts-Synchronisationsvertrag.
+- **[HYDRA-UMC-HIL-BRIDGE](https://github.com/JuanenRac/HYDRA-UMC-HIL-BRIDGE)** — echtes Hardware-in-the-Loop-Sicherheits-Interlock, das Befehle zwischen Simulation und echter Hardware leitet.
+- **[HYDRA-UMC-PHYSICS-REPLICA](https://github.com/JuanenRac/HYDRA-UMC-PHYSICS-REPLICA)** — echte Vorwärtskinematik und Gelenkgrenzenvalidierung über eine echte URDF-Teilmenge.
+- **[HYDRA-UMC-SYNTHETIC-DATA-GEN](https://github.com/JuanenRac/HYDRA-UMC-SYNTHETIC-DATA-GEN)** — echter prozeduraler 2D-Szenengenerator mit YOLO/COCO-Annotationsexport.
+
+*Daten & Analytik*
+- **[HYDRA-UMC-DATALAKE](https://github.com/JuanenRac/HYDRA-UMC-DATALAKE)** — echter sqlite3-basierter Zeitreihenspeicher mit einer echten Ingest-/Query-HTTP-API.
+- **[HYDRA-UMC-ANOMALY-DETECTOR](https://github.com/JuanenRac/HYDRA-UMC-ANOMALY-DETECTOR)** — echter FFT- + statistischer Baseline-Anomaliedetektor mit Drift-Überwachung.
+- **[HYDRA-UMC-PRODUCTION-REPORTS](https://github.com/JuanenRac/HYDRA-UMC-PRODUCTION-REPORTS)** — echte OEE-/Verfügbarkeitsberechnung über den DATALAKE-Verlauf, mit reproduzierbarem CSV-Export.
+- **[HYDRA-UMC-TELEMETRY-COLLECTOR](https://github.com/JuanenRac/HYDRA-UMC-TELEMETRY-COLLECTOR)** — echte CAN-/WebSocket-Ingestion-Pipeline in DATALAKE, mit Sequenz-Deduplizierung.
+
+*Industrie-Gateway*
+- **[HYDRA-UMC-GATEWAY-INDUSTRIAL](https://github.com/JuanenRac/HYDRA-UMC-GATEWAY-INDUSTRIAL)** — Integrations-Hub, der zu Industrieprotokollen weiterleitet, mit einer echten Befehls-Whitelist-/Backpressure-Schicht.
+- **[HYDRA-UMC-OPCUA-SERVER](https://github.com/JuanenRac/HYDRA-UMC-OPCUA-SERVER)** — echter OPC-UA-Adressraum, verifiziert mit einer echten Binärprotokoll-Client-Sitzung.
+- **[HYDRA-UMC-MQTT-BROKER](https://github.com/JuanenRac/HYDRA-UMC-MQTT-BROKER)** — echter MQTT-Broker mit optionaler Client-Authentifizierung und Topic-ACLs.
+- **[HYDRA-UMC-MTCONNECT-ADAPTER](https://github.com/JuanenRac/HYDRA-UMC-MTCONNECT-ADAPTER)** — echte MTConnect-`/probe`- und `/current`-XML-Endpunkte mit Ausgabe im Degraded-Modus.
+
+*Ergänzende Werkzeuge*
+- **[HYDRA-UMC-DASHBOARD-AI](https://github.com/JuanenRac/HYDRA-UMC-DASHBOARD-AI)** — Panels für intelligente Zusammenfassungen und Anomalie-Hervorhebung über DATALAKE/ANOMALY-DETECTOR, mit ehrlichem statistischem Fallback.
+- **[HYDRA-UMC-TOOL-CLI](https://github.com/JuanenRac/HYDRA-UMC-TOOL-CLI)** — Flotten-CLI mit einem echten, stabilen Exit-Code-Vertrag, ein echter Live-Client der eigenen API von HYDRA-UMC-SERVER.
+- **[HYDRA-UMC-WATCH](https://github.com/JuanenRac/HYDRA-UMC-WATCH)** — WearOS-Begleit-App mit echten haptischen Warnungen und einem Sprach-Relay zum gekoppelten Telefon.
+- **[HYDRA-UMC-CONNECTOR-HUB](https://github.com/JuanenRac/HYDRA-UMC-CONNECTOR-HUB)** — Katalog externer Adapter-Fähigkeiten, per Design nur GET.
+- **[URTC-SMART-RACK](https://github.com/JuanenRac/URTC-SMART-RACK)** — Firmware für ein Platinen-Montageregal mit echter Werkzeug-ID-Dekodierung und Smart-Idle-Vorheizlogik.
+- **[URTC-VISION-TOOL](https://github.com/JuanenRac/URTC-VISION-TOOL)** — Firmware plus ein echter Python-Vision-Begleiter für einen thermischen/RGB-Inspektionskopf.
+
+---
+
+## 📚 Dokumentation & Community
+
+- **[docs/CLI_REFERENCE.md](docs/CLI_REFERENCE.md)** — jeder Unterbefehl, seine Flags und der Exit-Code-Vertrag.
+- **[docs/CONFIG_SCHEMA.md](docs/CONFIG_SCHEMA.md)** — die reale JSON-Form von `HostProfile`/`ToolchainPolicy`/`TaskPolicy`.
+- **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)** — Zweck, die beiden Arbeitsmodi, anfänglicher Umfang und Festplattenorganisation.
+- **[docs/OPS_INTEGRATION.md](docs/OPS_INTEGRATION.md)** — die vollständige 17-Beziehungs-Karte und die Zustandseigentümer-Tabelle.
+- **[CONTRIBUTING.md](CONTRIBUTING.md)** — Technologie-Stack und Coding-Richtlinien für einen Pull Request.
+- **[CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)** — die in dieser Community erwarteten Verhaltensstandards.
+- **[SECURITY.md](SECURITY.md)** — wie man eine Schwachstelle meldet, und die echten Sicherheitsschwerpunkte dieses Projekts.
+- **[SUPPORT.md](SUPPORT.md)** — wo man Fragen stellt und Fehler meldet.
+
+## 👤 AUTOR
+**JuanenRac** (Electro Hobby 3D)
+📧 electrohobby3d@gmail.com
+📺 [youtube.com/@electrohobby3d](https://youtube.com/@electrohobby3d)
+
+## 📜 LIZENZ
+
+GPL-3.0 (Software) / CC BY-SA 4.0 (Dokumentation) - siehe [LICENSE.md](LICENSE.md).

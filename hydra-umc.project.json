@@ -1,0 +1,25 @@
+{
+  "schema_version": "1.0",
+  "ecosystem": "HYDRA-UMC",
+  "name": "HYDRA-UMC-DEV-SERVER",
+  "version": "0.0.1",
+  "role": "service",
+  "stack": "python",
+  "technologies": [
+    "Python 3.11+",
+    "JSON Schema",
+    "systemd (host role, Linux only)",
+    "SQLite (durable task/state journal, from DS05 onward)"
+  ],
+  "deployment_target": "dev-server",
+  "maturity": "scaffolding",
+  "family": "Ecosystem Operations",
+  "parent": null,
+  "native_version": {
+    "file": "pyproject.toml",
+    "pattern": "^version\\s*=\\s*\"(\\d+)\\.(\\d+)\\.(\\d+)\""
+  },
+  "build": "Ten-delivery plan (DS01-DS10, PLAN_PREPARACION_SOFTWARE_SIN_HARDWARE section 13): a reproducible development host (target platform: Raspberry Pi 5 or Compute Module 5, both 8GB, NVMe-booted) that hosts this ecosystem's source code, an isolated task/workspace runner for bounded programming/build/test work, and a durable queue coordinating with HYDRA-UMC-OPS-AGENT's own incident lifecycle - never a new AI to train, never a replacement operating system, never itself the authority that decides a machine is safe. Real build: python -m build (see pyproject.toml).",
+  "deployment_target_note": "\"dev-server\" is a new deployment_target value, not yet used elsewhere in this ecosystem's manifests (existing values: cm5, mobile, user-pc, wearable). It denotes a Raspberry Pi 5 / CM5 host dedicated to development and task execution - explicitly NOT the same physical role as \"cm5\" (the operational node that talks to real machines/robots). Documented here so HYDRA-UMC-UPDATER/the dashboard do not misread it as an operational CM5.",
+  "notes": "Scaffolding v0.0.1 - DS01 only (\"Contratos, limites y esqueleto verificable\") of the 10-delivery plan. This delivery defines who owns which state (see docs/ARCHITECTURE.md's ownership table, copied verbatim from the plan's own 13.2.2), which of the plan's 17 cross-project relationships are necessary/optional/dev-only (docs/OPS_INTEGRATION.md, from the plan's own 13.2.1 grouping - not reinterpreted), and a real, tested configuration schema (configs/*.example.json + src/hydra_umc_dev_server/config.py) whose default policy grants NO task deployment permission - verified by test, not just documented. No remote host, workspace runner, task queue, AI provider integration or OPS-AGENT wiring exists yet: those are DS02, DS04, DS05, DS06 and DS07 respectively, each a separate future delivery. inventory.py can discover and validate this ecosystem's own hydra-umc.project.json manifests (including this repository's own), matching the same real, tested pattern HYDRA-UMC-OPS-AGENT's edge role already uses for its own inventory - genuinely real today, not a stub, but it does not yet drive any workspace or task."
+}
