@@ -29,12 +29,12 @@ HYDRA-UMC platform.
 3. **This delivery (DS01) only ever defines contracts and validates
    configuration - it does not yet run anything.** Do not add a workspace,
    task execution, queue, or AI-provider call without first checking which
-   later delivery (DS02/DS04/DS05/DS06 - see
-   `PLAN_PREPARACION_SOFTWARE_SIN_HARDWARE.txt` section 13.13 for the
-   full list, kept privately) actually owns that piece, and updating this
-   repository's own README Roadmap section to match.
+   later delivery (DS02/DS04/DS05/DS06 - see this project's own private
+   development plan, section 13.13, for the full list) actually owns that
+   piece, and updating this repository's own README Roadmap section to
+   match.
 4. **State ownership is not this repository's to redecide.**
    `docs/ARCHITECTURE.md`'s ownership table is copied, not reinterpreted,
-   from the plan's own 13.2.2 - an incident/approval/closure stays owned
+   from that same private plan's own section 13.2.2 - an incident/approval/closure stays owned
    by HYDRA-UMC-OPS-AGENT even once this host exists; do not add code here
    that makes that decision instead.

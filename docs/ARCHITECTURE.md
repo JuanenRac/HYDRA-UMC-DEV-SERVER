@@ -6,8 +6,8 @@ GPL-3.0 - see LICENSE
 
 # Architecture (DS01)
 
-This is a faithful translation of the private software-preparation plan's
-own section 13 (purpose, working modes, initial scope, disk layout). It
+This is a faithful translation of this project's own private development
+plan's section 13 (purpose, working modes, initial scope, disk layout). It
 describes the target design across all ten deliveries (DS01-DS10) - this
 repository, at this delivery, only implements the configuration schema
 and manifest discovery described in the README. Everything else on this

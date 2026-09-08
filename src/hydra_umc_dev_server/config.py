@@ -4,8 +4,8 @@
 # GPL-3.0 - see LICENSE
 # =============================================================================
 """Real, tested configuration schema for DS01 ("Contratos, limites y
-esqueleto verificable" - PLAN_PREPARACION_SOFTWARE_SIN_HARDWARE section
-13.13). Three declarative documents, each independently loadable/
+esqueleto verificable" - this project's own private development plan,
+section 13.13). Three declarative documents, each independently loadable/
 validatable, matching this delivery's own acceptance criterion literally:
 "configuracion valida/incorrecta probada" and "ninguna tarea tiene permiso
 de despliegue por defecto".

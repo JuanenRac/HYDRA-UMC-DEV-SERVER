@@ -6,8 +6,8 @@ GPL-3.0 - see LICENSE
 
 # Cross-project relationships (DS01)
 
-This is a faithful translation of the private software-preparation plan's
-own section 13.2.1 - a design target, not proof that any of these
+This is a faithful translation of this project's own private development
+plan's section 13.2.1 - a design target, not proof that any of these
 endpoints, transports or automations exist yet. Real, already-available
 contracts are used where they exist; a missing one is proposed before it
 is coded, and current code/manifests are always checked at implementation
@@ -61,7 +61,7 @@ permissions and to the exact revision evaluated. Provides: a new project's
 manifest once created, public documentation, reviewable candidates and
 publishable evidence per authorization. Boundary: the catalog does not
 decide approvals. Commit, push, release and roadmap changes are distinct
-actions; nothing private from SONNET ever accompanies these exchanges.
+actions; no private internal notes ever accompany these exchanges.
 Maturity never increases automatically just from compiling or being
 registered in the catalog.
 
@@ -303,5 +303,5 @@ marks it done by itself.
   proposal or E1/E2 evidence - only a real test on the target counts as
   E3, and only a physical one as E4.
 - Every implemented integration is documented in both affected projects,
-  their README/translations where relevant, and their private notes -
-  never with a public link to SONNET.
+  their README/translations where relevant, and their own private notes -
+  never with a public link to internal-only documentation.

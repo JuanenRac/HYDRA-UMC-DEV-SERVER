@@ -5,7 +5,7 @@
 # =============================================================================
 """Real, read-only manifest discovery for DS01 - the concrete form of this
 delivery's own acceptance criterion "el catalogo reconoce el nuevo
-manifiesto en fixtures" (PLAN_PREPARACION_SOFTWARE_SIN_HARDWARE 13.13).
+manifiesto en fixtures" (this project's own private development plan, section 13.13).
 Same real, tested pattern HYDRA-UMC-OPS-AGENT's own edge role already uses
 for the same job (src/hydra_umc_ops_agent/inventory.py's
 scan_project_manifests()) - reused rather than reimplemented, since the
