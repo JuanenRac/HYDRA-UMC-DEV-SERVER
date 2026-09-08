@@ -95,10 +95,10 @@ comandos real y completa.
   reinventado.
 - **La propiedad de estado y las relaciones entre proyectos no las
   redecide este repositorio.** [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
-  y [docs/OPS_INTEGRATION.md](docs/OPS_INTEGRATION.md) reproducen, sin
-  reinterpretarla, la tabla de propietarios de estado del plan privado
-  de preparación software y su agrupación de las 17 relaciones entre
-  proyectos en necesarias/opcionales/solo-desarrollo.
+  y [docs/OPS_INTEGRATION.md](docs/OPS_INTEGRATION.md) documentan la
+  propia tabla de propietarios de estado de este repositorio y su
+  agrupación de las 17 relaciones entre proyectos en
+  necesarias/opcionales/solo-desarrollo.
 - **Solo stdlib en esta entrega.** `config validate` e `inventory scan`
   no necesitan ninguna dependencia externa - una entrega futura añade
   una solo cuando su propio código realmente la necesite (un driver de
@@ -124,8 +124,8 @@ HYDRA-UMC-DEV-SERVER/
 ├── docs/
 │   ├── CLI_REFERENCE.md    # Cada subcomando, sus flags y el contrato de códigos de salida
 │   ├── CONFIG_SCHEMA.md    # La forma JSON real de los tres documentos de configuración
-│   ├── ARCHITECTURE.md     # Propósito, modos de trabajo, alcance inicial, disco (plan 13.1/13.3-13.5)
-│   └── OPS_INTEGRATION.md  # El mapa de 17 relaciones + tabla de propietarios (plan 13.2.1/13.2.2)
+│   ├── ARCHITECTURE.md     # Propósito, modos de trabajo, alcance inicial, disco
+│   └── OPS_INTEGRATION.md  # El mapa de 17 relaciones + tabla de propietarios
 ├── images/                # Medios e iconos de la app
 ├── tools/
 │   ├── build_test.py      # Comprobación de compilación no versionante
@@ -169,14 +169,14 @@ de pruebas local completa.
 
 ## 🚀 HOJA DE RUTA
 
-Esta versión solo trae DS01. Lo que queda, en el orden propio del plan:
+Esta versión solo trae DS01. Lo que queda, en orden de entrega:
 
 - **DS02 - Estación remota reproducible.** Comprobaciones previas, un
   perfil mínimo de herramientas, acceso remoto por VS Code bajo una
   identidad real.
 - **DS03 - Migración conservadora.** Inventario y copia por lotes desde
   el PC del usuario con hashes, cambios locales y privacidad tratados
-  explícitamente - ver la sección 13.6 del propio plan.
+  explícitamente.
 - **DS04 - Workspace y ejecutor acotado.** Aislamiento real por tarea:
   dos tareas nunca chocan, una ruta fuera del workspace se rechaza.
 - **DS05 - Cola durable y resultados trazables.** IDs, leases, un diario

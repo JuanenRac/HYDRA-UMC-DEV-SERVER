@@ -4,9 +4,9 @@
 # GPL-3.0 - see LICENSE
 # =============================================================================
 """Real, read-only manifest discovery for DS01 - the concrete form of this
-delivery's own acceptance criterion "el catalogo reconoce el nuevo
-manifiesto en fixtures" (this project's own private development plan, section 13.13).
-Same real, tested pattern HYDRA-UMC-OPS-AGENT's own edge role already uses
+delivery's own acceptance criterion: the catalog recognizes a new
+manifest in its own fixtures. Same real, tested pattern
+HYDRA-UMC-OPS-AGENT's own edge role already uses
 for the same job (src/hydra_umc_ops_agent/inventory.py's
 scan_project_manifests()) - reused rather than reimplemented, since the
 underlying problem (find real hydra-umc.project.json files under a

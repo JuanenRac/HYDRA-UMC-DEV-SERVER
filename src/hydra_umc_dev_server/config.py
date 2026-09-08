@@ -3,12 +3,11 @@
 # Copyright (C) 2026 JuanenRac (Electro Hobby 3D) <electrohobby3d@gmail.com>
 # GPL-3.0 - see LICENSE
 # =============================================================================
-"""Real, tested configuration schema for DS01 ("Contratos, limites y
-esqueleto verificable" - this project's own private development plan,
-section 13.13). Three declarative documents, each independently loadable/
-validatable, matching this delivery's own acceptance criterion literally:
-"configuracion valida/incorrecta probada" and "ninguna tarea tiene permiso
-de despliegue por defecto".
+"""Real, tested configuration schema for DS01 (contracts, limits and a
+verifiable skeleton). Three declarative documents, each independently
+loadable/validatable, matching this delivery's own acceptance criterion:
+both valid and invalid configuration are tested, and no task has
+deployment permission by default.
 
 Nothing in this module talks to a real host, workspace or task - that is
 DS02/DS04/DS05, later deliveries. This is the contract those deliveries
@@ -59,9 +58,10 @@ def _require_positive_int(data: dict[str, Any], field_name: str, errors: list[st
 
 @dataclass(frozen=True)
 class HostProfile:
-    """Who this host is and where it keeps state - real fields from the
-    plan's own disk layout (13.5) and migration concept (13.6), not yet
-    consumed by any runner (that is DS02)."""
+    """Who this host is and where it keeps state - real fields from this
+    project's own disk layout and migration concept (see
+    docs/ARCHITECTURE.md), not yet consumed by any runner (that is
+    DS02)."""
     hostname: str
     arch: str
     storage_root: str

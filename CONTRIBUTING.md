@@ -15,10 +15,10 @@ HYDRA-UMC platform.
 ## Guidelines
 
 1. **`TaskPolicy.allow_deploy` defaults to `False`, always.** DS01's own
-   acceptance criterion is literal: "ninguna tarea tiene permiso de
-   despliegue por defecto". Do not add a code path, default argument, or
-   example configuration file that grants it implicitly - only a real
-   document that sets the literal JSON boolean `true` may ever produce a
+   acceptance criterion is literal: no task has deployment permission by
+   default. Do not add a code path, default argument, or example
+   configuration file that grants it implicitly - only a real document
+   that sets the literal JSON boolean `true` may ever produce a
    `TaskPolicy` with it enabled, and that must stay covered by a test the
    same way `test_config.py`'s own `allow_deploy` tests already are.
 2. **A collector reports a real, honest failure - it never guesses.**
@@ -29,12 +29,11 @@ HYDRA-UMC platform.
 3. **This delivery (DS01) only ever defines contracts and validates
    configuration - it does not yet run anything.** Do not add a workspace,
    task execution, queue, or AI-provider call without first checking which
-   later delivery (DS02/DS04/DS05/DS06 - see this project's own private
-   development plan, section 13.13, for the full list) actually owns that
-   piece, and updating this repository's own README Roadmap section to
+   later delivery (see this repository's own README Roadmap section for
+   the full list) actually owns that piece, and updating that section to
    match.
 4. **State ownership is not this repository's to redecide.**
-   `docs/ARCHITECTURE.md`'s ownership table is copied, not reinterpreted,
-   from that same private plan's own section 13.2.2 - an incident/approval/closure stays owned
-   by HYDRA-UMC-OPS-AGENT even once this host exists; do not add code here
-   that makes that decision instead.
+   `docs/ARCHITECTURE.md`'s own ownership table is this repository's
+   documented decision, not a placeholder - an incident/approval/closure
+   stays owned by HYDRA-UMC-OPS-AGENT even once this host exists; do not
+   add code here that makes that decision instead.

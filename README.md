@@ -91,10 +91,9 @@ surface.
   reinvented.
 - **Ownership and cross-project relationships are not this repository's
   to redecide.** [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) and
-  [docs/OPS_INTEGRATION.md](docs/OPS_INTEGRATION.md) restate, without
-  reinterpreting, this project's own private development plan's state-
-  ownership table and its grouping of 17 cross-project relationships
-  into necessary/optional/development-only.
+  [docs/OPS_INTEGRATION.md](docs/OPS_INTEGRATION.md) document this
+  repository's own state-ownership table and its grouping of 17
+  cross-project relationships into necessary/optional/development-only.
 - **stdlib only for this delivery.** `config validate` and `inventory
   scan` need no third-party dependency at all - a later delivery adds
   one only once that delivery's own code genuinely needs it (a durable-
@@ -120,8 +119,8 @@ HYDRA-UMC-DEV-SERVER/
 ├── docs/
 │   ├── CLI_REFERENCE.md    # Every subcommand, flags, exit codes
 │   ├── CONFIG_SCHEMA.md    # The real JSON shape of all three configuration documents
-│   ├── ARCHITECTURE.md     # Purpose, working modes, initial scope, disk layout (plan 13.1/13.3-13.5)
-│   └── OPS_INTEGRATION.md  # The 17-relationship map + state-ownership table (plan 13.2.1/13.2.2)
+│   ├── ARCHITECTURE.md     # Purpose, working modes, initial scope, disk layout
+│   └── OPS_INTEGRATION.md  # The 17-relationship map + state-ownership table
 ├── images/                # Media and app icons
 ├── tools/
 │   ├── build_test.py      # Non-versioning build/compile check
@@ -165,13 +164,12 @@ local test suite.
 
 ## 🚀 ROADMAP
 
-This version ships DS01 only. What remains, in this project's own private development plan's order:
+This version ships DS01 only. What remains, in delivery order:
 
 - **DS02 - Reproducible remote station.** Preflight checks, a minimal
   tool profile, remote VS Code access under a real identity.
 - **DS03 - Conservative migration.** Inventory and batch-copy from the
-  user's PC with hashes, local changes and privacy handled explicitly -
-  see this project's own private development plan, section 13.6.
+  user's PC with hashes, local changes and privacy handled explicitly.
 - **DS04 - Workspace and bounded runner.** Real per-task isolation: two
   tasks never collide, a path outside the workspace is rejected.
 - **DS05 - Durable queue and traceable results.** IDs, leases, a real

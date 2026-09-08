@@ -6,12 +6,11 @@ GPL-3.0 - see LICENSE
 
 # Cross-project relationships (DS01)
 
-This is a faithful translation of this project's own private development
-plan's section 13.2.1 - a design target, not proof that any of these
-endpoints, transports or automations exist yet. Real, already-available
-contracts are used where they exist; a missing one is proposed before it
-is coded, and current code/manifests are always checked at implementation
-time rather than assumed from this document.
+This document is a design target, not proof that any of these endpoints,
+transports or automations exist yet. Real, already-available contracts
+are used where they exist; a missing one is proposed before it is coded,
+and current code/manifests are always checked at implementation time
+rather than assumed from this document.
 
 Legend: **Receives** - what the project/family hands to DEV-SERVER.
 **Provides** - what DEV-SERVER hands back. **Boundary** - which
@@ -212,7 +211,7 @@ motion or recording action that needs operational authorization is never
 reassigned to DEV-SERVER. The URTC family keeps its own identity and
 catalog grouping.
 
-## Ownership map (13.2.2)
+## Ownership map
 
 | Data or decision | Proposed owner |
 | --- | --- |
@@ -244,7 +243,7 @@ manifest is extended compatibly if it does not yet express a necessary
 relationship, without inventing a field the dashboard or UPDATER could
 misinterpret.
 
-## Concrete bidirectional flows (13.2.3)
+## Concrete bidirectional flows
 
 **Repair requested by the CM5**
 Component -> evidence/hypothesis -> OPS-AGENT -> SDK task -> DEV-SERVER.
@@ -278,7 +277,7 @@ operator or OPS-AGENT -> authorized recovery from a recipe and backup.
 CM5 nodes stay operational per their own policy - they never wait on a
 response from the very process that just failed.
 
-## Tests that make these relationships count as implemented (13.2.4)
+## Tests that make these relationships count as implemented
 
 These criteria are folded into DS01, DS07, DS08 and DS10 - they do not
 create a separate delivery list, and documenting a relationship never

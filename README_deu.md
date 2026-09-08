@@ -97,10 +97,10 @@ die vollständige, reale Kommandooberfläche.
 - **Zustandseigentum und Beziehungen zwischen Projekten sind nicht von
   diesem Repository neu zu entscheiden.**
   [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) und
-  [docs/OPS_INTEGRATION.md](docs/OPS_INTEGRATION.md) geben, ohne sie
-  neu zu interpretieren, die Zustandseigentümer-Tabelle des privaten
-  Software-Vorbereitungsplans und dessen Gruppierung der 17
-  Projektbeziehungen in notwendig/optional/nur-Entwicklung wieder.
+  [docs/OPS_INTEGRATION.md](docs/OPS_INTEGRATION.md) dokumentieren die
+  eigene Zustandseigentümer-Tabelle dieses Repositorys und dessen
+  Gruppierung der 17 Projektbeziehungen in
+  notwendig/optional/nur-Entwicklung.
 - **Nur stdlib für diese Lieferung.** `config validate` und `inventory
   scan` benötigen keine externe Abhängigkeit - eine spätere Lieferung
   fügt eine erst hinzu, wenn deren eigener Code sie wirklich braucht
@@ -126,8 +126,8 @@ HYDRA-UMC-DEV-SERVER/
 ├── docs/
 │   ├── CLI_REFERENCE.md    # Jeder Unterbefehl, seine Flags und der Exit-Code-Vertrag
 │   ├── CONFIG_SCHEMA.md    # Die reale JSON-Form der drei Konfigurationsdokumente
-│   ├── ARCHITECTURE.md     # Zweck, Arbeitsmodi, anfänglicher Umfang, Festplatte (Plan 13.1/13.3-13.5)
-│   └── OPS_INTEGRATION.md  # Die 17-Beziehungs-Karte + Eigentümer-Tabelle (Plan 13.2.1/13.2.2)
+│   ├── ARCHITECTURE.md     # Zweck, Arbeitsmodi, anfänglicher Umfang, Festplatte
+│   └── OPS_INTEGRATION.md  # Die 17-Beziehungs-Karte + Eigentümer-Tabelle
 ├── images/                # Medien und App-Icons
 ├── tools/
 │   ├── build_test.py      # Nicht-versionierende Build-/Kompilierungsprüfung
@@ -174,15 +174,15 @@ vollständige lokale Testsuite aus.
 
 ## 🚀 ROADMAP
 
-Diese Version bringt nur DS01. Was in der eigenen Reihenfolge des
-Plans noch bleibt:
+Diese Version bringt nur DS01. Was in der Lieferreihenfolge noch
+bleibt:
 
 - **DS02 - Reproduzierbare Remote-Station.** Vorabprüfungen, ein
   minimales Werkzeugprofil, Remote-Zugriff via VS Code unter einer
   echten Identität.
 - **DS03 - Konservative Migration.** Inventar und Stapelkopie vom PC
   des Nutzers mit Hashes, lokalen Änderungen und explizit behandelter
-  Privatsphäre - siehe Abschnitt 13.6 des Plans selbst.
+  Privatsphäre.
 - **DS04 - Workspace und begrenzter Runner.** Echte Isolation pro
   Aufgabe: zwei Aufgaben kollidieren nie, ein Pfad außerhalb des
   Workspace wird abgelehnt.

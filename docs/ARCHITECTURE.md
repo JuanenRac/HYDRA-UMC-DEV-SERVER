@@ -6,12 +6,12 @@ GPL-3.0 - see LICENSE
 
 # Architecture (DS01)
 
-This is a faithful translation of this project's own private development
-plan's section 13 (purpose, working modes, initial scope, disk layout). It
-describes the target design across all ten deliveries (DS01-DS10) - this
-repository, at this delivery, only implements the configuration schema
-and manifest discovery described in the README. Everything else on this
-page is a documented target, not a claim about what runs today.
+This document describes this project's purpose, working modes, initial
+scope and disk layout, and the target design across all ten deliveries
+(DS01-DS10) - this repository, at this delivery, only implements the
+configuration schema and manifest discovery described in the README.
+Everything else on this page is a documented target, not a claim about
+what runs today.
 
 ## Purpose and status
 
@@ -48,7 +48,7 @@ for an external backup.
   model is never assumed able to fix code or run any model on request -
   its capabilities must be measured and declared.
 
-## Two ways of working, one core codebase (13.3)
+## Two ways of working, one core codebase
 
 **Interactive mode.** The user opens the remote environment from VS Code
 on their own PC and works on files stored on the server; the server side
@@ -75,7 +75,7 @@ hosts tools and code. A local model on DEV-SERVER would be optional,
 evaluated separately, and is not a condition for the first version, nor a
 reason on its own to buy another accelerator.
 
-## Initial scope (13.4)
+## Initial scope
 
 **In scope:**
 - Idempotent provisioning of the development environment and prerequisite
@@ -99,7 +99,7 @@ reason on its own to buy another accelerator.
 - Giving the AI executor root access, deployment secrets, or machinery
   network access.
 
-## Disk layout (13.5)
+## Disk layout
 
 Indicative paths under `/srv/hydra-umc-dev`; permissions and mount point
 are validated before use - detecting this path is never a reason to erase

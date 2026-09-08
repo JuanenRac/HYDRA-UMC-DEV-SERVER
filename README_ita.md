@@ -97,10 +97,10 @@ comandi reale e completa.
 - **La proprietà dello stato e le relazioni tra progetti non spettano a
   questo repository ridecidere.**
   [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) e
-  [docs/OPS_INTEGRATION.md](docs/OPS_INTEGRATION.md) riproducono, senza
-  reinterpretarla, la tabella dei proprietari di stato del piano privato
-  di preparazione software e il suo raggruppamento delle 17 relazioni
-  tra progetti in necessarie/opzionali/solo sviluppo.
+  [docs/OPS_INTEGRATION.md](docs/OPS_INTEGRATION.md) documentano la
+  propria tabella dei proprietari di stato di questo repository e il suo
+  raggruppamento delle 17 relazioni tra progetti in
+  necessarie/opzionali/solo sviluppo.
 - **Solo stdlib per questa consegna.** `config validate` e `inventory
   scan` non necessitano di alcuna dipendenza di terze parti - una
   consegna futura ne aggiunge una solo quando il proprio codice ne ha
@@ -126,8 +126,8 @@ HYDRA-UMC-DEV-SERVER/
 ├── docs/
 │   ├── CLI_REFERENCE.md    # Ogni sottocomando, i suoi flag e il contratto dei codici di uscita
 │   ├── CONFIG_SCHEMA.md    # La forma JSON reale dei tre documenti di configurazione
-│   ├── ARCHITECTURE.md     # Scopo, modalità di lavoro, ambito iniziale, disco (piano 13.1/13.3-13.5)
-│   └── OPS_INTEGRATION.md  # La mappa delle 17 relazioni + tabella dei proprietari (piano 13.2.1/13.2.2)
+│   ├── ARCHITECTURE.md     # Scopo, modalità di lavoro, ambito iniziale, disco
+│   └── OPS_INTEGRATION.md  # La mappa delle 17 relazioni + tabella dei proprietari
 ├── images/                # Media e icone dell'app
 ├── tools/
 │   ├── build_test.py      # Controllo di compilazione non versionante
@@ -171,15 +171,15 @@ suite di test locale completa.
 
 ## 🚀 ROADMAP
 
-Questa versione porta solo DS01. Ciò che resta, nell'ordine proprio del
-piano:
+Questa versione porta solo DS01. Ciò che resta, nell'ordine di
+consegna:
 
 - **DS02 - Stazione remota riproducibile.** Controlli preliminari, un
   profilo minimo di strumenti, accesso remoto via VS Code sotto
   un'identità reale.
 - **DS03 - Migrazione conservativa.** Inventario e copia a lotti dal PC
   dell'utente con hash, modifiche locali e privacy trattati
-  esplicitamente - vedi la sezione 13.6 del piano stesso.
+  esplicitamente.
 - **DS04 - Workspace ed esecutore limitato.** Isolamento reale per
   task: due task non collidono mai, un percorso fuori dal workspace
   viene respinto.
