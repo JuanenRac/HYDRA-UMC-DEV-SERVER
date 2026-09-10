@@ -127,6 +127,25 @@ class QueueCommandTests(unittest.TestCase):
             self.assertEqual(main(["queue", "journal", "nope", "--db", db]), 1)
 
 
+class ProviderCommandTests(unittest.TestCase):
+    _config = Path(__file__).resolve().parent.parent / "configs" / "ai-provider.example.json"
+
+    def test_provider_suggest_ok_scenario_exits_zero(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            pf = Path(tmp) / "prompt.txt"
+            pf.write_text("why did the unit fail?", encoding="utf-8")
+            self.assertEqual(main(["provider", "suggest", "--config", str(self._config), "--prompt-file", str(pf)]), 0)
+
+    def test_provider_suggest_adverse_scenarios_exit_nonzero(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            pf = Path(tmp) / "p.txt"
+            pf.write_text("p", encoding="utf-8")
+            for scenario in ("timeout", "malformed", "quota"):
+                code = main(["provider", "suggest", "--config", str(self._config),
+                             "--prompt-file", str(pf), "--scenario", scenario])
+                self.assertEqual(code, 1, scenario)
+
+
 class VersionTests(unittest.TestCase):
     def test_version_flag_matches_the_real_package_version(self):
         with self.assertRaises(SystemExit) as ctx:

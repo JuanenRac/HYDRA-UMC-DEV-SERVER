@@ -4,7 +4,7 @@ Copyright (C) 2026 JuanenRac (Electro Hobby 3D) <electrohobby3d@gmail.com>
 GPL-3.0 - see LICENSE
 ============================================================================= -->
 
-# CLI reference (DS01 + DS02 + DS03 + DS04 + DS05)
+# CLI reference (DS01 + DS02 + DS03 + DS04 + DS05 + DS06)
 
 `hydra-umc-dev-server` (entry point installed by `pip install -e .`) or
 `python -m hydra_umc_dev_server.cli` - both run the exact same code.
@@ -40,7 +40,7 @@ $ hydra-umc-dev-server inventory scan --root ..
 {
   "root": "..",
   "projects": [
-    {"name": "HYDRA-UMC-DEV-SERVER", "version": "0.0.5", "maturity": "scaffolding", "manifest_path": "../HYDRA-UMC-DEV-SERVER/hydra-umc.project.json"},
+    {"name": "HYDRA-UMC-DEV-SERVER", "version": "0.0.6", "maturity": "scaffolding", "manifest_path": "../HYDRA-UMC-DEV-SERVER/hydra-umc.project.json"},
     ...
   ],
   "issues": []
@@ -149,6 +149,21 @@ Prints the append-only execution journal for one task (`enqueued` /
 `cancelled`, each with its `attempt`, timestamp and JSON detail). Exits
 `1` if the task has no journal.
 
+## `provider suggest --config FILE --prompt-file FILE [--scenario ...]` (DS06)
+
+Runs one step of the deterministic **fake** AI provider through the
+safety contract (see `AI_PROVIDER.md`) and prints the inert
+`ProviderResult` JSON. `--config` is an ai-provider document (`kind`
+must be `"fake"` - a real provider is a user decision) with a
+`timeout_seconds` and a `budget` (`max_calls` / `max_tokens` /
+`max_cost_usd`). `--scenario` (default `ok`) picks which path to
+exercise: `ok` / `timeout` / `malformed` / `quota` / `injection`. A
+timeout, malformed output or quota exhaustion is a bounded named
+`outcome`; the budget stops the step before it exceeds; the suggestion
+is returned as data with `grants_no_permissions` / `triggers_no_deploy`
+always true, and an instruction-like suggestion is `injection_flagged`,
+never acted on. Exits `0` only on `outcome: "suggested"`.
+
 ## `--version`
 
 Prints the installed package version (mirrors `pyproject.toml`'s own
@@ -156,9 +171,11 @@ Prints the installed package version (mirrors `pyproject.toml`'s own
 
 ## Not yet implemented
 
-No `provider` subcommand exists yet - DS06 (interchangeable AI provider,
-a deterministic fake first) is a later delivery. There is no worker loop
-that pulls from the queue and calls `task run`; that glue is DS06/DS07. `station plan` describes a provisioning it never
+There is no worker loop that feeds a queued task's context to `provider
+suggest` and then runs the result through `task run`; that glue, and
+coordination with HYDRA-UMC-OPS-AGENT over an authenticated transport,
+are DS07/DS08. No real AI provider is wired - which one, and its
+authorization, is a user decision. `station plan` describes a provisioning it never
 carries out; `migrate plan` describes a migration it never carries out;
 there is no command that creates a user, writes a unit file, opens a
 port, or copies a single file. `task run` is the only command that

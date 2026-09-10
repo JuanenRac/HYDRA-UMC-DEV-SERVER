@@ -12,17 +12,17 @@
   <img src="https://img.shields.io/badge/许可证-GPL%203.0-blue.svg" alt="GPL 3.0">
   <img src="https://img.shields.io/badge/语言-Python%203.11%2B-blue.svg" alt="Python">
   <img src="https://img.shields.io/badge/核心-仅标准库-brightgreen.svg" alt="仅标准库核心">
-  <img src="https://img.shields.io/badge/交付-DS05%2F10-367BF5.svg" alt="DS05/10">
+  <img src="https://img.shields.io/badge/交付-DS06%2F10-367BF5.svg" alt="DS06/10">
 </p>
 
-> **状态：v0.0.5，脚手架阶段 - 十次交付中的 DS05（契约、边界与可验证的骨架）。**
+> **状态：v0.0.6，脚手架阶段 - 十次交付中的 DS06（契约、边界与可验证的骨架）。**
 > 一套真实、经过测试的配置模式(`config validate`)，其默认策略**不向任何任务授予部署权限**；
 > 以及只读的清单发现功能(`inventory scan`)，可找到本生态系统自身的
 > `hydra-umc.project.json` 文件——包括本仓库自己的那份。
 > DS02 新增一个经校验的远程站点配置(`station validate`)、一项**只读**的主机预检——
 > 它仅报告某台主机是否就绪(`station preflight`，不改变任何东西)，
 > 以及一份**空跑**的置备计划(`station plan`，从不执行任何步骤)。DS03 新增**保守迁移**（`migrate inventory` / `migrate plan`）：它对源 checkout 中的每个文件计算哈希并分类，并将每一类——干净、本地已修改、未跟踪、私有——规划到它**各自独立的目标**，若某个私有文件会落到任何可共享的位置则拒绝。它不复制任何内容，也从不触碰源。以上都只读取与描述。**DS04 新增受限执行器**（`task validate` / `task run`）：它在**按任务隔离的工作区**中运行**一个**白名单命令（`..`、绝对路径或指向工作区之外的 symlink 都会被拒绝；两个任务永不共享同一个），使用**已清理的环境**（不继承 `*_TOKEN` / `*_KEY` / `*_SECRET`），并在有界超时后**杀死整个进程组**。**DS05 新增一个持久的 SQLite 队列 + 执行日志**（`queue …`），可在重启后存活：重复的 `enqueue` 绝不是第二个作业；崩溃 worker 的租约会过期，`reconcile` 将任务退回 `queued`；来自不再持有租约的 worker 的结果会被**拒绝，而非标记为已完成**；自入队以来发生变化的基线**即使退出码为 0 也会阻止晋级**。它仍然不部署任何内容。
-> 目前尚不存在 AI 提供方集成——那是 DS06。
+> DS06 新增位于安全契约之后的确定性假 AI 提供方；真实提供方由用户决定。
 > 完整、真实的命令界面见 [docs/CLI_REFERENCE.md](docs/CLI_REFERENCE.md)。
 
 ---
@@ -85,7 +85,7 @@ $ hydra-umc-dev-server inventory scan --root ..
 {
   "root": "..",
   "projects": [
-    {"name": "HYDRA-UMC-DEV-SERVER", "version": "0.0.5", "maturity": "scaffolding", "manifest_path": "../HYDRA-UMC-DEV-SERVER/hydra-umc.project.json"},
+    {"name": "HYDRA-UMC-DEV-SERVER", "version": "0.0.6", "maturity": "scaffolding", "manifest_path": "../HYDRA-UMC-DEV-SERVER/hydra-umc.project.json"},
     ...
   ],
   "issues": []
@@ -131,14 +131,16 @@ HYDRA-UMC-DEV-SERVER/
 │   ├── recipe.py          # TaskRecipe：固定的 revision + 白名单命令（DS04）
 │   ├── runner.py          # 受限执行器：已清理的环境、超时、杀死整个进程组（DS04）
 │   ├── durable_queue.py   # SQLite 持久队列 + 租约 + append-only 执行日志，可在重启后存活（DS05）
-│   └── cli.py             # config / inventory / station / migrate / task / queue 子命令入口
+│   ├── ai_provider.py     # 可替换 AI 提供方 seam + 安全契约；仅确定性假提供方（DS06）
+│   └── cli.py             # config / inventory / station / migrate / task / queue / provider 子命令入口
 ├── configs/
 │   ├── host-profile.example.json
 │   ├── toolchains.example.json
 │   ├── task-policy.example.json      # allow_deploy: false，以此形式发布并测试
 │   ├── remote-station.example.json   # 绑定 127.0.0.1，以此形式发布并测试
 │   ├── migration-destinations.example.json   # 四个可证明彼此分离的根
-│   └── task-recipe.example.json          # 固定的 revision + 白名单命令
+│   ├── task-recipe.example.json          # 固定的 revision + 白名单命令
+│   └── ai-provider.example.json          # kind: fake，超时 + 调用/令牌/成本预算
 ├── tests/                # 上述每个模块的真实测试，包括所发布的示例配置
 ├── docs/
 │   ├── CLI_REFERENCE.md    # 每个子命令、其参数与退出码契约
@@ -147,6 +149,7 @@ HYDRA-UMC-DEV-SERVER/
 │   ├── MIGRATION_FROM_PC.md  # DS03 保守迁移的清单、类别与计划
 │   ├── WORKSPACE_AND_RUNNER.md  # DS04 的配方、隔离工作区与受限执行器
 │   ├── DURABLE_QUEUE.md      # DS05 的持久队列、租约与执行日志
+│   ├── AI_PROVIDER.md        # DS06 的提供方 seam 与安全契约（仅假）
 │   ├── ARCHITECTURE.md     # 目的、工作模式、初始范围、磁盘布局
 │   └── OPS_INTEGRATION.md  # 17 项关系图谱 + 归属表
 ├── images/                # 媒体与应用图标
@@ -188,7 +191,7 @@ chmod +x build.sh   # 一次性
 
 ## 🚀 路线图
 
-本版本交付 DS01 至 DS05。按交付顺序，剩余部分为：
+本版本交付 DS01 至 DS06。按交付顺序，剩余部分为：
 
 - **DS02 - 可复现的远程站点。** ✅ 已交付：一个经校验的远程站点配置、
   一项只读的主机预检，以及一份空跑的置备计划（`station` 子命令）。
@@ -196,11 +199,11 @@ chmod +x build.sh   # 一次性
 - **DS03 - 保守迁移。** ✅ 已交付：对源 checkout 中的每个文件计算哈希并分类，并将每一类（干净 / 已修改 / 未跟踪 / 私有）规划到其各自独立的目标，并为未推送的提交生成一个 bundle（`migrate` 子命令）。它不复制任何内容，也从不触碰源。执行一份已批准的计划属于后续交付。
 - **DS04 - 工作区与受限执行器。** ✅ 已交付：按任务隔离的工作区（两个任务永不冲突；`..`、绝对路径和指向工作区之外的 symlink 被拒绝），只允许一个白名单命令，一个已清理的环境，以及一个杀死整个进程组的超时（`task` 子命令）。它执行一个子进程，但不部署任何内容。
 - **DS05 - 持久队列与可追溯结果。** ✅ 已交付：一个带租约的 SQLite 队列和一份 append-only 执行日志，可在重启后存活；重复入队绝不是第二个作业，中断绝不是虚假成功，变化的基线会阻止晋级（`queue` 子命令）。
-- **DS06 - 可替换的 AI 提供方。** 先用确定性的假提供方，之后再接入真实的授权提供方。
+- **DS06 - 可替换的 AI 提供方。** ✅ 已交付（假的那一半）：一个位于安全契约之后的确定性假提供方——超时 / 格式错误 / 配额都变成有界结果，预算会停止该步骤，建议是不授予任何权限、不部署任何内容的惰性数据（`provider suggest`）。真实提供方由用户决定。
 - **DS07-DS10** - 与 HYDRA-UMC-OPS-AGENT 协调的事件处理、第一个完全受控的修复周期、
   稳定的运行/恢复，以及带有诚实成熟度评估的交付包。
 
-DS06-DS10 目前均尚未存在于本仓库中——每次交付明确包含与排除的内容，
+DS07-DS10 目前均尚未存在于本仓库中——每次交付明确包含与排除的内容，
 见 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)。
 
 ## 🔗 相关项目
