@@ -12,10 +12,10 @@
   <img src="https://img.shields.io/badge/Licencia-GPL%203.0-blue.svg" alt="GPL 3.0">
   <img src="https://img.shields.io/badge/Language-Python%203.11%2B-blue.svg" alt="Python">
   <img src="https://img.shields.io/badge/Core-stdlib%20only-brightgreen.svg" alt="stdlib-only core">
-  <img src="https://img.shields.io/badge/Delivery-DS06%20of%2010-367BF5.svg" alt="DS06 of 10">
+  <img src="https://img.shields.io/badge/Delivery-DS07%20of%2010-367BF5.svg" alt="DS07 of 10">
 </p>
 
-> **Status: v0.0.6, scaffolding - DS06 of 10 (contracts, limits and a
+> **Status: v0.0.7, scaffolding - DS07 of 10 (contracts, limits and a
 > verifiable skeleton).** A tested configuration schema
 > (`config validate`), read-only manifest discovery (`inventory scan`),
 > a remote-station profile + host preflight + dry-run provisioning plan
@@ -33,8 +33,14 @@
 > output or quota exhaustion is a **bounded named outcome**, a budget
 > stops the step, and the suggestion is **inert data** -
 > `grants_no_permissions` / `triggers_no_deploy` always true, an
-> instruction-like suggestion flagged and never acted on. It still
-> deploys nothing. See
+> instruction-like suggestion flagged and never acted on. **DS07 adds an
+> authenticated incident transport** for the round trip with
+> HYDRA-UMC-OPS-AGENT (`incident verify`) - a real protocol object, not
+> a file drop: an unregistered identity, a bad signature, a node
+> impersonating another, a replayed nonce, a stale timestamp, an
+> overloaded sender or an incompatible version is **rejected with a
+> named code**, and a dropped connection leaves a **reconcilable** state
+> (nothing lost, nothing double-counted). It still deploys nothing. See
 > [docs/CLI_REFERENCE.md](docs/CLI_REFERENCE.md) for the exact command
 > surface that exists today.
 
@@ -165,7 +171,7 @@ $ hydra-umc-dev-server inventory scan --root ..
 {
   "root": "..",
   "projects": [
-    {"name": "HYDRA-UMC-DEV-SERVER", "version": "0.0.6", "maturity": "scaffolding", "manifest_path": "../HYDRA-UMC-DEV-SERVER/hydra-umc.project.json"},
+    {"name": "HYDRA-UMC-DEV-SERVER", "version": "0.0.7", "maturity": "scaffolding", "manifest_path": "../HYDRA-UMC-DEV-SERVER/hydra-umc.project.json"},
     ...
   ],
   "issues": []
@@ -220,7 +226,8 @@ HYDRA-UMC-DEV-SERVER/
 │   ├── runner.py          # Bounded runner: scrubbed env, timeout, whole-process-group kill (DS04)
 │   ├── durable_queue.py   # SQLite durable queue + leases + append-only execution journal, survives a restart (DS05)
 │   ├── ai_provider.py     # Interchangeable AI provider seam + safety contract; deterministic fake only (DS06)
-│   └── cli.py             # config / inventory / station / migrate / task / queue / provider subcommand entry point
+│   ├── incident_transport.py  # HMAC-signed incident messages + verify + full round-trip session (DS07)
+│   └── cli.py             # config / inventory / station / migrate / task / queue / provider / incident subcommand entry point
 ├── configs/
 │   ├── host-profile.example.json
 │   ├── toolchains.example.json
@@ -228,7 +235,8 @@ HYDRA-UMC-DEV-SERVER/
 │   ├── remote-station.example.json       # binds 127.0.0.1, shipped and tested that way
 │   ├── migration-destinations.example.json   # four provably-separate roots
 │   ├── task-recipe.example.json          # pinned revision + allow-listed command
-│   └── ai-provider.example.json          # kind: fake, timeout + calls/tokens/cost budget
+│   ├── ai-provider.example.json          # kind: fake, timeout + calls/tokens/cost budget
+│   └── incident-transport.example.json   # contract version + replay window + rate limit (no secrets)
 │   # (queue commands take a --db path, no config file)
 ├── tests/                # Real tests for every module above, incl. the shipped example configs
 ├── docs/
@@ -239,6 +247,7 @@ HYDRA-UMC-DEV-SERVER/
 │   ├── WORKSPACE_AND_RUNNER.md  # The DS04 recipe, isolated workspace and bounded runner
 │   ├── DURABLE_QUEUE.md      # The DS05 durable queue, leases and execution journal
 │   ├── AI_PROVIDER.md        # The DS06 provider seam and safety contract (fake only)
+│   ├── INCIDENT_TRANSPORT.md # The DS07 signed message, verify checks and round-trip session
 │   ├── ARCHITECTURE.md       # Purpose, working modes, initial scope, disk layout
 │   └── OPS_INTEGRATION.md    # The 17-relationship map + state-ownership table
 ├── images/                # Media and app icons
@@ -284,7 +293,7 @@ local test suite.
 
 ## 🚀 ROADMAP
 
-This version ships DS01 through DS06. What remains, in delivery order:
+This version ships DS01 through DS07. What remains, in delivery order:
 
 - **DS02 - Reproducible remote station.** ✅ Shipped: a validated
   remote-station profile, a read-only host preflight, and a dry-run
@@ -311,11 +320,16 @@ This version ships DS01 through DS06. What remains, in delivery order:
   malformed / quota become bounded outcomes, a budget stops the step,
   the suggestion is inert data that grants nothing and deploys nothing
   (`provider suggest`). The real provider is a user decision.
-- **DS07-DS10** - coordinated incidents with HYDRA-UMC-OPS-AGENT, a first
-  fully controlled repair cycle, stable operation/restoration, and a
-  delivery package with an honest maturity evaluation.
+- **DS07 - Coordinated incidents with HYDRA-UMC-OPS-AGENT.** ✅ Shipped:
+  an HMAC-authenticated incident transport with replay / impersonation /
+  overload / version checks and a full submit → diagnosis → post-deploy
+  verification round trip that reconciles after a dropped connection
+  (`incident verify`).
+- **DS08-DS10** - a first fully controlled repair cycle, stable
+  operation/restoration, and a delivery package with an honest maturity
+  evaluation.
 
-None of DS07-DS10 exists in this repository yet - see
+None of DS08-DS10 exists in this repository yet - see
 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for what each delivery is
 scoped to include and explicitly exclude.
 

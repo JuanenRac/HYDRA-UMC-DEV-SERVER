@@ -12,10 +12,10 @@
   <img src="https://img.shields.io/badge/ライセンス-GPL%203.0-blue.svg" alt="GPL 3.0">
   <img src="https://img.shields.io/badge/言語-Python%203.11%2B-blue.svg" alt="Python">
   <img src="https://img.shields.io/badge/コア-stdlibのみ-brightgreen.svg" alt="stdlibのみのコア">
-  <img src="https://img.shields.io/badge/デリバリー-DS06%2F10-367BF5.svg" alt="DS06/10">
+  <img src="https://img.shields.io/badge/デリバリー-DS07%2F10-367BF5.svg" alt="DS07/10">
 </p>
 
-> **状態: v0.0.6、スキャフォールディング - 全10回中のDS06（契約・制約・検証可能な骨格）。**
+> **状態: v0.0.7、スキャフォールディング - 全10回中のDS07（契約・制約・検証可能な骨格）。**
 > 実在してテスト済みの設定スキーマ(`config validate`)は、デフォルトポリシーで
 > **どのタスクにもデプロイ権限を与えない**。また読み取り専用のマニフェスト発見機能
 > (`inventory scan`)は、このエコシステム自身の `hydra-umc.project.json` を
@@ -99,7 +99,7 @@ $ hydra-umc-dev-server inventory scan --root ..
 {
   "root": "..",
   "projects": [
-    {"name": "HYDRA-UMC-DEV-SERVER", "version": "0.0.6", "maturity": "scaffolding", "manifest_path": "../HYDRA-UMC-DEV-SERVER/hydra-umc.project.json"},
+    {"name": "HYDRA-UMC-DEV-SERVER", "version": "0.0.7", "maturity": "scaffolding", "manifest_path": "../HYDRA-UMC-DEV-SERVER/hydra-umc.project.json"},
     ...
   ],
   "issues": []
@@ -152,7 +152,8 @@ HYDRA-UMC-DEV-SERVER/
 │   ├── runner.py          # 境界付きランナー: サニタイズされた環境、タイムアウト、プロセスグループ全体をkill(DS04)
 │   ├── durable_queue.py   # SQLite永続キュー + リース + append-only実行ジャーナル、再起動を生き延びる(DS05)
 │   ├── ai_provider.py     # 交換可能なAIプロバイダーseam + セキュリティ契約; 決定論的フェイクのみ(DS06)
-│   └── cli.py             # config / inventory / station / migrate / task / queue / provider サブコマンドのエントリポイント
+│   ├── incident_transport.py  # HMAC署名されたインシデントメッセージ + verify + 完全な往復セッション(DS07)
+│   └── cli.py             # config / inventory / station / migrate / task / queue / provider / incident サブコマンドのエントリポイント
 ├── configs/
 │   ├── host-profile.example.json
 │   ├── toolchains.example.json
@@ -170,6 +171,7 @@ HYDRA-UMC-DEV-SERVER/
 │   ├── WORKSPACE_AND_RUNNER.md  # DS04のレシピ、隔離ワークスペース、境界付きランナー
 │   ├── DURABLE_QUEUE.md      # DS05の永続キュー、リース、実行ジャーナル
 │   ├── AI_PROVIDER.md        # DS06のプロバイダーseamとセキュリティ契約(フェイクのみ)
+│   ├── INCIDENT_TRANSPORT.md # DS07の署名メッセージ、検証、往復セッション
 │   ├── ARCHITECTURE.md     # 目的、作業モード、初期範囲、ディスク
 │   └── OPS_INTEGRATION.md  # 17関係マップ＋所有権表
 ├── images/                # メディアとアプリアイコン
@@ -215,7 +217,7 @@ CHANGELOGには一切触れない - これ自体はテストスイートを実�
 
 ## 🚀 ロードマップ
 
-このバージョンはDS01からDS06までを提供する。提供順に、残っているのは:
+このバージョンはDS01からDS07までを提供する。提供順に、残っているのは:
 
 - **DS02 - 再現可能なリモートステーション。** ✅ 提供済み: 検証済みの
   リモートステーションプロファイル、読み取り専用のホスト事前チェック、
@@ -228,11 +230,10 @@ CHANGELOGには一切触れない - これ自体はテストスイートを実�
   は決して2つ目のジョブにならず、中断は決して偽の成功にならず、変わった
   ベースは昇格をブロックする(`queue` サブコマンド)。
 - **DS06 - 交換可能なAIプロバイダー。** ✅ 提供済み(フェイクの半分): セキュリティ契約の背後にある決定論的な偽プロバイダー - タイムアウト / 不正 / クォータは境界のある結果になり、予算がステップを止め、提案は権限を何も付与せずデプロイも何もしない不活性なデータ(`provider suggest`)。実物のプロバイダーはユーザーの判断。
-- **DS07-DS10** - HYDRA-UMC-OPS-AGENTと連携したインシデント対応、
-  完全に制御された最初の修復サイクル、安定した運用/復旧、そして
-  正直な成熟度評価を伴う配布パッケージ。
+- **DS07 - HYDRA-UMC-OPS-AGENTと連携したインシデント対応。** ✅ 提供済み: リプレイ / なりすまし / 過負荷 / バージョンのチェックを備えたHMAC認証のインシデントトランスポートと、送信 → 診断 → デプロイ後検証 の完全な往復。ネットワーク断後に整合を取る(`incident verify`)。
+- **DS08-DS10** - 完全に制御された最初の修復サイクル、安定した運用/復旧、そして正直な成熟度評価を伴う配布パッケージ。
 
-DS07-DS10のいずれも、まだこのリポジトリには存在しない - 各提供物が明示的に
+DS08-DS10のいずれも、まだこのリポジトリには存在しない - 各提供物が明示的に
 含むもの・除外するものについては [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
 を参照。
 

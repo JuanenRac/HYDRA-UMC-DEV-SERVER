@@ -43,6 +43,15 @@
   instruction-like suggestion is flagged, never acted on. Which real
   provider to use is a user decision - only `kind: "fake"` is accepted.
 
+- `incident verify` - checks one incident message against a transport
+  policy and a node registry (incident_transport.py, DS07): an
+  unregistered identity, a bad signature, a node impersonating another,
+  a replayed nonce, a stale timestamp, an overloaded sender, or an
+  incompatible contract version is rejected with a named code. The full
+  submit -> diagnosis -> post-deploy-verification round trip, and
+  reconciliation after a dropped connection, are exercised by
+  `IncidentSession` in tests.
+
 `task run` is the only command that executes a subprocess, and only an
 allow-listed command, in an isolated workspace, with no inherited
 secrets; it still deploys nothing.
@@ -66,6 +75,13 @@ from .migration import (
 )
 from .ai_provider import FakeProvider, ProviderConfig, run_provider_step
 from .durable_queue import DurableQueue
+from .incident_transport import (
+    IncidentMessage,
+    NodeRegistry,
+    TransportPolicy,
+    VerifierState,
+    verify_message,
+)
 from .preflight import SystemHostInspector, run_preflight
 from .provision import build_provision_plan
 from .recipe import TaskRecipe
@@ -282,10 +298,29 @@ def _cmd_provider_suggest(args: argparse.Namespace) -> int:
     return 0 if result.outcome == "suggested" else 1
 
 
+def _cmd_incident_verify(args: argparse.Namespace) -> int:
+    try:
+        message = IncidentMessage.from_dict(load_json_document(Path(args.message_file)))
+        policy = TransportPolicy.from_dict(load_json_document(Path(args.policy)))
+        raw_registry = load_json_document(Path(args.registry))
+    except ConfigValidationError as exc:
+        print(f"INVALID: {exc}", file=sys.stderr)
+        return 1
+    if not all(isinstance(v, str) for v in raw_registry.values()):
+        print(f"INVALID: {args.registry} must map node id -> secret string", file=sys.stderr)
+        return 1
+    registry = NodeRegistry(secrets={str(k): str(v) for k, v in raw_registry.items()})
+    result = verify_message(
+        message, registry, policy, VerifierState(), authenticated_as=args.authenticated_as
+    )
+    print(json.dumps(result.to_dict(), indent=2))
+    return 0 if result.ok else 1
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="hydra-umc-dev-server",
-        description="Reproducible development host for the HYDRA-UMC/URTC ecosystem - DS01 (config schema, manifest inventory), DS02 (remote-station profile, host preflight, provisioning plan), DS03 (conservative-migration inventory and plan), DS04 (bounded task recipe + isolated workspace runner), DS05 (durable SQLite queue + execution journal) and DS06 (interchangeable AI provider - deterministic fake only, behind a safety contract). Only 'task run' executes anything, and only an allow-listed command in an isolated workspace with no inherited secrets.",
+        description="Reproducible development host for the HYDRA-UMC/URTC ecosystem - DS01 (config schema, manifest inventory), DS02 (remote-station profile, host preflight, provisioning plan), DS03 (conservative-migration inventory and plan), DS04 (bounded task recipe + isolated workspace runner), DS05 (durable SQLite queue + execution journal), DS06 (interchangeable AI provider - deterministic fake only) and DS07 (authenticated incident transport for the OPS-AGENT round trip). Only 'task run' executes anything, and only an allow-listed command in an isolated workspace with no inherited secrets.",
     )
     parser.add_argument("--version", action="version", version=__version__)
     subparsers = parser.add_subparsers(dest="command", required=True)
@@ -411,6 +446,18 @@ def build_parser() -> argparse.ArgumentParser:
         help="Which fake-provider path to exercise (default: ok).",
     )
     provider_suggest.set_defaults(func=_cmd_provider_suggest)
+
+    incident = subparsers.add_parser("incident", help="Authenticated incident-transport commands for the OPS-AGENT round trip (DS07).")
+    incident_sub = incident.add_subparsers(dest="incident_command", required=True)
+    incident_verify = incident_sub.add_parser(
+        "verify",
+        help="Verify one incident message against a transport policy and a node registry. Prints the rejection code if any.",
+    )
+    incident_verify.add_argument("message_file", help="Path to an incident-message JSON document.")
+    incident_verify.add_argument("--policy", required=True, help="Path to an incident-transport policy JSON document.")
+    incident_verify.add_argument("--registry", required=True, help="Path to a JSON object mapping node id -> HMAC secret (operator-held, never committed).")
+    incident_verify.add_argument("--authenticated-as", required=True, help="The node id the channel proved (e.g. the client-cert CN).")
+    incident_verify.set_defaults(func=_cmd_incident_verify)
 
     return parser
 

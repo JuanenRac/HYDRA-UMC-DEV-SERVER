@@ -12,10 +12,10 @@
   <img src="https://img.shields.io/badge/Licencia-GPL%203.0-blue.svg" alt="GPL 3.0">
   <img src="https://img.shields.io/badge/Lenguaje-Python%203.11%2B-blue.svg" alt="Python">
   <img src="https://img.shields.io/badge/Núcleo-solo%20stdlib-brightgreen.svg" alt="Núcleo solo stdlib">
-  <img src="https://img.shields.io/badge/Entrega-DS06%20de%2010-367BF5.svg" alt="DS06 de 10">
+  <img src="https://img.shields.io/badge/Entrega-DS07%20de%2010-367BF5.svg" alt="DS07 de 10">
 </p>
 
-> **Estado: v0.0.6, scaffolding - DS06 de 10 (contratos, límites y un
+> **Estado: v0.0.7, scaffolding - DS07 de 10 (contratos, límites y un
 > esqueleto verificable).** Un esquema de configuración real y probado
 > (`config validate`) cuya política por defecto **no concede permiso de
 > despliegue a ninguna tarea**, y un descubrimiento de manifiestos de
@@ -145,7 +145,7 @@ $ hydra-umc-dev-server inventory scan --root ..
 {
   "root": "..",
   "projects": [
-    {"name": "HYDRA-UMC-DEV-SERVER", "version": "0.0.6", "maturity": "scaffolding", "manifest_path": "../HYDRA-UMC-DEV-SERVER/hydra-umc.project.json"},
+    {"name": "HYDRA-UMC-DEV-SERVER", "version": "0.0.7", "maturity": "scaffolding", "manifest_path": "../HYDRA-UMC-DEV-SERVER/hydra-umc.project.json"},
     ...
   ],
   "issues": []
@@ -202,7 +202,8 @@ HYDRA-UMC-DEV-SERVER/
 │   ├── runner.py          # Runner acotado: entorno saneado, timeout, mata todo el grupo de procesos (DS04)
 │   ├── durable_queue.py   # Cola durable SQLite + leases + diario de ejecucion append-only, sobrevive a un reinicio (DS05)
 │   ├── ai_provider.py     # Seam de proveedor de IA intercambiable + contrato de seguridad; solo fake determinista (DS06)
-│   └── cli.py             # Punto de entrada de los subcomandos config / inventory / station / migrate / task / queue / provider
+│   ├── incident_transport.py  # Mensajes de incidente firmados con HMAC + verify + sesion de ida y vuelta completa (DS07)
+│   └── cli.py             # Punto de entrada de los subcomandos config / inventory / station / migrate / task / queue / provider / incident
 ├── configs/
 │   ├── host-profile.example.json
 │   ├── toolchains.example.json
@@ -219,6 +220,7 @@ HYDRA-UMC-DEV-SERVER/
 │   ├── WORKSPACE_AND_RUNNER.md  # La receta DS04, el workspace aislado y el runner acotado
 │   ├── DURABLE_QUEUE.md      # La cola durable DS05, los leases y el diario de ejecucion
 │   ├── AI_PROVIDER.md        # El seam de proveedor DS06 y su contrato de seguridad (solo fake)
+│   ├── INCIDENT_TRANSPORT.md # El mensaje firmado DS07, las comprobaciones y la sesion de ida y vuelta
 │   ├── ARCHITECTURE.md     # Propósito, modos de trabajo, alcance inicial, disco
 │   └── OPS_INTEGRATION.md  # El mapa de 17 relaciones + tabla de propietarios
 ├── images/                # Medios e iconos de la app
@@ -264,7 +266,7 @@ de pruebas local completa.
 
 ## 🚀 HOJA DE RUTA
 
-Esta versión trae DS01 hasta DS06. Lo que queda, en orden de entrega:
+Esta versión trae DS01 hasta DS07. Lo que queda, en orden de entrega:
 
 - **DS02 - Estación remota reproducible.** ✅ Entregado: un perfil de
   estación remota validado, una comprobación previa del host de solo
@@ -293,12 +295,16 @@ Esta versión trae DS01 hasta DS06. Lo que queda, en orden de entrega:
   detiene el paso, la sugerencia es dato inerte que no concede nada ni
   despliega nada (`provider suggest`). El proveedor real es decisión del
   usuario.
-- **DS07-DS10** - incidencias coordinadas con HYDRA-UMC-OPS-AGENT, un
-  primer ciclo de reparación completamente controlado, operación/
-  restauración estable, y un paquete de entrega con una evaluación
-  honesta de madurez.
+- **DS07 - Incidencias coordinadas con HYDRA-UMC-OPS-AGENT.** ✅
+  Entregado: un transporte de incidentes autenticado por HMAC con
+  comprobaciones de replay / suplantación / sobrecarga / versión y una
+  ida y vuelta completa envío → diagnóstico → verificación post-despliegue
+  que se concilia tras una caída de red (`incident verify`).
+- **DS08-DS10** - un primer ciclo de reparación completamente
+  controlado, operación/restauración estable, y un paquete de entrega
+  con una evaluación honesta de madurez.
 
-Nada de DS07-DS10 existe todavía en este repositorio - ver
+Nada de DS08-DS10 existe todavía en este repositorio - ver
 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) para lo que cada entrega
 incluye y excluye explícitamente.
 

@@ -1,0 +1,5 @@
+{
+  "contract_version": "incident-transport/1",
+  "replay_window_seconds": 120,
+  "max_messages_per_minute": 60
+}

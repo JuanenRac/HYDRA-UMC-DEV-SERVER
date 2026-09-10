@@ -4,7 +4,7 @@ Copyright (C) 2026 JuanenRac (Electro Hobby 3D) <electrohobby3d@gmail.com>
 GPL-3.0 - see LICENSE
 ============================================================================= -->
 
-# CLI reference (DS01 + DS02 + DS03 + DS04 + DS05 + DS06)
+# CLI reference (DS01 + DS02 + DS03 + DS04 + DS05 + DS06 + DS07)
 
 `hydra-umc-dev-server` (entry point installed by `pip install -e .`) or
 `python -m hydra_umc_dev_server.cli` - both run the exact same code.
@@ -40,7 +40,7 @@ $ hydra-umc-dev-server inventory scan --root ..
 {
   "root": "..",
   "projects": [
-    {"name": "HYDRA-UMC-DEV-SERVER", "version": "0.0.6", "maturity": "scaffolding", "manifest_path": "../HYDRA-UMC-DEV-SERVER/hydra-umc.project.json"},
+    {"name": "HYDRA-UMC-DEV-SERVER", "version": "0.0.7", "maturity": "scaffolding", "manifest_path": "../HYDRA-UMC-DEV-SERVER/hydra-umc.project.json"},
     ...
   ],
   "issues": []
@@ -163,6 +163,16 @@ timeout, malformed output or quota exhaustion is a bounded named
 is returned as data with `grants_no_permissions` / `triggers_no_deploy`
 always true, and an instruction-like suggestion is `injection_flagged`,
 never acted on. Exits `0` only on `outcome: "suggested"`.
+
+## `incident verify <message_file> --policy FILE --registry FILE --authenticated-as NODE` (DS07)
+
+Checks one incident message against a transport policy and a node
+registry (`node id -> HMAC secret`, operator-held, never committed; see
+`INCIDENT_TRANSPORT.md`). `--authenticated-as` is the identity the
+channel proved. Prints the `VerifyResult` JSON; exits `1` (never a
+traceback) with a named `code` for a rejection: `unknown-identity` /
+`bad-signature` / `impersonation` / `replay` / `stale` / `overloaded` /
+`incompatible-version`.
 
 ## `--version`
 
