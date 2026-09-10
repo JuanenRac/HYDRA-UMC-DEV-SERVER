@@ -12,10 +12,10 @@
   <img src="https://img.shields.io/badge/Licence-GPL%203.0-blue.svg" alt="GPL 3.0">
   <img src="https://img.shields.io/badge/Langage-Python%203.11%2B-blue.svg" alt="Python">
   <img src="https://img.shields.io/badge/Noyau-stdlib%20uniquement-brightgreen.svg" alt="Noyau stdlib uniquement">
-  <img src="https://img.shields.io/badge/Livraison-DS03%20sur%2010-367BF5.svg" alt="DS03 sur 10">
+  <img src="https://img.shields.io/badge/Livraison-DS04%20sur%2010-367BF5.svg" alt="DS04 sur 10">
 </p>
 
-> **Statut : v0.0.3, scaffolding - DS03 sur 10 (contrats, limites et un
+> **Statut : v0.0.4, scaffolding - DS04 sur 10 (contrats, limites et un
 > squelette vérifiable).** Un schéma de configuration réel et testé
 > (`config validate`) dont la politique par défaut **n'accorde aucune
 > permission de déploiement à aucune tâche**, et une découverte de
@@ -25,7 +25,7 @@
 > (`station validate`), une vérification préalable de l'hôte en
 > **lecture seule** qui se contente d'indiquer si un hôte est prêt
 > (`station preflight`, ne change rien), et un plan de provisionnement
-> **à blanc** (`station plan`, n'exécute jamais une étape). DS03 ajoute la **migration conservatrice** (`migrate inventory` / `migrate plan`) : elle hache et classe chaque fichier d'un checkout source et planifie chaque classe - propre, modifié localement, non suivi, privé - vers sa **propre destination distincte**, en refusant qu'un fichier privé atterrisse où que ce soit de partageable. Elle ne copie rien et ne touche jamais la source. Il n'existe
+> **à blanc** (`station plan`, n'exécute jamais une étape), et une **migration conservatrice** qui ne copie rien. DS04 ajoute l'**exécuteur borné** (`task validate` / `task run`) : il lance **une** commande d'une liste blanche dans un **espace de travail isolé par tâche** (un `..`, un chemin absolu ou un symlink hors de l'espace de travail est refusé ; deux tâches n'en partagent jamais un), avec un **environnement expurgé** (aucun `*_TOKEN` / `*_KEY` / `*_SECRET` hérité), sous un délai borné qui **tue tout le groupe de processus**. Il ne déploie toujours rien. DS03 ajoute la **migration conservatrice** (`migrate inventory` / `migrate plan`) : elle hache et classe chaque fichier d'un checkout source et planifie chaque classe - propre, modifié localement, non suivi, privé - vers sa **propre destination distincte**, en refusant qu'un fichier privé atterrisse où que ce soit de partageable. Elle ne copie rien et ne touche jamais la source. Il n'existe
 > pas encore d'espace de travail, d'exécuteur de tâches, de file
 > d'attente durable ni d'intégration avec un fournisseur d'IA - ce sera
 > DS04, DS05 et DS06, livraisons futures. Voir
@@ -99,6 +99,25 @@ jamais agir » - elle ne copie rien et ne touche jamais la source :
    manifeste de hachages complet, et imprime `REFUSED` si un fichier
    privé se résolvait sous une racine partageable.
 
+DS04 est la première livraison qui exécute un sous-processus - et elle
+reste très encadrée :
+
+7. **Recette de tâche + exécuteur d'espace de travail** (`task validate`
+   / `task run`) - une `TaskRecipe` fixe une `revision` (un nom de
+   branche est refusé) et une `command` d'une liste blanche (`argv[0]`
+   doit être dans `allowed_commands` de la politique, sinon le run est
+   `rejected` et rien n'est lancé). `task run` crée `<base>/<task_id>/`
+   - en refusant un qui existe déjà, donc **deux tâches ne partagent
+   jamais un espace de travail** - y lance la commande avec un
+   **environnement expurgé** (seulement `PATH` / `HOME` / `LANG` / `TZ`
+   ; jamais un `GITHUB_TOKEN`, `AWS_SECRET_ACCESS_KEY`,
+   `ANTHROPIC_API_KEY`, `SSH_AUTH_SOCK` hérité), borné par
+   `timeout_seconds`, et à l'expiration ou à l'annulation **tue tout le
+   groupe de processus** - prouvé par un test réel qui lance un
+   petit-enfant et confirme que les deux meurent. Un `..`, un chemin
+   absolu ou un symlink hors de l'espace de travail dans `input_paths`
+   est refusé. Il ne déploie rien.
+
 ```
 $ hydra-umc-dev-server config validate configs/task-policy.example.json --kind task-policy
 VALID: configs/task-policy.example.json (task-policy)
@@ -112,7 +131,7 @@ $ hydra-umc-dev-server inventory scan --root ..
 {
   "root": "..",
   "projects": [
-    {"name": "HYDRA-UMC-DEV-SERVER", "version": "0.0.3", "maturity": "scaffolding", "manifest_path": "../HYDRA-UMC-DEV-SERVER/hydra-umc.project.json"},
+    {"name": "HYDRA-UMC-DEV-SERVER", "version": "0.0.4", "maturity": "scaffolding", "manifest_path": "../HYDRA-UMC-DEV-SERVER/hydra-umc.project.json"},
     ...
   ],
   "issues": []
@@ -164,19 +183,24 @@ HYDRA-UMC-DEV-SERVER/
 │   ├── preflight.py       # Vérification de l'hôte en lecture seule via un inspecteur injectable (DS02)
 │   ├── provision.py       # Plan de provisionnement à blanc + texte de l'unité, jamais exécuté (DS02)
 │   ├── migration.py       # Inventaire de migration conservatrice + plan vers des destinations distinctes, ne copie rien (DS03)
-│   └── cli.py             # Point d'entrée des sous-commandes config / inventory / station / migrate
+│   ├── workspace.py       # Espace de travail isolé par tâche ; refuse ../, absolu, symlink hors de l'espace (DS04)
+│   ├── recipe.py          # TaskRecipe : révision fixée + commande de liste blanche (DS04)
+│   ├── runner.py          # Exécuteur borné : environnement expurgé, délai, tue tout le groupe de processus (DS04)
+│   └── cli.py             # Point d'entrée des sous-commandes config / inventory / station / migrate / task
 ├── configs/
 │   ├── host-profile.example.json
 │   ├── toolchains.example.json
 │   ├── task-policy.example.json      # allow_deploy : false, publié et testé ainsi
 │   ├── remote-station.example.json   # écoute sur 127.0.0.1, publié et testé ainsi
-│   └── migration-destinations.example.json   # quatre racines prouvablement distinctes
+│   ├── migration-destinations.example.json   # quatre racines prouvablement distinctes
+│   └── task-recipe.example.json          # révision fixée + commande de liste blanche
 ├── tests/                # Tests réels de chaque module ci-dessus, incl. les configs d'exemple publiées
 ├── docs/
 │   ├── CLI_REFERENCE.md    # Chaque sous-commande, ses options et le contrat des codes de sortie
 │   ├── CONFIG_SCHEMA.md    # La forme JSON réelle des trois documents de configuration
 │   ├── REMOTE_STATION.md   # Le profil de station distante DS02, la vérification préalable et le plan à blanc
 │   ├── MIGRATION_FROM_PC.md  # L'inventaire, les classes et le plan de migration conservatrice DS03
+│   ├── WORKSPACE_AND_RUNNER.md  # La recette DS04, l'espace de travail isolé et l'exécuteur borné
 │   ├── ARCHITECTURE.md     # Objectif, modes de travail, périmètre initial, disque
 │   └── OPS_INTEGRATION.md  # La carte des 17 relations + table des propriétaires
 ├── images/                # Médias et icônes de l'application
@@ -223,7 +247,7 @@ de tests locale complète.
 
 ## 🚀 FEUILLE DE ROUTE
 
-Cette version apporte DS01, DS02 et DS03. Ce qui reste, dans l'ordre de
+Cette version apporte DS01, DS02, DS03 et DS04. Ce qui reste, dans l'ordre de
 livraison :
 
 - **DS02 - Station distante reproductible.** ✅ Livré : un profil de
@@ -236,9 +260,12 @@ livraison :
   un bundle pour les commits non poussés (sous-commandes `migrate`). Elle
   ne copie rien et ne touche jamais la source. Exécuter un plan approuvé
   est une livraison ultérieure.
-- **DS04 - Espace de travail et exécuteur borné.** Isolation réelle par
-  tâche : deux tâches ne se percutent jamais, un chemin hors de l'espace
-  de travail est rejeté.
+- **DS04 - Espace de travail et exécuteur borné.** ✅ Livré : espace de
+  travail isolé par tâche (deux tâches ne se percutent jamais ; chemins
+  `..`, absolus et symlinks hors de l'espace refusés), une seule
+  commande de liste blanche, un environnement expurgé, et un délai qui
+  tue tout le groupe de processus (sous-commandes `task`). Il exécute un
+  sous-processus mais ne déploie rien.
 - **DS05 - File d'attente durable et résultats traçables.** IDs, leases,
   un journal d'exécution réel qui survit à un redémarrage.
 - **DS06 - Fournisseur d'IA interchangeable.** D'abord un fournisseur
@@ -248,7 +275,7 @@ livraison :
   restauration stable, et un paquet de livraison avec une évaluation
   honnête de la maturité.
 
-Rien de DS04-DS10 n'existe encore dans ce dépôt - voir
+Rien de DS05-DS10 n'existe encore dans ce dépôt - voir
 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) pour ce que chaque
 livraison inclut et exclut explicitement.
 

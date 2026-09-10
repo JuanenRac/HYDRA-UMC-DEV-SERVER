@@ -1,0 +1,8 @@
+{
+  "task_id": "example-lint-0001",
+  "repo": "HYDRA-UMC-DEV-SERVER",
+  "revision": "0.0.4",
+  "command": ["pytest", "-q"],
+  "timeout_seconds": 300,
+  "input_paths": ["tests", "pyproject.toml"]
+}

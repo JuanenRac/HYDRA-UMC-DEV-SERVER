@@ -12,10 +12,10 @@
   <img src="https://img.shields.io/badge/Licencia-GPL%203.0-blue.svg" alt="GPL 3.0">
   <img src="https://img.shields.io/badge/Lenguaje-Python%203.11%2B-blue.svg" alt="Python">
   <img src="https://img.shields.io/badge/Núcleo-solo%20stdlib-brightgreen.svg" alt="Núcleo solo stdlib">
-  <img src="https://img.shields.io/badge/Entrega-DS03%20de%2010-367BF5.svg" alt="DS03 de 10">
+  <img src="https://img.shields.io/badge/Entrega-DS04%20de%2010-367BF5.svg" alt="DS04 de 10">
 </p>
 
-> **Estado: v0.0.3, scaffolding - DS03 de 10 (contratos, límites y un
+> **Estado: v0.0.4, scaffolding - DS04 de 10 (contratos, límites y un
 > esqueleto verificable).** Un esquema de configuración real y probado
 > (`config validate`) cuya política por defecto **no concede permiso de
 > despliegue a ninguna tarea**, y un descubrimiento de manifiestos de
@@ -25,7 +25,7 @@
 > (`station validate`), una comprobación previa del host de **solo
 > lectura** que únicamente informa si un host está listo (`station
 > preflight`, no cambia nada), y un plan de aprovisionamiento **en
-> seco** (`station plan`, nunca ejecuta un paso). DS03 añade **migración conservadora** (`migrate inventory` / `migrate plan`): calcula el hash y clasifica cada archivo de un checkout de origen y planifica cada clase - limpio, modificado localmente, no seguido, privado - a su **propio destino separado**, negándose si un archivo privado acabaría en un sitio compartible. No copia nada y nunca toca el origen. Todavía no existe
+> seco** (`station plan`, nunca ejecuta un paso), y una **migración conservadora** que no copia nada. DS04 añade el **runner acotado** (`task validate` / `task run`): ejecuta **un** comando de una lista blanca en un **workspace aislado por tarea** (se rechaza `..`, ruta absoluta o symlink fuera del workspace; dos tareas nunca comparten uno), con un **entorno saneado** (sin `*_TOKEN` / `*_KEY` / `*_SECRET` heredados), bajo un timeout acotado que **mata todo el grupo de procesos**. Sigue sin desplegar nada. DS03 añade **migración conservadora** (`migrate inventory` / `migrate plan`): calcula el hash y clasifica cada archivo de un checkout de origen y planifica cada clase - limpio, modificado localmente, no seguido, privado - a su **propio destino separado**, negándose si un archivo privado acabaría en un sitio compartible. No copia nada y nunca toca el origen. Todavía no existe
 > workspace, ejecutor de tareas, cola durable ni integración con un
 > proveedor de IA - eso es DS04, DS05 y DS06, entregas futuras. Ver
 > [docs/CLI_REFERENCE.md](docs/CLI_REFERENCE.md) para la superficie de
@@ -97,6 +97,23 @@ actuar" - no copia nada y nunca toca el origen:
    completo, e imprime `REFUSED` si un archivo privado acabaría bajo una
    raíz compartible.
 
+DS04 es la primera entrega que ejecuta un subproceso - y sigue muy
+acotada:
+
+7. **Receta de tarea + runner de workspace** (`task validate` / `task
+   run`) - una `TaskRecipe` fija una `revision` (un nombre de rama se
+   rechaza) y un `command` de lista blanca (`argv[0]` debe estar en
+   `allowed_commands` de la política, o el run es `rejected` y no se
+   lanza nada). `task run` crea `<base>/<task_id>/` - negándose si ya
+   existe, así que **dos tareas nunca comparten un workspace** - ejecuta
+   el comando ahí con un **entorno saneado** (solo `PATH` / `HOME` /
+   `LANG` / `TZ`; nunca un `GITHUB_TOKEN`, `AWS_SECRET_ACCESS_KEY`,
+   `ANTHROPIC_API_KEY`, `SSH_AUTH_SOCK` heredado), acotado por
+   `timeout_seconds`, y al agotarse o al cancelar **mata todo el grupo
+   de procesos** - probado por un test real que lanza un nieto y
+   confirma que ambos mueren. Un `..`, una ruta absoluta o un symlink
+   fuera del workspace en `input_paths` se rechaza. No despliega nada.
+
 ```
 $ hydra-umc-dev-server config validate configs/task-policy.example.json --kind task-policy
 VALID: configs/task-policy.example.json (task-policy)
@@ -110,7 +127,7 @@ $ hydra-umc-dev-server inventory scan --root ..
 {
   "root": "..",
   "projects": [
-    {"name": "HYDRA-UMC-DEV-SERVER", "version": "0.0.3", "maturity": "scaffolding", "manifest_path": "../HYDRA-UMC-DEV-SERVER/hydra-umc.project.json"},
+    {"name": "HYDRA-UMC-DEV-SERVER", "version": "0.0.4", "maturity": "scaffolding", "manifest_path": "../HYDRA-UMC-DEV-SERVER/hydra-umc.project.json"},
     ...
   ],
   "issues": []
@@ -162,19 +179,24 @@ HYDRA-UMC-DEV-SERVER/
 │   ├── preflight.py       # Comprobación de solo lectura del host vía un inspector inyectable (DS02)
 │   ├── provision.py       # Plan de aprovisionamiento en seco + texto de la unit, nunca ejecutado (DS02)
 │   ├── migration.py       # Inventario de migración conservadora + plan a destinos separados, no copia nada (DS03)
-│   └── cli.py             # Punto de entrada de los subcomandos config / inventory / station / migrate
+│   ├── workspace.py       # Workspace aislado por tarea; rechaza ../, absoluta, symlink fuera del workspace (DS04)
+│   ├── recipe.py          # TaskRecipe: revisión fijada + comando de lista blanca (DS04)
+│   ├── runner.py          # Runner acotado: entorno saneado, timeout, mata todo el grupo de procesos (DS04)
+│   └── cli.py             # Punto de entrada de los subcomandos config / inventory / station / migrate / task
 ├── configs/
 │   ├── host-profile.example.json
 │   ├── toolchains.example.json
 │   ├── task-policy.example.json      # allow_deploy: false, publicado y probado así
 │   ├── remote-station.example.json   # escucha en 127.0.0.1, publicado y probado así
-│   └── migration-destinations.example.json   # cuatro raíces demostrablemente separadas
+│   ├── migration-destinations.example.json   # cuatro raíces demostrablemente separadas
+│   └── task-recipe.example.json          # revisión fijada + comando de lista blanca
 ├── tests/                # Pruebas reales de cada módulo anterior, incl. los configs de ejemplo publicados
 ├── docs/
 │   ├── CLI_REFERENCE.md    # Cada subcomando, sus flags y el contrato de códigos de salida
 │   ├── CONFIG_SCHEMA.md    # La forma JSON real de los tres documentos de configuración
 │   ├── REMOTE_STATION.md   # El perfil de estación remota DS02, la comprobación previa y el plan en seco
 │   ├── MIGRATION_FROM_PC.md  # El inventario, las clases y el plan de migración conservadora DS03
+│   ├── WORKSPACE_AND_RUNNER.md  # La receta DS04, el workspace aislado y el runner acotado
 │   ├── ARCHITECTURE.md     # Propósito, modos de trabajo, alcance inicial, disco
 │   └── OPS_INTEGRATION.md  # El mapa de 17 relaciones + tabla de propietarios
 ├── images/                # Medios e iconos de la app
@@ -220,7 +242,7 @@ de pruebas local completa.
 
 ## 🚀 HOJA DE RUTA
 
-Esta versión trae DS01, DS02 y DS03. Lo que queda, en orden de entrega:
+Esta versión trae DS01, DS02, DS03 y DS04. Lo que queda, en orden de entrega:
 
 - **DS02 - Estación remota reproducible.** ✅ Entregado: un perfil de
   estación remota validado, una comprobación previa del host de solo
@@ -232,8 +254,12 @@ Esta versión trae DS01, DS02 y DS03. Lo que queda, en orden de entrega:
   separado, con un bundle para los commits sin pushear (subcomandos
   `migrate`). No copia nada y nunca toca el origen. Ejecutar un plan
   aprobado es una entrega posterior.
-- **DS04 - Workspace y ejecutor acotado.** Aislamiento real por tarea:
-  dos tareas nunca chocan, una ruta fuera del workspace se rechaza.
+- **DS04 - Workspace y ejecutor acotado.** ✅ Entregado: workspace
+  aislado por tarea (dos tareas nunca chocan; rutas `..`, absolutas y
+  symlinks fuera del workspace rechazados), solo un comando de lista
+  blanca, un entorno saneado, y un timeout que mata todo el grupo de
+  procesos (subcomandos `task`). Ejecuta un subproceso pero no despliega
+  nada.
 - **DS05 - Cola durable y resultados trazables.** IDs, leases, un diario
   de ejecución real que sobrevive a un reinicio.
 - **DS06 - Proveedor de IA intercambiable.** Primero un proveedor falso
@@ -243,7 +269,7 @@ Esta versión trae DS01, DS02 y DS03. Lo que queda, en orden de entrega:
   restauración estable, y un paquete de entrega con una evaluación
   honesta de madurez.
 
-Nada de DS04-DS10 existe todavía en este repositorio - ver
+Nada de DS05-DS10 existe todavía en este repositorio - ver
 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) para lo que cada entrega
 incluye y excluye explícitamente.
 

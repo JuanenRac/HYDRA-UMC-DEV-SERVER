@@ -4,7 +4,7 @@ Copyright (C) 2026 JuanenRac (Electro Hobby 3D) <electrohobby3d@gmail.com>
 GPL-3.0 - see LICENSE
 ============================================================================= -->
 
-# CLI reference (DS01 + DS02 + DS03)
+# CLI reference (DS01 + DS02 + DS03 + DS04)
 
 `hydra-umc-dev-server` (entry point installed by `pip install -e .`) or
 `python -m hydra_umc_dev_server.cli` - both run the exact same code.
@@ -40,7 +40,7 @@ $ hydra-umc-dev-server inventory scan --root ..
 {
   "root": "..",
   "projects": [
-    {"name": "HYDRA-UMC-DEV-SERVER", "version": "0.0.2", "maturity": "scaffolding", "manifest_path": "../HYDRA-UMC-DEV-SERVER/hydra-umc.project.json"},
+    {"name": "HYDRA-UMC-DEV-SERVER", "version": "0.0.4", "maturity": "scaffolding", "manifest_path": "../HYDRA-UMC-DEV-SERVER/hydra-umc.project.json"},
     ...
   ],
   "issues": []
@@ -99,6 +99,31 @@ there are unpushed commits, and a full `relpath -> sha256` manifest.
 Prints `REFUSED: ...` and exits `1` if a private file would ever resolve
 under a shareable root. **Copies nothing; touches nothing in the source.**
 
+## `task validate <recipe_file> --policy <task-policy_file>` (DS04)
+
+Loads `<recipe_file>` as a task recipe and checks it against a task
+policy (see `WORKSPACE_AND_RUNNER.md`): a pinned `revision` (commit hash
+/ `vX.Y.Z` tag / `refs/tags/...` - a bare branch name is refused), a
+bounded `timeout_seconds`, and a `command` whose `argv[0]` is in the
+policy's own `allowed_commands`. Prints `VALID: ...` (exit `0`) or
+`INVALID: ...` (exit `1`). **Runs nothing.**
+
+## `task run <recipe_file> --policy <file> --workspace-base <dir>` (DS04)
+
+Allocates `<workspace-base>/<task_id>/` (refusing one that already
+exists - two tasks never share a workspace), validates the recipe
+against the policy, then runs the recipe's allow-listed `command` in
+that workspace with a **scrubbed environment** (only `PATH` / `HOME` /
+`LANG` / `TZ`, plus non-secret OS basics on Windows - never an inherited
+`*_TOKEN` / `*_KEY` / `*_SECRET` / `ANTHROPIC_*` / `GITHUB_*` /
+`SSH_*`), under `timeout_seconds`. On timeout the **whole process
+group** is killed, not just the direct child. Prints the `RunResult`
+JSON (`outcome`: `completed` / `timed-out` / `cancelled` / `rejected`,
+`exit_code`, bounded stdout/stderr tails, `killed_process_group`).
+Exits `0` only on `completed` with exit code `0`. A disallowed command
+or an escaping input path is `rejected` with **nothing spawned**. It
+deploys nothing.
+
 ## `--version`
 
 Prints the installed package version (mirrors `pyproject.toml`'s own
@@ -106,10 +131,11 @@ Prints the installed package version (mirrors `pyproject.toml`'s own
 
 ## Not yet implemented
 
-No `workspace`, `task`, `queue` or `provider` subcommand exists yet - DS04
-(workspace/runner), DS05 (durable queue) and DS06 (AI provider) are later
-deliveries. Running this CLI today cannot start, cancel, or observe any
-task, and cannot deploy anything under any circumstance. `station plan`
-describes a provisioning it never carries out; `migrate plan` describes a
-migration it never carries out; there is no command that creates a user,
-writes a unit file, opens a port, or copies a single file.
+No `queue` or `provider` subcommand exists yet - DS05 (durable queue,
+leases, execution journal) and DS06 (interchangeable AI provider) are
+later deliveries. `station plan` describes a provisioning it never
+carries out; `migrate plan` describes a migration it never carries out;
+there is no command that creates a user, writes a unit file, opens a
+port, or copies a single file. `task run` is the only command that
+executes anything, and only an allow-listed command in an isolated
+workspace with no inherited secrets - it deploys nothing.
