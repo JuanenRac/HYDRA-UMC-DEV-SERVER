@@ -12,10 +12,11 @@
   <img src="https://img.shields.io/badge/Lizenz-GPL%203.0-blue.svg" alt="GPL 3.0">
   <img src="https://img.shields.io/badge/Sprache-Python%203.11%2B-blue.svg" alt="Python">
   <img src="https://img.shields.io/badge/Kern-nur%20stdlib-brightgreen.svg" alt="Nur-stdlib-Kern">
-  <img src="https://img.shields.io/badge/Lieferung-DS09%20von%2010-367BF5.svg" alt="DS09 von 10">
+  <img src="https://img.shields.io/badge/Lieferung-DS01--DS10%20komplett%20(Scaffolding)-brightgreen.svg" alt="DS01-DS10 komplett, Scaffolding">
 </p>
 
-> **Status: v0.0.9, Scaffolding - DS09 von 10 (Verträge, Grenzen und ein
+> **Status: v0.1.0, Scaffolding - alle zehn von zehn geliefert,
+> weiterhin Scaffolding (Verträge, Grenzen und ein
 > überprüfbares Gerüst).** Ein reales, getestetes Konfigurationsschema
 > (`config validate`), dessen Standardrichtlinie **keiner Aufgabe eine
 > Deployment-Berechtigung erteilt**, sowie eine schreibgeschützte
@@ -152,7 +153,7 @@ $ hydra-umc-dev-server inventory scan --root ..
 {
   "root": "..",
   "projects": [
-    {"name": "HYDRA-UMC-DEV-SERVER", "version": "0.0.9", "maturity": "scaffolding", "manifest_path": "../HYDRA-UMC-DEV-SERVER/hydra-umc.project.json"},
+    {"name": "HYDRA-UMC-DEV-SERVER", "version": "0.1.0", "maturity": "scaffolding", "manifest_path": "../HYDRA-UMC-DEV-SERVER/hydra-umc.project.json"},
     ...
   ],
   "issues": []
@@ -213,7 +214,8 @@ HYDRA-UMC-DEV-SERVER/
 │   ├── incident_transport.py  # HMAC-signierte Incident-Nachrichten + verify + vollständige Round-Trip-Session (DS07)
 │   ├── repair_cycle.py    # Gated repro->...->verify-Zyklus mit Rollback + das Kandidaten-Gate (DS08)
 │   ├── operations.py      # Verifiziertes Zustands-Backup/Restore + operativer Health-Check (DS09)
-│   └── cli.py             # Einstiegspunkt der Unterbefehle config / inventory / station / migrate / task / queue / provider / incident / repair / ops
+│   ├── delivery.py        # Liefermanifest (sha256 pro Datei) + ehrliche Reifegradbewertung, überschätzt nie (DS10)
+│   └── cli.py             # Einstiegspunkt der Unterbefehle config / inventory / station / migrate / task / queue / provider / incident / repair / ops / deliver
 ├── configs/
 │   ├── host-profile.example.json
 │   ├── toolchains.example.json
@@ -233,6 +235,7 @@ HYDRA-UMC-DEV-SERVER/
 │   ├── INCIDENT_TRANSPORT.md # Die DS07-signierte Nachricht, die Prüfungen und die Round-Trip-Session
 │   ├── REPAIR_CYCLE.md       # Der DS08-Reparaturzyklus mit Gates, seine Kontrollen und der Rollback
 │   ├── OPERATIONS.md         # Das verifizierte DS09-Backup/Restore und der operative Health-Check
+│   ├── DELIVERY.md           # Das DS10-Liefermanifest und die ehrliche Reifegradbewertung
 │   ├── ARCHITECTURE.md     # Zweck, Arbeitsmodi, anfänglicher Umfang, Festplatte
 │   └── OPS_INTEGRATION.md  # Die 17-Beziehungs-Karte + Eigentümer-Tabelle
 ├── images/                # Medien und App-Icons
@@ -281,8 +284,8 @@ vollständige lokale Testsuite aus.
 
 ## 🚀 ROADMAP
 
-Diese Version bringt DS01 bis DS09. Was in der Lieferreihenfolge noch
-bleibt:
+Diese Version bringt DS01 bis DS10: der Zehn-Lieferungen-Plan ist
+komplett. Jede Lieferung, in Reihenfolge:
 
 - **DS02 - Reproduzierbare Remote-Station.** ✅ Geliefert: ein
   validiertes Remote-Stationsprofil, eine schreibgeschützte
@@ -328,9 +331,20 @@ bleibt:
   operative Health-Checks über Warteschlange und Platte, und ein
   verifiziertes Zustands-Backup/Restore, das ein Backup einer anderen
   Instanz oder ein beschädigtes ablehnt (`ops`-Unterbefehle).
-- **DS10** - ein Lieferpaket mit ehrlicher Reifegradbewertung.
+- **DS10 - Lieferpaket und ehrliche Reifegradbewertung.** ✅ Geliefert:
+  `deliver manifest` erfasst einen sha256 pro geliefeter Datei und liest
+  die reale CLI-Oberfläche, die Version und die Testanzahl zurück;
+  `deliver evaluate` meldet jede der zehn Lieferungen gegen reale
+  Evidenz (DS06 ist `partial` - nur der Fake wird geliefert), listet
+  sieben Grenzen klar auf und meldet ein `overall_maturity`, das im Code
+  fest auf `scaffolding` steht.
 
-Nichts von DS10 existiert bisher in diesem Repository - siehe
+**Reifegrad.** Der Plan ist komplett; der Reifegrad bleibt bewusst
+`scaffolding`. In diesem Repository stehen Verträge, Grenzen und ein
+überprüfbares Gerüst. Nichts hier provisioniert einen Host, führt ein
+Deployment aus, verbindet die Teile zu einer Worker-Schleife oder hat
+reale Hardware berührt. `deliver evaluate` sagt genau das, und seine
+`known_limitations`-Liste ist die ehrliche To-do-Liste. Siehe
 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) dafür, was jede Lieferung
 explizit ein- und ausschließt.
 

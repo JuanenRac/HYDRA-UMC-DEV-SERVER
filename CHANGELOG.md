@@ -5,6 +5,44 @@ version number follows this ecosystem's "odometer" scheme: PATCH +1 on
 every real build, rolling into MINOR past 9 (`0.0.9` -> `0.1.0`); MAJOR is
 bumped manually only. See `bump_version.py`.
 
+## [0.1.0] - DS10: delivery package + honest maturity evaluation
+
+Tenth and last delivery of ten. The plan closes the way it opened - by
+describing, not claiming.
+
+- `delivery.py`:
+  - `build_delivery_manifest()` enumerates what this repository actually
+    ships - every `src/hydra_umc_dev_server/*.py` module, every
+    `docs/*.md`, every `configs/*.json`, plus `pyproject.toml`,
+    `hydra-umc.project.json`, `CHANGELOG.md` and `README.md` - with a
+    sha256 per file. It also reads back the real CLI surface (the
+    `add_parser(...)` names in `cli.py`), the package version and the
+    `tests/test_*.py` count.
+  - `evaluate_maturity()` reports each of the ten deliveries as
+    `shipped` / `partial` / `not-started` against real evidence (is the
+    module actually in the tree). DS06 is reported **`partial`** on
+    purpose - only the deterministic fake provider ships. The seven
+    `known_limitations` are stated in plain words (no real AI provider,
+    no real network transport, no container sandbox, no worker loop
+    wiring the pieces together, nothing that provisions a host or
+    deploys anything, no target hardware validated, every real-host
+    contact behind an injectable seam).
+  - `overall_maturity` is hard-coded `"scaffolding"`. This code has no
+    branch that returns anything higher - the honesty guard is that the
+    evaluation *cannot* over-claim.
+- `cli.py` - new `deliver manifest` and `deliver evaluate` subcommands;
+  `deliver evaluate` exits non-zero if the maturity is ever not
+  `scaffolding`.
+- `docs/DELIVERY.md`; `docs/ARCHITECTURE.md`, `docs/CLI_REFERENCE.md`,
+  README x7 synced to DS01-DS10.
+- 8 new tests (`test_delivery.py` + `deliver` cases in `test_cli.py`) -
+  228 total.
+
+The ten-delivery plan is complete. The maturity stays `scaffolding`:
+what is here is contracts, limits and a verifiable skeleton. Nothing in
+this repository provisions a host, runs a deploy, or has touched target
+hardware - and `deliver evaluate` says exactly that.
+
 ## [0.0.9] - DS09: stable operation + verified state backup/restore
 
 Ninth delivery of ten.
@@ -26,8 +64,6 @@ Ninth delivery of ten.
 - `docs/OPERATIONS.md`, README x7 synced.
 - 14 new tests (`test_operations.py` incl. the backup round-trip and each
   refusal, plus `ops` cases in `test_cli.py`) - 220 total.
-
-DS10 (delivery package + honest maturity evaluation) does not exist yet.
 
 ## [0.0.8] - DS08: one fully controlled repair cycle
 

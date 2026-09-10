@@ -12,10 +12,10 @@
   <img src="https://img.shields.io/badge/ライセンス-GPL%203.0-blue.svg" alt="GPL 3.0">
   <img src="https://img.shields.io/badge/言語-Python%203.11%2B-blue.svg" alt="Python">
   <img src="https://img.shields.io/badge/コア-stdlibのみ-brightgreen.svg" alt="stdlibのみのコア">
-  <img src="https://img.shields.io/badge/デリバリー-DS09%2F10-367BF5.svg" alt="DS09/10">
+  <img src="https://img.shields.io/badge/デリバリー-DS01--DS10%20完了%20(スキャフォールディング)-brightgreen.svg" alt="DS01-DS10 完了、スキャフォールディング">
 </p>
 
-> **状態: v0.0.9、スキャフォールディング - 全10回中のDS09（契約・制約・検証可能な骨格）。**
+> **状態: v0.1.0、スキャフォールディング - 全10回すべて提供済み、依然としてスキャフォールディング（契約・制約・検証可能な骨格）。**
 > 実在してテスト済みの設定スキーマ(`config validate`)は、デフォルトポリシーで
 > **どのタスクにもデプロイ権限を与えない**。また読み取り専用のマニフェスト発見機能
 > (`inventory scan`)は、このエコシステム自身の `hydra-umc.project.json` を
@@ -99,7 +99,7 @@ $ hydra-umc-dev-server inventory scan --root ..
 {
   "root": "..",
   "projects": [
-    {"name": "HYDRA-UMC-DEV-SERVER", "version": "0.0.9", "maturity": "scaffolding", "manifest_path": "../HYDRA-UMC-DEV-SERVER/hydra-umc.project.json"},
+    {"name": "HYDRA-UMC-DEV-SERVER", "version": "0.1.0", "maturity": "scaffolding", "manifest_path": "../HYDRA-UMC-DEV-SERVER/hydra-umc.project.json"},
     ...
   ],
   "issues": []
@@ -155,7 +155,8 @@ HYDRA-UMC-DEV-SERVER/
 │   ├── incident_transport.py  # HMAC署名されたインシデントメッセージ + verify + 完全な往復セッション(DS07)
 │   ├── repair_cycle.py    # ゲート付きの repro->...->verify サイクルとロールバック + 候補ゲート(DS08)
 │   ├── operations.py      # 検証済みの状態バックアップ/リストア + 運用ヘルスチェック(DS09)
-│   └── cli.py             # config / inventory / station / migrate / task / queue / provider / incident / repair / ops サブコマンドのエントリポイント
+│   ├── delivery.py        # 配布マニフェスト(ファイルごとのsha256) + 正直な成熟度評価、決して過大評価しない(DS10)
+│   └── cli.py             # config / inventory / station / migrate / task / queue / provider / incident / repair / ops / deliver サブコマンドのエントリポイント
 ├── configs/
 │   ├── host-profile.example.json
 │   ├── toolchains.example.json
@@ -176,6 +177,7 @@ HYDRA-UMC-DEV-SERVER/
 │   ├── INCIDENT_TRANSPORT.md # DS07の署名メッセージ、検証、往復セッション
 │   ├── REPAIR_CYCLE.md       # DS08のゲート付き修復サイクル、その制御とロールバック
 │   ├── OPERATIONS.md         # DS09の検証済みバックアップ/リストアと運用ヘルスチェック
+│   ├── DELIVERY.md           # DS10の配布マニフェストと正直な成熟度評価
 │   ├── ARCHITECTURE.md     # 目的、作業モード、初期範囲、ディスク
 │   └── OPS_INTEGRATION.md  # 17関係マップ＋所有権表
 ├── images/                # メディアとアプリアイコン
@@ -221,7 +223,7 @@ CHANGELOGには一切触れない - これ自体はテストスイートを実�
 
 ## 🚀 ロードマップ
 
-このバージョンはDS01からDS09までを提供する。提供順に、残っているのは:
+このバージョンはDS01からDS10までを提供する。10回の提供計画は完了した。提供順に、各提供物は:
 
 - **DS02 - 再現可能なリモートステーション。** ✅ 提供済み: 検証済みの
   リモートステーションプロファイル、読み取り専用のホスト事前チェック、
@@ -237,11 +239,20 @@ CHANGELOGには一切触れない - これ自体はテストスイートを実�
 - **DS07 - HYDRA-UMC-OPS-AGENTと連携したインシデント対応。** ✅ 提供済み: リプレイ / なりすまし / 過負荷 / バージョンのチェックを備えたHMAC認証のインシデントトランスポートと、送信 → 診断 → デプロイ後検証 の完全な往復。ネットワーク断後に整合を取る(`incident verify`)。
 - **DS08 - 完全に制御された最初の修復サイクル。** ✅ 提供済み: ゲート付きの状態機械 repro->インシデント->パッチ->回帰->build-test->承認->隔離インストール->検証。改ざんされた、あるいは誤った宛先の候補をブロックし、インストール後チェックが失敗するとロールバックする(`repair check-candidate`)。
 - **DS09 - 安定した運用/復旧。** ✅ 提供済み: キューとディスクに対する運用ヘルスチェックと、別インスタンスのバックアップや破損したバックアップを拒否する検証済みの状態バックアップ/リストア(`ops` サブコマンド)。
-- **DS10** - 正直な成熟度評価を伴う配布パッケージ。
+- **DS10 - 配布パッケージと正直な成熟度評価。** ✅ 提供済み: `deliver
+  manifest` は提供された各ファイルのsha256を記録し、実際のCLI表面・
+  バージョン・テスト数を読み戻す。`deliver evaluate` は10回の提供物の
+  それぞれを実際の証拠に照らして報告し(DS06は `partial` - フェイクのみ
+  提供)、7つの制約を明確に列挙し、コード内で `scaffolding` に固定された
+  `overall_maturity` を報告する。
 
-DS10は、まだこのリポジトリには存在しない - 各提供物が明示的に
-含むもの・除外するものについては [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
-を参照。
+**成熟度。** 計画は完了したが、成熟度は意図的に `scaffolding` のまま。
+このリポジトリにあるのは契約・制約・検証可能な骨格である。ここには
+ホストをプロビジョニングするもの、デプロイを実行するもの、各部品を
+ワーカーループにつなぐもの、実ハードウェアに触れたものは何もない。
+`deliver evaluate` はまさにそう述べており、その `known_limitations`
+リストが正直なToDoである。各提供物が明示的に含むもの・除外するものに
+ついては [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) を参照。
 
 ## 🔗 関連プロジェクト
 

@@ -3,7 +3,7 @@
 # Copyright (C) 2026 JuanenRac (Electro Hobby 3D) <electrohobby3d@gmail.com>
 # GPL-3.0 - see LICENSE
 # =============================================================================
-"""Real CLI entry point for DS01 + DS02:
+"""Real CLI entry point for DS01-DS10:
 
 - `config validate` - loads and validates one host-profile/toolchain/
   task-policy JSON document against the real schema in config.py (DS01).
@@ -64,6 +64,11 @@
   (operations.py, DS09). `restore_backup()` (tested) refuses a backup
   taken for a different instance id or schema version, or one whose
   files no longer match.
+- `deliver manifest` / `deliver evaluate` - the delivery package
+  inventory (a sha256 per shipped file, the CLI surface, the test
+  count) and an HONEST maturity evaluation that reports each of the ten
+  deliveries against real evidence, lists the known limitations, and
+  never returns anything higher than `scaffolding` (delivery.py, DS10).
 
 `task run` is the only command that executes a subprocess, and only an
 allow-listed command, in an isolated workspace, with no inherited
@@ -95,6 +100,7 @@ from .incident_transport import (
     VerifierState,
     verify_message,
 )
+from .delivery import build_delivery_manifest, evaluate_maturity
 from .operations import (
     BackupManifest,
     SystemBackupFs,
@@ -375,10 +381,23 @@ def _cmd_ops_verify_backup(args: argparse.Namespace) -> int:
     return 0 if result.ok else 1
 
 
+def _cmd_deliver_manifest(args: argparse.Namespace) -> int:
+    root = args.repo_root or Path(__file__).resolve().parent.parent.parent
+    print(json.dumps(build_delivery_manifest(root).to_dict(), indent=2))
+    return 0
+
+
+def _cmd_deliver_evaluate(args: argparse.Namespace) -> int:
+    root = args.repo_root or Path(__file__).resolve().parent.parent.parent
+    evaluation = evaluate_maturity(root)
+    print(json.dumps(evaluation.to_dict(), indent=2))
+    return 0 if evaluation.overall_maturity == "scaffolding" else 1
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="hydra-umc-dev-server",
-        description="Reproducible development host for the HYDRA-UMC/URTC ecosystem - DS01 (config schema, manifest inventory), DS02 (remote-station profile, host preflight, provisioning plan), DS03 (conservative-migration inventory and plan), DS04 (bounded task recipe + isolated workspace runner), DS05 (durable SQLite queue + execution journal), DS06 (interchangeable AI provider - deterministic fake only) DS07 (authenticated incident transport for the OPS-AGENT round trip) and DS08 (one fully controlled repair cycle with rollback) and DS09 (stable-operation health checks + verified state backup/restore). Only 'task run' executes anything, and only an allow-listed command in an isolated workspace with no inherited secrets.",
+        description="Reproducible development host for the HYDRA-UMC/URTC ecosystem - DS01 (config schema, manifest inventory), DS02 (remote-station profile, host preflight, provisioning plan), DS03 (conservative-migration inventory and plan), DS04 (bounded task recipe + isolated workspace runner), DS05 (durable SQLite queue + execution journal), DS06 (interchangeable AI provider - deterministic fake only) DS07 (authenticated incident transport for the OPS-AGENT round trip) and DS08 (one fully controlled repair cycle with rollback) DS09 (stable-operation health checks + verified state backup/restore) and DS10 (delivery package + honest maturity evaluation). Only 'task run' executes anything, and only an allow-listed command in an isolated workspace with no inherited secrets.",
     )
     parser.add_argument("--version", action="version", version=__version__)
     subparsers = parser.add_subparsers(dest="command", required=True)
@@ -550,6 +569,15 @@ def build_parser() -> argparse.ArgumentParser:
     ops_verify.add_argument("manifest_file", help="Path to a backup-manifest JSON document.")
     ops_verify.add_argument("--backup-root", required=True, help="Directory the backup files live under.")
     ops_verify.set_defaults(func=_cmd_ops_verify_backup)
+
+    deliver = subparsers.add_parser("deliver", help="Delivery package + honest maturity evaluation (DS10).")
+    deliver_sub = deliver.add_subparsers(dest="deliver_command", required=True)
+    deliver_manifest = deliver_sub.add_parser("manifest", help="Print the delivery manifest for this repository (sha256 per shipped file, CLI surface, test count).")
+    deliver_manifest.add_argument("--repo-root", type=Path, default=None, help="Repository root (default: this checkout).")
+    deliver_manifest.set_defaults(func=_cmd_deliver_manifest)
+    deliver_evaluate = deliver_sub.add_parser("evaluate", help="Print the honest maturity evaluation: each delivery vs evidence, known limitations, overall maturity (always 'scaffolding').")
+    deliver_evaluate.add_argument("--repo-root", type=Path, default=None, help="Repository root (default: this checkout).")
+    deliver_evaluate.set_defaults(func=_cmd_deliver_evaluate)
 
     return parser
 
