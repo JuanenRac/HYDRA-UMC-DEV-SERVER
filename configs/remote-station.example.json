@@ -1,0 +1,19 @@
+{
+  "identity": {
+    "user": "hydra-dev-station",
+    "home": "/srv/hydra-umc-dev/station",
+    "workspace_subdir": "workspace"
+  },
+  "remote_access": {
+    "kind": "code-server",
+    "port": 8722,
+    "bind_address": "127.0.0.1",
+    "allow_public_bind": false
+  },
+  "required_tools": [
+    { "name": "git", "min_version": "2.40", "required": true },
+    { "name": "python3", "min_version": "3.11", "required": true },
+    { "name": "code-server", "min_version": "4.0", "required": false }
+  ],
+  "min_free_disk_gb": 10.0
+}

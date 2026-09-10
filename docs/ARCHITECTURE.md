@@ -4,14 +4,17 @@ Copyright (C) 2026 JuanenRac (Electro Hobby 3D) <electrohobby3d@gmail.com>
 GPL-3.0 - see LICENSE
 ============================================================================= -->
 
-# Architecture (DS01)
+# Architecture (DS01-DS02)
 
 This document describes this project's purpose, working modes, initial
 scope and disk layout, and the target design across all ten deliveries
-(DS01-DS10) - this repository, at this delivery, only implements the
-configuration schema and manifest discovery described in the README.
-Everything else on this page is a documented target, not a claim about
-what runs today.
+(DS01-DS10). What actually runs today: DS01's configuration schema and
+manifest discovery, and DS02's remote-station profile, read-only host
+preflight and dry-run provisioning plan (`station` subcommands - see
+`REMOTE_STATION.md`). Everything else on this page is a documented
+target, not a claim about what runs today - in particular, nothing in
+DS02 changes a host: the preflight only reads, and the plan is never
+executed.
 
 ## Purpose and status
 

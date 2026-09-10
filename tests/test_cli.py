@@ -57,6 +57,25 @@ class InventoryScanCommandTests(unittest.TestCase):
             self.assertEqual(exit_code, 0)
 
 
+class StationCommandTests(unittest.TestCase):
+    _example = Path(__file__).resolve().parent.parent / "configs" / "remote-station.example.json"
+
+    def test_the_real_shipped_remote_station_example_validates(self):
+        self.assertEqual(main(["station", "validate", str(self._example)]), 0)
+
+    def test_a_public_bind_without_the_opt_in_is_rejected_by_the_cli(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "bad-station.json"
+            document = json.loads(self._example.read_text(encoding="utf-8"))
+            document["remote_access"]["bind_address"] = "8.8.8.8"
+            path.write_text(json.dumps(document), encoding="utf-8")
+            self.assertEqual(main(["station", "validate", str(path)]), 1)
+
+    def test_station_plan_prints_a_host_free_dry_run_plan(self):
+        # No --preflight: the plan is pure and never touches this host.
+        self.assertEqual(main(["station", "plan", str(self._example)]), 0)
+
+
 class VersionTests(unittest.TestCase):
     def test_version_flag_matches_the_real_package_version(self):
         with self.assertRaises(SystemExit) as ctx:

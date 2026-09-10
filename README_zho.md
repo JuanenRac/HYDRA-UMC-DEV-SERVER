@@ -12,15 +12,18 @@
   <img src="https://img.shields.io/badge/许可证-GPL%203.0-blue.svg" alt="GPL 3.0">
   <img src="https://img.shields.io/badge/语言-Python%203.11%2B-blue.svg" alt="Python">
   <img src="https://img.shields.io/badge/核心-仅标准库-brightgreen.svg" alt="仅标准库核心">
-  <img src="https://img.shields.io/badge/交付-DS01%2F10-367BF5.svg" alt="DS01/10">
+  <img src="https://img.shields.io/badge/交付-DS02%2F10-367BF5.svg" alt="DS02/10">
 </p>
 
-> **状态：v0.0.1，脚手架阶段 - 十次交付中的 DS01（契约、边界与可验证的骨架）。**
+> **状态：v0.0.2，脚手架阶段 - 十次交付中的 DS02（契约、边界与可验证的骨架）。**
 > 一套真实、经过测试的配置模式(`config validate`)，其默认策略**不向任何任务授予部署权限**；
 > 以及只读的清单发现功能(`inventory scan`)，可找到本生态系统自身的
 > `hydra-umc.project.json` 文件——包括本仓库自己的那份。
-> 目前尚不存在远程主机、工作区、任务执行器、持久队列或 AI 提供方集成——
-> 那些是 DS02、DS04、DS05 和 DS06，属于后续交付。
+> DS02 新增一个经校验的远程站点配置(`station validate`)、一项**只读**的主机预检——
+> 它仅报告某台主机是否就绪(`station preflight`，不改变任何东西)，
+> 以及一份**空跑**的置备计划(`station plan`，从不执行任何步骤)。
+> 目前尚不存在工作区、任务执行器、持久队列或 AI 提供方集成——
+> 那些是 DS04、DS05 和 DS06，属于后续交付。
 > 完整、真实的命令界面见 [docs/CLI_REFERENCE.md](docs/CLI_REFERENCE.md)。
 
 ---
@@ -33,7 +36,7 @@ HYDRA-UMC-DEV-SERVER 是 HYDRA-UMC/URTC 生态系统的开发基础设施：一�
 无论是人还是 AI 助手皆是如此。它**不是**要训练的新 AI，**不是**替代操作系统，
 并且它绝不会自行判定某台机器可以安全修改。
 
-本次交付（DS01）带来两个真实、各自独立有用的部分：
+DS01 带来了两个真实、各自独立有用的部分：
 
 1. **配置模式**(`config validate`) - 三份 JSON 文档
    (`HostProfile`、`ToolchainPolicy`、`TaskPolicy`)，每一份都有真实的校验，
@@ -43,6 +46,20 @@ HYDRA-UMC-DEV-SERVER 是 HYDRA-UMC/URTC 生态系统的开发基础设施：一�
 2. **清单发现**(`inventory scan`) - 与 HYDRA-UMC-OPS-AGENT 自身 edge 角色
    已使用的、用于查找和校验 `hydra-umc.project.json` 的同一套真实、经测试的模式，
    在此复用而非重写。
+
+DS02 又新增三项，全部位于 `station` 子命令之下，且仍然是"只校验与描述，绝不执行"：
+
+3. **远程站点配置**(`station validate`) - 一份 JSON 文档
+   (`RemoteIdentity` + `RemoteAccess` + 所需工具链)，采用同样会累积错误的校验。
+   其第一天的不变量：远程编辑端点绑定 loopback/私有地址，可路由地址一律被拒绝，
+   除非文档将字面布尔值 `allow_public_bind: true` 显式设为真；身份是专用的系统账户，
+   绝不是 `root` 或登录用户。
+4. **主机预检**(`station preflight`) - 读取一份配置，并通过一个可注入的检查器接口
+   报告*本*主机是否真的已准备好成为该站点（Python 版本、可用磁盘、工作区可写、
+   `PATH` 中的工具、端口空闲、身份为真实的系统账户）。它绝不改变主机。
+5. **空跑置备计划**(`station plan`) - 呈现真实安装程序*将会*执行的内容
+   （每一步的 argv 以数据形式记录）以及完整的 systemd unit 文本，
+   并且在预检失败时拒绝构建计划。不执行任何内容。
 
 ```
 $ hydra-umc-dev-server config validate configs/task-policy.example.json --kind task-policy
@@ -57,7 +74,7 @@ $ hydra-umc-dev-server inventory scan --root ..
 {
   "root": "..",
   "projects": [
-    {"name": "HYDRA-UMC-DEV-SERVER", "version": "0.0.1", "maturity": "scaffolding", "manifest_path": "../HYDRA-UMC-DEV-SERVER/hydra-umc.project.json"},
+    {"name": "HYDRA-UMC-DEV-SERVER", "version": "0.0.2", "maturity": "scaffolding", "manifest_path": "../HYDRA-UMC-DEV-SERVER/hydra-umc.project.json"},
     ...
   ],
   "issues": []
@@ -93,17 +110,22 @@ $ hydra-umc-dev-server inventory scan --root ..
 ```
 HYDRA-UMC-DEV-SERVER/
 ├── src/hydra_umc_dev_server/
-│   ├── config.py        # HostProfile/ToolchainPolicy/TaskPolicy 的模式与校验
-│   ├── inventory.py     # 真实的、只读的 hydra-umc.project.json 发现
-│   └── cli.py            # config/inventory 子命令入口
+│   ├── config.py          # HostProfile/ToolchainPolicy/TaskPolicy 的模式与校验（DS01）
+│   ├── inventory.py       # 真实的、只读的 hydra-umc.project.json 发现（DS01）
+│   ├── remote_station.py  # RemoteStationProfile：身份 + 远程访问 + 工具（DS02）
+│   ├── preflight.py       # 通过可注入的检查器对主机进行只读检查（DS02）
+│   ├── provision.py       # 空跑置备计划 + unit 文本，从不执行（DS02）
+│   └── cli.py             # config / inventory / station 子命令入口
 ├── configs/
 │   ├── host-profile.example.json
 │   ├── toolchains.example.json
-│   └── task-policy.example.json   # allow_deploy: false，以此形式发布并测试
+│   ├── task-policy.example.json      # allow_deploy: false，以此形式发布并测试
+│   └── remote-station.example.json   # 绑定 127.0.0.1，以此形式发布并测试
 ├── tests/                # 上述每个模块的真实测试，包括所发布的示例配置
 ├── docs/
 │   ├── CLI_REFERENCE.md    # 每个子命令、其参数与退出码契约
 │   ├── CONFIG_SCHEMA.md    # 三份配置文档的真实 JSON 结构
+│   ├── REMOTE_STATION.md   # DS02 远程站点配置、预检与空跑计划
 │   ├── ARCHITECTURE.md     # 目的、工作模式、初始范围、磁盘布局
 │   └── OPS_INTEGRATION.md  # 17 项关系图谱 + 归属表
 ├── images/                # 媒体与应用图标
@@ -145,10 +167,11 @@ chmod +x build.sh   # 一次性
 
 ## 🚀 路线图
 
-本版本仅交付 DS01。按交付顺序，剩余部分为：
+本版本交付 DS01 与 DS02。按交付顺序，剩余部分为：
 
-- **DS02 - 可复现的远程站点。** 预检、最小工具配置文件、在真实身份下通过
-  VS Code 的远程访问。
+- **DS02 - 可复现的远程站点。** ✅ 已交付：一个经校验的远程站点配置、
+  一项只读的主机预检，以及一份空跑的置备计划（`station` 子命令）。
+  不改变任何主机，也不执行任何步骤。
 - **DS03 - 保守迁移。** 从用户 PC 进行库存清点与批量复制，明确处理哈希值、
   本地更改与隐私。
 - **DS04 - 工作区与受限执行器。** 真正按任务隔离：两个任务永不冲突，
@@ -158,7 +181,7 @@ chmod +x build.sh   # 一次性
 - **DS07-DS10** - 与 HYDRA-UMC-OPS-AGENT 协调的事件处理、第一个完全受控的修复周期、
   稳定的运行/恢复，以及带有诚实成熟度评估的交付包。
 
-以上内容目前均尚未存在于本仓库中——每次交付明确包含与排除的内容，
+DS03-DS10 目前均尚未存在于本仓库中——每次交付明确包含与排除的内容，
 见 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)。
 
 ## 🔗 相关项目

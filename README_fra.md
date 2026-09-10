@@ -12,19 +12,23 @@
   <img src="https://img.shields.io/badge/Licence-GPL%203.0-blue.svg" alt="GPL 3.0">
   <img src="https://img.shields.io/badge/Langage-Python%203.11%2B-blue.svg" alt="Python">
   <img src="https://img.shields.io/badge/Noyau-stdlib%20uniquement-brightgreen.svg" alt="Noyau stdlib uniquement">
-  <img src="https://img.shields.io/badge/Livraison-DS01%20sur%2010-367BF5.svg" alt="DS01 sur 10">
+  <img src="https://img.shields.io/badge/Livraison-DS02%20sur%2010-367BF5.svg" alt="DS02 sur 10">
 </p>
 
-> **Statut : v0.0.1, scaffolding - DS01 sur 10 (contrats, limites et un
+> **Statut : v0.0.2, scaffolding - DS02 sur 10 (contrats, limites et un
 > squelette vérifiable).** Un schéma de configuration réel et testé
 > (`config validate`) dont la politique par défaut **n'accorde aucune
 > permission de déploiement à aucune tâche**, et une découverte de
 > manifestes en lecture seule (`inventory scan`) qui trouve les propres
 > fichiers `hydra-umc.project.json` de cet écosystème - y compris celui
-> de ce dépôt lui-même. Il n'existe pas encore d'hôte distant,
-> d'espace de travail, d'exécuteur de tâches, de file d'attente durable
-> ni d'intégration avec un fournisseur d'IA - ce sera DS02, DS04, DS05 et
-> DS06, livraisons futures. Voir
+> de ce dépôt lui-même. DS02 ajoute un profil de station distante validé
+> (`station validate`), une vérification préalable de l'hôte en
+> **lecture seule** qui se contente d'indiquer si un hôte est prêt
+> (`station preflight`, ne change rien), et un plan de provisionnement
+> **à blanc** (`station plan`, n'exécute jamais une étape). Il n'existe
+> pas encore d'espace de travail, d'exécuteur de tâches, de file
+> d'attente durable ni d'intégration avec un fournisseur d'IA - ce sera
+> DS04, DS05 et DS06, livraisons futures. Voir
 > [docs/CLI_REFERENCE.md](docs/CLI_REFERENCE.md) pour la surface de
 > commandes exacte qui existe aujourd'hui.
 
@@ -42,8 +46,7 @@ aussi bien pour des personnes que pour des assistants IA. Ce n'est
 remplacement, et il ne décide jamais lui-même qu'une machine est sûre à
 modifier.
 
-Cette livraison (DS01) apporte deux éléments réels et utiles
-indépendamment :
+DS01 a apporté deux éléments réels et utiles indépendamment :
 
 1. **Schéma de configuration** (`config validate`) - trois documents
    JSON (`HostProfile`, `ToolchainPolicy`, `TaskPolicy`), chacun avec une
@@ -56,6 +59,28 @@ indépendamment :
    et testé déjà utilisé par le rôle edge de HYDRA-UMC-OPS-AGENT pour
    trouver et valider un `hydra-umc.project.json`, réutilisé ici plutôt
    que réécrit.
+
+DS02 en ajoute trois autres, toutes sous la sous-commande `station` et
+toutes toujours « valider et décrire, jamais agir » :
+
+3. **Profil de station distante** (`station validate`) - un document JSON
+   (`RemoteIdentity` + `RemoteAccess` + chaînes d'outils requises) avec
+   la même validation qui cumule les erreurs. Son invariant du premier
+   jour : le point d'accès d'édition distante écoute en loopback/privé,
+   et une adresse routable est refusée sauf si le document fixe le
+   booléen littéral `allow_public_bind: true` ; l'identité est un compte
+   système dédié, jamais `root` ni un utilisateur de connexion.
+4. **Vérification préalable de l'hôte** (`station preflight`) - lit un
+   profil et indique, via une interface d'inspection injectable, si
+   *cet* hôte est réellement prêt à devenir cette station (version de
+   Python, espace disque libre, espace de travail inscriptible, outils
+   dans le `PATH`, port libre, identité étant un vrai compte système).
+   Ne change jamais l'hôte.
+5. **Plan de provisionnement à blanc** (`station plan`) - représente ce
+   qu'un installateur réel *ferait* (l'argv de chaque étape capturé
+   comme donnée) plus le texte complet de l'unité systemd, et refuse de
+   construire un plan par-dessus une vérification préalable en échec.
+   Rien n'est exécuté.
 
 ```
 $ hydra-umc-dev-server config validate configs/task-policy.example.json --kind task-policy
@@ -70,7 +95,7 @@ $ hydra-umc-dev-server inventory scan --root ..
 {
   "root": "..",
   "projects": [
-    {"name": "HYDRA-UMC-DEV-SERVER", "version": "0.0.1", "maturity": "scaffolding", "manifest_path": "../HYDRA-UMC-DEV-SERVER/hydra-umc.project.json"},
+    {"name": "HYDRA-UMC-DEV-SERVER", "version": "0.0.2", "maturity": "scaffolding", "manifest_path": "../HYDRA-UMC-DEV-SERVER/hydra-umc.project.json"},
     ...
   ],
   "issues": []
@@ -116,17 +141,22 @@ commandes réelle et complète.
 ```
 HYDRA-UMC-DEV-SERVER/
 ├── src/hydra_umc_dev_server/
-│   ├── config.py        # Schéma et validation de HostProfile/ToolchainPolicy/TaskPolicy
-│   ├── inventory.py     # Découverte réelle en lecture seule de hydra-umc.project.json
-│   └── cli.py            # Point d'entrée des sous-commandes config/inventory
+│   ├── config.py          # Schéma et validation de HostProfile/ToolchainPolicy/TaskPolicy (DS01)
+│   ├── inventory.py       # Découverte réelle en lecture seule de hydra-umc.project.json (DS01)
+│   ├── remote_station.py  # RemoteStationProfile : identité + accès distant + outils (DS02)
+│   ├── preflight.py       # Vérification de l'hôte en lecture seule via un inspecteur injectable (DS02)
+│   ├── provision.py       # Plan de provisionnement à blanc + texte de l'unité, jamais exécuté (DS02)
+│   └── cli.py             # Point d'entrée des sous-commandes config / inventory / station
 ├── configs/
 │   ├── host-profile.example.json
 │   ├── toolchains.example.json
-│   └── task-policy.example.json   # allow_deploy : false, publié et testé ainsi
+│   ├── task-policy.example.json      # allow_deploy : false, publié et testé ainsi
+│   └── remote-station.example.json   # écoute sur 127.0.0.1, publié et testé ainsi
 ├── tests/                # Tests réels de chaque module ci-dessus, incl. les configs d'exemple publiées
 ├── docs/
 │   ├── CLI_REFERENCE.md    # Chaque sous-commande, ses options et le contrat des codes de sortie
 │   ├── CONFIG_SCHEMA.md    # La forme JSON réelle des trois documents de configuration
+│   ├── REMOTE_STATION.md   # Le profil de station distante DS02, la vérification préalable et le plan à blanc
 │   ├── ARCHITECTURE.md     # Objectif, modes de travail, périmètre initial, disque
 │   └── OPS_INTEGRATION.md  # La carte des 17 relations + table des propriétaires
 ├── images/                # Médias et icônes de l'application
@@ -173,12 +203,13 @@ de tests locale complète.
 
 ## 🚀 FEUILLE DE ROUTE
 
-Cette version n'apporte que DS01. Ce qui reste, dans l'ordre de
+Cette version apporte DS01 et DS02. Ce qui reste, dans l'ordre de
 livraison :
 
-- **DS02 - Station distante reproductible.** Vérifications préalables,
-  un profil d'outils minimal, accès distant via VS Code sous une
-  identité réelle.
+- **DS02 - Station distante reproductible.** ✅ Livré : un profil de
+  station distante validé, une vérification préalable de l'hôte en
+  lecture seule, et un plan de provisionnement à blanc (sous-commandes
+  `station`). Aucun hôte n'est modifié et aucune étape n'est exécutée.
 - **DS03 - Migration conservatrice.** Inventaire et copie par lots
   depuis le PC de l'utilisateur avec hachages, changements locaux et
   confidentialité traités explicitement.
@@ -194,7 +225,7 @@ livraison :
   restauration stable, et un paquet de livraison avec une évaluation
   honnête de la maturité.
 
-Rien de ce qui précède n'existe encore dans ce dépôt - voir
+Rien de DS03-DS10 n'existe encore dans ce dépôt - voir
 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) pour ce que chaque
 livraison inclut et exclut explicitement.
 

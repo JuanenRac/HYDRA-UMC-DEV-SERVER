@@ -12,19 +12,22 @@
   <img src="https://img.shields.io/badge/Licencia-GPL%203.0-blue.svg" alt="GPL 3.0">
   <img src="https://img.shields.io/badge/Language-Python%203.11%2B-blue.svg" alt="Python">
   <img src="https://img.shields.io/badge/Core-stdlib%20only-brightgreen.svg" alt="stdlib-only core">
-  <img src="https://img.shields.io/badge/Delivery-DS01%20of%2010-367BF5.svg" alt="DS01 of 10">
+  <img src="https://img.shields.io/badge/Delivery-DS02%20of%2010-367BF5.svg" alt="DS02 of 10">
 </p>
 
-> **Status: v0.0.1, scaffolding - DS01 of 10 (contracts, limits and a
+> **Status: v0.0.2, scaffolding - DS02 of 10 (contracts, limits and a
 > verifiable skeleton).** A real, tested configuration schema
 > (`config validate`) whose default policy grants **no task deployment
 > permission**, and read-only manifest discovery (`inventory scan`) that
 > can find this ecosystem's own `hydra-umc.project.json` files -
-> including this repository's own. No remote host, workspace, task
-> runner, durable queue, or AI provider integration exists yet - those
-> are DS02, DS04, DS05 and DS06, later deliveries. See
-> [docs/CLI_REFERENCE.md](docs/CLI_REFERENCE.md) for the exact command
-> surface that exists today.
+> including this repository's own. DS02 adds a validated remote-station
+> profile (`station validate`), a **read-only** host preflight that only
+> ever reports whether a host is ready (`station preflight`, changes
+> nothing), and a **dry-run** provisioning plan (`station plan`, never
+> executes a step). No workspace, task runner, durable queue, or AI
+> provider integration exists yet - those are DS04, DS05 and DS06, later
+> deliveries. See [docs/CLI_REFERENCE.md](docs/CLI_REFERENCE.md) for the
+> exact command surface that exists today.
 
 ---
 
@@ -38,7 +41,7 @@ and AI assistants alike. It is **not** a new AI to train, **not** a
 replacement operating system, and it never decides on its own that a
 machine is safe to change.
 
-This delivery (DS01) ships two real, independently useful pieces:
+DS01 shipped two real, independently useful pieces:
 
 1. **Configuration schema** (`config validate`) - three JSON documents
    (`HostProfile`, `ToolchainPolicy`, `TaskPolicy`), each with real
@@ -50,6 +53,26 @@ This delivery (DS01) ships two real, independently useful pieces:
    pattern HYDRA-UMC-OPS-AGENT's own edge role already uses to find and
    validate a `hydra-umc.project.json`, reused here rather than
    reimplemented.
+
+DS02 adds three more, all under the `station` subcommand and all still
+"validate and describe, never act":
+
+3. **Remote-station profile** (`station validate`) - one JSON document
+   (`RemoteIdentity` + `RemoteAccess` + required toolchains) with the
+   same error-accumulating validation. Its own day-one invariant: the
+   remote-editing endpoint binds loopback/private, and a routable
+   address is refused unless the document sets the literal boolean
+   `allow_public_bind: true`; the identity is a dedicated system
+   account, never `root` or a login user.
+4. **Host preflight** (`station preflight`) - reads a profile and
+   reports, through an injectable inspector seam, whether *this* host is
+   actually ready to become that station (Python version, free disk,
+   workspace writable, tools on `PATH`, port free, identity is a real
+   system account). It never changes the host.
+5. **Dry-run provisioning plan** (`station plan`) - renders what a real
+   installer *would* do (each step's argv captured as data) plus the
+   full systemd unit text, and refuses to build a plan at all over a
+   failed preflight. Nothing is executed.
 
 ```
 $ hydra-umc-dev-server config validate configs/task-policy.example.json --kind task-policy
@@ -64,7 +87,7 @@ $ hydra-umc-dev-server inventory scan --root ..
 {
   "root": "..",
   "projects": [
-    {"name": "HYDRA-UMC-DEV-SERVER", "version": "0.0.1", "maturity": "scaffolding", "manifest_path": "../HYDRA-UMC-DEV-SERVER/hydra-umc.project.json"},
+    {"name": "HYDRA-UMC-DEV-SERVER", "version": "0.0.2", "maturity": "scaffolding", "manifest_path": "../HYDRA-UMC-DEV-SERVER/hydra-umc.project.json"},
     ...
   ],
   "issues": []
@@ -108,17 +131,22 @@ surface.
 ```
 HYDRA-UMC-DEV-SERVER/
 ├── src/hydra_umc_dev_server/
-│   ├── config.py        # HostProfile/ToolchainPolicy/TaskPolicy schema + validation
-│   ├── inventory.py     # Real, read-only hydra-umc.project.json discovery
-│   └── cli.py            # config/inventory subcommand entry point
+│   ├── config.py          # HostProfile/ToolchainPolicy/TaskPolicy schema + validation (DS01)
+│   ├── inventory.py       # Real, read-only hydra-umc.project.json discovery (DS01)
+│   ├── remote_station.py  # RemoteStationProfile: identity + remote access + tools (DS02)
+│   ├── preflight.py       # Read-only host readiness check via an injectable inspector (DS02)
+│   ├── provision.py       # Dry-run provisioning plan + systemd unit text, never executed (DS02)
+│   └── cli.py             # config / inventory / station subcommand entry point
 ├── configs/
 │   ├── host-profile.example.json
 │   ├── toolchains.example.json
-│   └── task-policy.example.json   # allow_deploy: false, shipped and tested that way
+│   ├── task-policy.example.json      # allow_deploy: false, shipped and tested that way
+│   └── remote-station.example.json   # binds 127.0.0.1, shipped and tested that way
 ├── tests/                # Real tests for every module above, incl. the shipped example configs
 ├── docs/
 │   ├── CLI_REFERENCE.md    # Every subcommand, flags, exit codes
 │   ├── CONFIG_SCHEMA.md    # The real JSON shape of all three configuration documents
+│   ├── REMOTE_STATION.md   # The DS02 remote-station profile, preflight and dry-run plan
 │   ├── ARCHITECTURE.md     # Purpose, working modes, initial scope, disk layout
 │   └── OPS_INTEGRATION.md  # The 17-relationship map + state-ownership table
 ├── images/                # Media and app icons
@@ -164,10 +192,12 @@ local test suite.
 
 ## 🚀 ROADMAP
 
-This version ships DS01 only. What remains, in delivery order:
+This version ships DS01 and DS02. What remains, in delivery order:
 
-- **DS02 - Reproducible remote station.** Preflight checks, a minimal
-  tool profile, remote VS Code access under a real identity.
+- **DS02 - Reproducible remote station.** ✅ Shipped: a validated
+  remote-station profile, a read-only host preflight, and a dry-run
+  provisioning plan (`station` subcommands). No host is changed and no
+  step is executed.
 - **DS03 - Conservative migration.** Inventory and batch-copy from the
   user's PC with hashes, local changes and privacy handled explicitly.
 - **DS04 - Workspace and bounded runner.** Real per-task isolation: two
@@ -180,7 +210,7 @@ This version ships DS01 only. What remains, in delivery order:
   fully controlled repair cycle, stable operation/restoration, and a
   delivery package with an honest maturity evaluation.
 
-None of the above exists in this repository yet - see
+None of DS03-DS10 exists in this repository yet - see
 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for what each delivery is
 scoped to include and explicitly exclude.
 

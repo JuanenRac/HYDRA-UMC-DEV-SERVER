@@ -12,16 +12,20 @@
   <img src="https://img.shields.io/badge/ライセンス-GPL%203.0-blue.svg" alt="GPL 3.0">
   <img src="https://img.shields.io/badge/言語-Python%203.11%2B-blue.svg" alt="Python">
   <img src="https://img.shields.io/badge/コア-stdlibのみ-brightgreen.svg" alt="stdlibのみのコア">
-  <img src="https://img.shields.io/badge/デリバリー-DS01%2F10-367BF5.svg" alt="DS01/10">
+  <img src="https://img.shields.io/badge/デリバリー-DS02%2F10-367BF5.svg" alt="DS02/10">
 </p>
 
-> **状態: v0.0.1、スキャフォールディング - 全10回中のDS01（契約・制約・検証可能な骨格）。**
+> **状態: v0.0.2、スキャフォールディング - 全10回中のDS02（契約・制約・検証可能な骨格）。**
 > 実在してテスト済みの設定スキーマ(`config validate`)は、デフォルトポリシーで
 > **どのタスクにもデプロイ権限を与えない**。また読み取り専用のマニフェスト発見機能
 > (`inventory scan`)は、このエコシステム自身の `hydra-umc.project.json` を
-> 発見できる - この本リポジトリ自身のものも含めて。まだリモートホスト、
-> ワークスペース、タスクランナー、永続キュー、AIプロバイダー連携は存在しない -
-> それらはDS02、DS04、DS05、DS06という今後の提供物である。
+> 発見できる - この本リポジトリ自身のものも含めて。DS02は、検証済みの
+> リモートステーションプロファイル(`station validate`)、ホストが準備できて
+> いるかを報告するだけの**読み取り専用**の事前チェック(`station preflight`、
+> 何も変更しない)、および**ドライラン**のプロビジョニング計画(`station plan`、
+> 一切のステップを実行しない)を追加する。まだワークスペース、タスクランナー、
+> 永続キュー、AIプロバイダー連携は存在しない - それらはDS04、DS05、DS06という
+> 今後の提供物である。
 > 今日存在する正確なコマンド面については
 > [docs/CLI_REFERENCE.md](docs/CLI_REFERENCE.md) を参照。
 
@@ -37,7 +41,7 @@ HYDRA-UMC-DEV-SERVERはHYDRA-UMC/URTCエコシステムのための開発イン�
 代替オペレーティングシステムでも**なく**、あるマシンが変更しても安全だと
 自らが判断することも決してない。
 
-この提供物（DS01）は、それぞれ独立して有用な2つの実物をもたらす:
+DS01は、それぞれ独立して有用な2つの実物をもたらした:
 
 1. **設定スキーマ**(`config validate`) - 3つのJSON文書
    (`HostProfile`、`ToolchainPolicy`、`TaskPolicy`)、それぞれに実際の
@@ -48,6 +52,27 @@ HYDRA-UMC-DEV-SERVERはHYDRA-UMC/URTCエコシステムのための開発イン�
 2. **マニフェスト発見**(`inventory scan`) - HYDRA-UMC-OPS-AGENT自身のedge
    役割がすでに `hydra-umc.project.json` の発見と検証に使っているのと
    同じ実物でテスト済みのパターンを、書き直さずここで再利用している。
+
+DS02はさらに3つを追加する。すべて `station` サブコマンドの下にあり、
+すべて依然として「検証し記述するだけで、決して実行しない」:
+
+3. **リモートステーションプロファイル**(`station validate`) - 1つのJSON文書
+   (`RemoteIdentity` + `RemoteAccess` + 必要なツールチェーン)で、
+   同じくエラーを蓄積する検証を行う。初日の不変条件: リモート編集の
+   エンドポイントはループバック/プライベートにバインドし、ルーティング可能な
+   アドレスは、文書がリテラルなブール値 `allow_public_bind: true` を
+   設定しない限り拒否される。アイデンティティは専用のシステムアカウントであり、
+   決して `root` やログインユーザーではない。
+4. **ホスト事前チェック**(`station preflight`) - プロファイルを読み取り、
+   注入可能なインスペクタ・インターフェースを通じて、*この*ホストが
+   実際にそのステーションになる準備ができているかを報告する（Pythonの
+   バージョン、空きディスク、ワークスペースの書き込み可否、`PATH` 上の
+   ツール、ポートの空き、アイデンティティが実在のシステムアカウントか）。
+   ホストを決して変更しない。
+5. **ドライランのプロビジョニング計画**(`station plan`) - 実際のインストーラが
+   *行うであろう*内容（各ステップのargvをデータとして記録）と、systemd
+   unitの完全なテキストを提示し、事前チェックに失敗したホストでは計画の
+   構築自体を拒否する。何も実行されない。
 
 ```
 $ hydra-umc-dev-server config validate configs/task-policy.example.json --kind task-policy
@@ -62,7 +87,7 @@ $ hydra-umc-dev-server inventory scan --root ..
 {
   "root": "..",
   "projects": [
-    {"name": "HYDRA-UMC-DEV-SERVER", "version": "0.0.1", "maturity": "scaffolding", "manifest_path": "../HYDRA-UMC-DEV-SERVER/hydra-umc.project.json"},
+    {"name": "HYDRA-UMC-DEV-SERVER", "version": "0.0.2", "maturity": "scaffolding", "manifest_path": "../HYDRA-UMC-DEV-SERVER/hydra-umc.project.json"},
     ...
   ],
   "issues": []
@@ -104,17 +129,22 @@ $ hydra-umc-dev-server inventory scan --root ..
 ```
 HYDRA-UMC-DEV-SERVER/
 ├── src/hydra_umc_dev_server/
-│   ├── config.py        # HostProfile/ToolchainPolicy/TaskPolicyのスキーマと検証
-│   ├── inventory.py     # hydra-umc.project.jsonの実際の読み取り専用発見
-│   └── cli.py            # config/inventoryサブコマンドのエントリポイント
+│   ├── config.py          # HostProfile/ToolchainPolicy/TaskPolicyのスキーマと検証（DS01）
+│   ├── inventory.py       # hydra-umc.project.jsonの実際の読み取り専用発見（DS01）
+│   ├── remote_station.py  # RemoteStationProfile: アイデンティティ + リモートアクセス + ツール（DS02）
+│   ├── preflight.py       # 注入可能なインスペクタ経由のホストの読み取り専用チェック（DS02）
+│   ├── provision.py       # ドライランのプロビジョニング計画 + unitテキスト、決して実行しない（DS02）
+│   └── cli.py             # config / inventory / station サブコマンドのエントリポイント
 ├── configs/
 │   ├── host-profile.example.json
 │   ├── toolchains.example.json
-│   └── task-policy.example.json   # allow_deploy: false、この形で公開・テスト済み
+│   ├── task-policy.example.json      # allow_deploy: false、この形で公開・テスト済み
+│   └── remote-station.example.json   # 127.0.0.1 にバインド、この形で公開・テスト済み
 ├── tests/                # 上記各モジュールの実際のテスト、公開されているサンプル設定を含む
 ├── docs/
 │   ├── CLI_REFERENCE.md    # 各サブコマンド、そのフラグ、終了コード契約
 │   ├── CONFIG_SCHEMA.md    # 3つの設定文書の実際のJSON形状
+│   ├── REMOTE_STATION.md   # DS02のリモートステーションプロファイル、事前チェック、ドライラン計画
 │   ├── ARCHITECTURE.md     # 目的、作業モード、初期範囲、ディスク
 │   └── OPS_INTEGRATION.md  # 17関係マップ＋所有権表
 ├── images/                # メディアとアプリアイコン
@@ -160,10 +190,12 @@ CHANGELOGには一切触れない - これ自体はテストスイートを実�
 
 ## 🚀 ロードマップ
 
-このバージョンはDS01のみを提供する。提供順に、残っているのは:
+このバージョンはDS01とDS02を提供する。提供順に、残っているのは:
 
-- **DS02 - 再現可能なリモートステーション。** 事前チェック、最小限の
-  ツールプロファイル、実際の身元によるVS Codeでのリモートアクセス。
+- **DS02 - 再現可能なリモートステーション。** ✅ 提供済み: 検証済みの
+  リモートステーションプロファイル、読み取り専用のホスト事前チェック、
+  ドライランのプロビジョニング計画（`station` サブコマンド）。ホストは
+  変更されず、ステップも実行されない。
 - **DS03 - 保守的な移行。** ユーザーのPCからのハッシュ・ローカル変更・
   プライバシーを明示的に扱った棚卸しとバッチコピー。
 - **DS04 - ワークスペースと境界付きランナー。** タスクごとの実際の分離:
@@ -176,7 +208,7 @@ CHANGELOGには一切触れない - これ自体はテストスイートを実�
   完全に制御された最初の修復サイクル、安定した運用/復旧、そして
   正直な成熟度評価を伴う配布パッケージ。
 
-上記のいずれも、まだこのリポジトリには存在しない - 各提供物が明示的に
+DS03-DS10のいずれも、まだこのリポジトリには存在しない - 各提供物が明示的に
 含むもの・除外するものについては [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
 を参照。
 
