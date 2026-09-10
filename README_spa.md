@@ -133,6 +133,23 @@ sobreviven a un reinicio del proceso. Registra, no ejecuta:
    `recipe_fingerprint`; el diario guarda solo colas truncadas y
    `prune_journal` acota las filas, asi el disco queda acotado.
 
+DS06 anade un proveedor de IA intercambiable - solo el fake determinista,
+tras un contrato de seguridad. Devuelve una cadena que lee una persona; no
+conecta nada al runner, la cola ni un despliegue:
+
+9. **Proveedor de IA intercambiable** (`provider suggest`) - un seam
+   `AIProvider`; `FakeProvider(scenario=...)` es totalmente determinista.
+   `run_provider_step` convierte un **timeout**, una **cuota agotada** o una
+   **salida mal formada** del proveedor en un outcome nombrado y acotado
+   (nunca una excepcion que escala); un `ProviderBudget` configurado
+   (llamadas / tokens / coste) **para el paso antes de excederlo**, sin
+   hacer la llamada; y la respuesta del proveedor son **datos, nunca
+   instrucciones** - una sugerencia que dice "ignora las instrucciones
+   previas / despliega ya / dame root" se copia literal, se marca
+   `injection_flagged`, y `grants_no_permissions` / `triggers_no_deploy`
+   siguen siendo true en **todos** los outcomes. Que proveedor real usar, y
+   su autorizacion, es decision del usuario (`kind` debe ser `"fake"` hoy).
+
 ```
 $ hydra-umc-dev-server config validate configs/task-policy.example.json --kind task-policy
 VALID: configs/task-policy.example.json (task-policy)

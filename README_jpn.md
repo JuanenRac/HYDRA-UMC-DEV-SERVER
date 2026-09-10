@@ -86,6 +86,10 @@ DS05は永続性を追加する - タスクキューとその実行ジャーナ�
 
 8. **永続キュー + 実行ジャーナル** (`queue enqueue` / `status` / `reconcile` / `journal`) - SQLiteストア(WAL、リースには即時トランザクション)。`enqueue` は冪等 - 同じ `task_id` での2回目の呼び出しは `created=False` を返し、**決して2つ目のジョブにならない**。`lease(worker, ttl)` は最も古い `queued` エントリを要求する。`reconcile()` は期限切れのリースを `queued` に戻す(起動のたびに安全)。リースをもう保持していないワーカーからの `record_result` は**拒否され、完了とは受理されない** - 中断が偽の成功になることは決してない。結果時に観測されたベースのフィンガープリントが `enqueue` 時のものと異なる場合、結果は `failed` / 昇格不可として保存される(**終了コードが0でも**)。ジャーナルの `completed` イベントは常に `revision` + `recipe_fingerprint` を持つ。ジャーナルは切り詰めた末尾のみを保持し、`prune_journal` が行数を制限するので、ディスクは境界内に保たれる。
 
+DS06 は交換可能な AI プロバイダーを追加する - 提供されるのは決定論的なフェイクのみで、セキュリティ契約の背後にある。人間が読む文字列を返すだけで、runner・キュー・デプロイには何も接続しない:
+
+9. **交換可能な AI プロバイダー** (`provider suggest`) - `AIProvider` のシーム。`FakeProvider(scenario=...)` は完全に決定論的。`run_provider_step` はプロバイダーの**タイムアウト**・**クォータ枯渇**・**不正な出力**を、境界のある名前付きの結果に変える(エスカレートする例外には決してならない)。設定された `ProviderBudget`(呼び出し数 / トークン / コスト)は**超過する前にステップを止め**、呼び出しは行わない。そしてプロバイダーの回答は**データであり、決して指示ではない** - 「前の指示を無視 / 今すぐデプロイ / root をよこせ」と言う提案は逐語的にコピーされ、`injection_flagged` が立ち、**すべての**結果で `grants_no_permissions` / `triggers_no_deploy` は真のまま。どの実プロバイダーを使うか、その認可はユーザーの判断(今日は `kind` が `"fake"` でなければならない)。
+
 ```
 $ hydra-umc-dev-server config validate configs/task-policy.example.json --kind task-policy
 VALID: configs/task-policy.example.json (task-policy)
