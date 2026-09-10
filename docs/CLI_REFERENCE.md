@@ -4,7 +4,7 @@ Copyright (C) 2026 JuanenRac (Electro Hobby 3D) <electrohobby3d@gmail.com>
 GPL-3.0 - see LICENSE
 ============================================================================= -->
 
-# CLI reference (DS01 + DS02 + DS03 + DS04 + DS05 + DS06 + DS07)
+# CLI reference (DS01 + DS02 + DS03 + DS04 + DS05 + DS06 + DS07 + DS08)
 
 `hydra-umc-dev-server` (entry point installed by `pip install -e .`) or
 `python -m hydra_umc_dev_server.cli` - both run the exact same code.
@@ -40,7 +40,7 @@ $ hydra-umc-dev-server inventory scan --root ..
 {
   "root": "..",
   "projects": [
-    {"name": "HYDRA-UMC-DEV-SERVER", "version": "0.0.7", "maturity": "scaffolding", "manifest_path": "../HYDRA-UMC-DEV-SERVER/hydra-umc.project.json"},
+    {"name": "HYDRA-UMC-DEV-SERVER", "version": "0.0.8", "maturity": "scaffolding", "manifest_path": "../HYDRA-UMC-DEV-SERVER/hydra-umc.project.json"},
     ...
   ],
   "issues": []
@@ -173,6 +173,15 @@ channel proved. Prints the `VerifyResult` JSON; exits `1` (never a
 traceback) with a named `code` for a rejection: `unknown-identity` /
 `bad-signature` / `impersonation` / `replay` / `stale` / `overloaded` /
 `incompatible-version`.
+
+## `repair check-candidate <candidate_file> --secret-file FILE --incident ID --base FP --target NAME` (DS08)
+
+The candidate gate of the controlled repair cycle. Verifies the
+candidate's HMAC signature (secret read from `--secret-file`,
+operator-held, never committed) and that it is pinned to THIS incident,
+base fingerprint and target. Prints `{"accepted": bool, "reason":
+str|null}`; exits `1` (never a traceback) on a block - a tampered
+candidate, or one aimed at another incident / base / target.
 
 ## `--version`
 

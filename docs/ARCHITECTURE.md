@@ -4,7 +4,7 @@ Copyright (C) 2026 JuanenRac (Electro Hobby 3D) <electrohobby3d@gmail.com>
 GPL-3.0 - see LICENSE
 ============================================================================= -->
 
-# Architecture (DS01-DS07)
+# Architecture (DS01-DS08)
 
 This document describes this project's purpose, working modes, initial
 scope and disk layout, and the target design across all ten deliveries
@@ -18,7 +18,9 @@ preflight and dry-run provisioning plan (`station` - see
 a safety contract (`provider` - see `AI_PROVIDER.md`), of which only the
 deterministic fake ships; and DS07's authenticated incident transport
 for the round trip with HYDRA-UMC-OPS-AGENT (`incident` - see
-`INCIDENT_TRANSPORT.md`).
+`INCIDENT_TRANSPORT.md`); and DS08's one fully controlled repair cycle
+(`repair` - see `REPAIR_CYCLE.md`), gated at every step with rollback on
+a failed post-install check.
 DS01-DS03, DS05 and DS06 only read, describe and record. DS04 is the
 only delivery that executes a subprocess - and only an allow-listed command, in a per-task
 isolated workspace, with a scrubbed environment, under a bounded timeout

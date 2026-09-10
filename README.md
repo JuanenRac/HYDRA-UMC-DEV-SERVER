@@ -12,10 +12,10 @@
   <img src="https://img.shields.io/badge/Licencia-GPL%203.0-blue.svg" alt="GPL 3.0">
   <img src="https://img.shields.io/badge/Language-Python%203.11%2B-blue.svg" alt="Python">
   <img src="https://img.shields.io/badge/Core-stdlib%20only-brightgreen.svg" alt="stdlib-only core">
-  <img src="https://img.shields.io/badge/Delivery-DS07%20of%2010-367BF5.svg" alt="DS07 of 10">
+  <img src="https://img.shields.io/badge/Delivery-DS08%20of%2010-367BF5.svg" alt="DS08 of 10">
 </p>
 
-> **Status: v0.0.7, scaffolding - DS07 of 10 (contracts, limits and a
+> **Status: v0.0.8, scaffolding - DS08 of 10 (contracts, limits and a
 > verifiable skeleton).** A tested configuration schema
 > (`config validate`), read-only manifest discovery (`inventory scan`),
 > a remote-station profile + host preflight + dry-run provisioning plan
@@ -40,7 +40,12 @@
 > impersonating another, a replayed nonce, a stale timestamp, an
 > overloaded sender or an incompatible version is **rejected with a
 > named code**, and a dropped connection leaves a **reconcilable** state
-> (nothing lost, nothing double-counted). It still deploys nothing. See
+> (nothing lost, nothing double-counted). **DS08 chains it all into one
+> fully controlled repair cycle** (`repair check-candidate`): repro →
+> incident → patch → regression → build-test → approval → **isolated**
+> install → verify, gated at every step - a tampered candidate, or one
+> aimed at another base/target, is **blocked**; a failed post-install
+> check **rolls back**. It still deploys nothing. See
 > [docs/CLI_REFERENCE.md](docs/CLI_REFERENCE.md) for the exact command
 > surface that exists today.
 
@@ -171,7 +176,7 @@ $ hydra-umc-dev-server inventory scan --root ..
 {
   "root": "..",
   "projects": [
-    {"name": "HYDRA-UMC-DEV-SERVER", "version": "0.0.7", "maturity": "scaffolding", "manifest_path": "../HYDRA-UMC-DEV-SERVER/hydra-umc.project.json"},
+    {"name": "HYDRA-UMC-DEV-SERVER", "version": "0.0.8", "maturity": "scaffolding", "manifest_path": "../HYDRA-UMC-DEV-SERVER/hydra-umc.project.json"},
     ...
   ],
   "issues": []
@@ -227,7 +232,8 @@ HYDRA-UMC-DEV-SERVER/
 │   ├── durable_queue.py   # SQLite durable queue + leases + append-only execution journal, survives a restart (DS05)
 │   ├── ai_provider.py     # Interchangeable AI provider seam + safety contract; deterministic fake only (DS06)
 │   ├── incident_transport.py  # HMAC-signed incident messages + verify + full round-trip session (DS07)
-│   └── cli.py             # config / inventory / station / migrate / task / queue / provider / incident subcommand entry point
+│   ├── repair_cycle.py    # Gated repro→...→verify cycle with rollback + the candidate gate (DS08)
+│   └── cli.py             # config / inventory / station / migrate / task / queue / provider / incident / repair subcommand entry point
 ├── configs/
 │   ├── host-profile.example.json
 │   ├── toolchains.example.json
@@ -248,6 +254,7 @@ HYDRA-UMC-DEV-SERVER/
 │   ├── DURABLE_QUEUE.md      # The DS05 durable queue, leases and execution journal
 │   ├── AI_PROVIDER.md        # The DS06 provider seam and safety contract (fake only)
 │   ├── INCIDENT_TRANSPORT.md # The DS07 signed message, verify checks and round-trip session
+│   ├── REPAIR_CYCLE.md       # The DS08 gated repair cycle, its gates and rollback
 │   ├── ARCHITECTURE.md       # Purpose, working modes, initial scope, disk layout
 │   └── OPS_INTEGRATION.md    # The 17-relationship map + state-ownership table
 ├── images/                # Media and app icons
@@ -293,7 +300,7 @@ local test suite.
 
 ## 🚀 ROADMAP
 
-This version ships DS01 through DS07. What remains, in delivery order:
+This version ships DS01 through DS08. What remains, in delivery order:
 
 - **DS02 - Reproducible remote station.** ✅ Shipped: a validated
   remote-station profile, a read-only host preflight, and a dry-run
@@ -325,11 +332,14 @@ This version ships DS01 through DS07. What remains, in delivery order:
   overload / version checks and a full submit → diagnosis → post-deploy
   verification round trip that reconciles after a dropped connection
   (`incident verify`).
-- **DS08-DS10** - a first fully controlled repair cycle, stable
-  operation/restoration, and a delivery package with an honest maturity
-  evaluation.
+- **DS08 - First fully controlled repair cycle.** ✅ Shipped: a gated
+  repro→incident→patch→regression→build-test→approval→isolated-install→verify
+  state machine that blocks a tampered or misdirected candidate and
+  rolls back on a failed post-install check (`repair check-candidate`).
+- **DS09-DS10** - stable operation/restoration, and a delivery package
+  with an honest maturity evaluation.
 
-None of DS08-DS10 exists in this repository yet - see
+None of DS09-DS10 exists in this repository yet - see
 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for what each delivery is
 scoped to include and explicitly exclude.
 

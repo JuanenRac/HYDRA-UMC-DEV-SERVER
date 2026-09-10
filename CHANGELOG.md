@@ -5,6 +5,40 @@ version number follows this ecosystem's "odometer" scheme: PATCH +1 on
 every real build, rolling into MINOR past 9 (`0.0.9` -> `0.1.0`); MAJOR is
 bumped manually only. See `bump_version.py`.
 
+## [0.0.8] - DS08: one fully controlled repair cycle
+
+Eighth delivery of ten. `RepairCycle` chains the pieces already built
+into a single gated sequence:
+
+    repro-confirmed -> incident-raised -> candidate-received
+      -> regression-passed -> build-test-passed -> approved
+      -> installed -> verified   (or -> recovered / -> blocked)
+
+- `confirm_repro()` needs an actually reproduced failure for **this**
+  repro case, or the cycle never opens.
+- `receive_candidate()` blocks a candidate whose HMAC signature does not
+  verify (tampered / unsigned), or that is pinned to a different
+  incident, a different **base fingerprint**, or a different **target**.
+- `run_regression()` / `run_build_test()` need a real green `RunResult`
+  (`completed`, exit `0`).
+- `apply_approval()` needs an approval signed by a **registered**
+  approver AND issued **for this exact base and target** - an approval
+  for another base/target is blocked.
+- `install_isolated()` goes through an injectable `IsolatedInstaller`
+  seam (never the real target). `verify()` rolls back and ends the
+  cycle `recovered` on a failed post-install check; the I60/T07
+  "apparent success" control also voids the result (and rolls back) if
+  the base fingerprint moved mid-cycle or the evidence is for a
+  different repro case.
+- `cli.py` - new `repair check-candidate` subcommand (the candidate
+  gate, usable without a live cycle).
+- `docs/REPAIR_CYCLE.md`, README x7 synced.
+- 16 new tests (`test_repair_cycle.py` incl. the full happy path and
+  each block/rollback, plus `repair` cases in `test_cli.py`) - 206
+  total.
+
+DS09 (stable operation + restore) does not exist yet.
+
 ## [0.0.7] - DS07: authenticated incident transport for the OPS-AGENT round trip
 
 Seventh delivery of ten. A real protocol object - not a manual file

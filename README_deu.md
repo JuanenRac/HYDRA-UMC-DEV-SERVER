@@ -12,10 +12,10 @@
   <img src="https://img.shields.io/badge/Lizenz-GPL%203.0-blue.svg" alt="GPL 3.0">
   <img src="https://img.shields.io/badge/Sprache-Python%203.11%2B-blue.svg" alt="Python">
   <img src="https://img.shields.io/badge/Kern-nur%20stdlib-brightgreen.svg" alt="Nur-stdlib-Kern">
-  <img src="https://img.shields.io/badge/Lieferung-DS07%20von%2010-367BF5.svg" alt="DS07 von 10">
+  <img src="https://img.shields.io/badge/Lieferung-DS08%20von%2010-367BF5.svg" alt="DS08 von 10">
 </p>
 
-> **Status: v0.0.7, Scaffolding - DS07 von 10 (Verträge, Grenzen und ein
+> **Status: v0.0.8, Scaffolding - DS08 von 10 (Verträge, Grenzen und ein
 > überprüfbares Gerüst).** Ein reales, getestetes Konfigurationsschema
 > (`config validate`), dessen Standardrichtlinie **keiner Aufgabe eine
 > Deployment-Berechtigung erteilt**, sowie eine schreibgeschützte
@@ -152,7 +152,7 @@ $ hydra-umc-dev-server inventory scan --root ..
 {
   "root": "..",
   "projects": [
-    {"name": "HYDRA-UMC-DEV-SERVER", "version": "0.0.7", "maturity": "scaffolding", "manifest_path": "../HYDRA-UMC-DEV-SERVER/hydra-umc.project.json"},
+    {"name": "HYDRA-UMC-DEV-SERVER", "version": "0.0.8", "maturity": "scaffolding", "manifest_path": "../HYDRA-UMC-DEV-SERVER/hydra-umc.project.json"},
     ...
   ],
   "issues": []
@@ -211,7 +211,8 @@ HYDRA-UMC-DEV-SERVER/
 │   ├── durable_queue.py   # Dauerhafte SQLite-Warteschlange + Leases + Append-only-Ausführungsjournal, übersteht einen Neustart (DS05)
 │   ├── ai_provider.py     # Austauschbarer KI-Provider-Seam + Sicherheitsvertrag; nur deterministischer Fake (DS06)
 │   ├── incident_transport.py  # HMAC-signierte Incident-Nachrichten + verify + vollständige Round-Trip-Session (DS07)
-│   └── cli.py             # Einstiegspunkt der Unterbefehle config / inventory / station / migrate / task / queue / provider / incident
+│   ├── repair_cycle.py    # Gated repro->...->verify-Zyklus mit Rollback + das Kandidaten-Gate (DS08)
+│   └── cli.py             # Einstiegspunkt der Unterbefehle config / inventory / station / migrate / task / queue / provider / incident / repair
 ├── configs/
 │   ├── host-profile.example.json
 │   ├── toolchains.example.json
@@ -229,6 +230,7 @@ HYDRA-UMC-DEV-SERVER/
 │   ├── DURABLE_QUEUE.md      # Die DS05-Warteschlange, die Leases und das Ausführungsjournal
 │   ├── AI_PROVIDER.md        # Der DS06-Provider-Seam und sein Sicherheitsvertrag (nur Fake)
 │   ├── INCIDENT_TRANSPORT.md # Die DS07-signierte Nachricht, die Prüfungen und die Round-Trip-Session
+│   ├── REPAIR_CYCLE.md       # Der DS08-Reparaturzyklus mit Gates, seine Kontrollen und der Rollback
 │   ├── ARCHITECTURE.md     # Zweck, Arbeitsmodi, anfänglicher Umfang, Festplatte
 │   └── OPS_INTEGRATION.md  # Die 17-Beziehungs-Karte + Eigentümer-Tabelle
 ├── images/                # Medien und App-Icons
@@ -277,7 +279,7 @@ vollständige lokale Testsuite aus.
 
 ## 🚀 ROADMAP
 
-Diese Version bringt DS01 bis DS07. Was in der Lieferreihenfolge noch
+Diese Version bringt DS01 bis DS08. Was in der Lieferreihenfolge noch
 bleibt:
 
 - **DS02 - Reproduzierbare Remote-Station.** ✅ Geliefert: ein
@@ -314,11 +316,16 @@ bleibt:
   Impersonation-/Überlast-/Versionsprüfungen und einem vollständigen
   Round Trip Einreichen → Diagnose → Post-Deploy-Verifikation, der sich
   nach einem Verbindungsabbruch abgleicht (`incident verify`).
-- **DS08-DS10** - ein erster vollständig kontrollierter
-  Reparaturzyklus, stabiler Betrieb/Wiederherstellung, und ein
+- **DS08 - Erster vollständig kontrollierter Reparaturzyklus.** ✅
+  Geliefert: eine Zustandsmaschine mit Gates
+  repro->Vorfall->Patch->Regression->Build-Test->Genehmigung->isolierte
+  Installation->Verifikation, die einen manipulierten oder
+  fehlgeleiteten Kandidaten blockiert und bei fehlgeschlagener
+  Nachinstallationsprüfung zurückrollt (`repair check-candidate`).
+- **DS09-DS10** - stabiler Betrieb/Wiederherstellung, und ein
   Lieferpaket mit ehrlicher Reifegradbewertung.
 
-Nichts von DS08-DS10 existiert bisher in diesem Repository - siehe
+Nichts von DS09-DS10 existiert bisher in diesem Repository - siehe
 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) dafür, was jede Lieferung
 explizit ein- und ausschließt.
 
