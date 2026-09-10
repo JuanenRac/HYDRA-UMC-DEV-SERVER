@@ -76,6 +76,38 @@ class StationCommandTests(unittest.TestCase):
         self.assertEqual(main(["station", "plan", str(self._example)]), 0)
 
 
+class MigrateCommandTests(unittest.TestCase):
+    _repo = Path(__file__).resolve().parent.parent  # this repo is itself a git checkout
+
+    def test_migrate_inventory_of_this_repo_hashes_and_classifies_its_files(self):
+        exit_code = main(["migrate", "inventory", str(self._repo)])
+        self.assertEqual(exit_code, 0)
+
+    def test_migrate_plan_of_this_repo_is_a_host_free_dry_run(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            dest = Path(tmp) / "destinations.json"
+            dest.write_text(json.dumps({
+                "reference_root": "/srv/hydra-umc-dev/repos",
+                "local_changes_root": "/srv/hydra-umc-dev/migration/local",
+                "private_root": "/srv/hydra-umc-dev/private",
+                "work_in_progress_root": "/srv/hydra-umc-dev/migration/wip",
+            }), encoding="utf-8")
+            exit_code = main(["migrate", "plan", str(self._repo), "--destinations", str(dest)])
+            self.assertEqual(exit_code, 0)
+
+    def test_migrate_plan_rejects_overlapping_destinations(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            dest = Path(tmp) / "bad.json"
+            dest.write_text(json.dumps({
+                "reference_root": "/srv/x/repos",
+                "local_changes_root": "/srv/x/repos/local",
+                "private_root": "/srv/x/private",
+                "work_in_progress_root": "/srv/x/wip",
+            }), encoding="utf-8")
+            exit_code = main(["migrate", "plan", str(self._repo), "--destinations", str(dest)])
+            self.assertEqual(exit_code, 1)
+
+
 class VersionTests(unittest.TestCase):
     def test_version_flag_matches_the_real_package_version(self):
         with self.assertRaises(SystemExit) as ctx:

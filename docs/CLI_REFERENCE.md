@@ -4,7 +4,7 @@ Copyright (C) 2026 JuanenRac (Electro Hobby 3D) <electrohobby3d@gmail.com>
 GPL-3.0 - see LICENSE
 ============================================================================= -->
 
-# CLI reference (DS01 + DS02)
+# CLI reference (DS01 + DS02 + DS03)
 
 `hydra-umc-dev-server` (entry point installed by `pip install -e .`) or
 `python -m hydra_umc_dev_server.cli` - both run the exact same code.
@@ -79,6 +79,26 @@ With `--preflight`, the read-only host check runs first and the plan is
 refused if the host is not ready. **Nothing in this command is ever
 executed** - it is a document, not an action.
 
+## `migrate inventory <source_root>` (DS03)
+
+Walks a git checkout (or every checkout in the immediate subdirectories
+of `source_root`), SHA-256s every file git considers part of the project,
+and classifies each: `tracked-clean` / `tracked-modified` / `untracked` /
+`private`. Also lists commits on the branch that were never pushed.
+Prints the inventory as JSON. **Read-only** - it never writes to the
+source or runs a mutating git command.
+
+## `migrate plan <source_root> --destinations FILE` (DS03)
+
+Reads `FILE` (a migration-destinations JSON document - four absolute,
+provably-separate roots plus an optional `privacy_policy` block; see
+`CONFIG_SCHEMA.md` and `configs/migration-destinations.example.json`) and
+prints the migration plan: every file mapped to exactly one destination
+by class, a `<repo>.unpushed.bundle` under the work-in-progress root if
+there are unpushed commits, and a full `relpath -> sha256` manifest.
+Prints `REFUSED: ...` and exits `1` if a private file would ever resolve
+under a shareable root. **Copies nothing; touches nothing in the source.**
+
 ## `--version`
 
 Prints the installed package version (mirrors `pyproject.toml`'s own
@@ -90,5 +110,6 @@ No `workspace`, `task`, `queue` or `provider` subcommand exists yet - DS04
 (workspace/runner), DS05 (durable queue) and DS06 (AI provider) are later
 deliveries. Running this CLI today cannot start, cancel, or observe any
 task, and cannot deploy anything under any circumstance. `station plan`
-describes a provisioning it never carries out; there is no command that
-actually creates a user, writes a unit file, or opens a port.
+describes a provisioning it never carries out; `migrate plan` describes a
+migration it never carries out; there is no command that creates a user,
+writes a unit file, opens a port, or copies a single file.

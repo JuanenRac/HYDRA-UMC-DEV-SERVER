@@ -17,10 +17,16 @@
   nothing.
 - `station plan` - prints the dry-run provisioning plan for that profile
   (provision.py, DS02). Never executes a step.
+- `migrate inventory` - hashes and classifies every file in a source
+  checkout (migration.py, DS03). Read-only.
+- `migrate plan` - renders the conservative-migration plan: clean,
+  locally-modified, untracked and private files each go to their own
+  destination; unpushed commits get a bundle. Copies nothing and never
+  touches the source (migration.py, DS03).
 
 No workspace, task runner, queue or AI provider integration exists yet -
 those are DS04/DS05/DS06, later deliveries. Nothing here executes a task,
-provisions a host, or deploys anything.
+provisions a host, migrates a file, or deploys anything.
 """
 from __future__ import annotations
 
@@ -32,6 +38,13 @@ from pathlib import Path
 from . import __version__
 from .config import ConfigValidationError, HostProfile, TaskPolicy, ToolchainPolicy, load_json_document
 from .inventory import scan_project_manifests
+from .migration import (
+    MigrationDestinations,
+    PrivacyPolicy,
+    SystemSourceInspector,
+    build_migration_plan,
+    build_repo_inventory,
+)
 from .preflight import SystemHostInspector, run_preflight
 from .provision import build_provision_plan
 from .remote_station import RemoteStationProfile
@@ -120,10 +133,50 @@ def _cmd_station_plan(args: argparse.Namespace) -> int:
     return 0
 
 
+def _cmd_migrate_inventory(args: argparse.Namespace) -> int:
+    root = str(Path(args.source_root))
+    inspector = SystemSourceInspector()
+    if inspector.is_repo(root):
+        roots = [root]
+    else:
+        roots = inspector.child_repos(root)
+        if not roots:
+            print(f"no git checkout found at {root} or in its immediate subdirectories", file=sys.stderr)
+            return 1
+    payload = [build_repo_inventory(r, inspector).to_dict() for r in roots]
+    print(json.dumps(payload if len(payload) != 1 else payload[0], indent=2))
+    return 0
+
+
+def _cmd_migrate_plan(args: argparse.Namespace) -> int:
+    root = str(Path(args.source_root))
+    try:
+        document = load_json_document(Path(args.destinations))
+        destinations = MigrationDestinations.from_dict(document)
+        policy = PrivacyPolicy.from_dict(document.get("privacy_policy"))
+    except ConfigValidationError as exc:
+        print(f"INVALID: {args.destinations} (migration-destinations): {exc}", file=sys.stderr)
+        return 1
+
+    inspector = SystemSourceInspector()
+    roots = [root] if inspector.is_repo(root) else inspector.child_repos(root)
+    if not roots:
+        print(f"no git checkout found at {root} or in its immediate subdirectories", file=sys.stderr)
+        return 1
+    try:
+        plans = [build_migration_plan(build_repo_inventory(r, inspector, policy), destinations) for r in roots]
+    except ConfigValidationError as exc:
+        print(f"REFUSED: {exc}", file=sys.stderr)
+        return 1
+    out = [p.to_dict() for p in plans]
+    print(json.dumps(out if len(out) != 1 else out[0], indent=2))
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="hydra-umc-dev-server",
-        description="Reproducible development host for the HYDRA-UMC/URTC ecosystem - DS01 (config schema validation, read-only manifest inventory) and DS02 (remote-station profile, read-only host preflight, dry-run provisioning plan).",
+        description="Reproducible development host for the HYDRA-UMC/URTC ecosystem - DS01 (config schema, manifest inventory), DS02 (remote-station profile, read-only host preflight, dry-run provisioning plan) and DS03 (conservative-migration inventory and plan). Reads and describes only.",
     )
     parser.add_argument("--version", action="version", version=__version__)
     subparsers = parser.add_subparsers(dest="command", required=True)
@@ -165,6 +218,26 @@ def build_parser() -> argparse.ArgumentParser:
         help="Run the read-only host preflight first and refuse the plan if the host is not ready.",
     )
     station_plan.set_defaults(func=_cmd_station_plan)
+
+    migrate = subparsers.add_parser("migrate", help="Conservative-migration commands (DS03).")
+    migrate_sub = migrate.add_subparsers(dest="migrate_command", required=True)
+
+    migrate_inventory = migrate_sub.add_parser(
+        "inventory",
+        help="Hash and classify every file in a source checkout (or every checkout under a root). Read-only.",
+    )
+    migrate_inventory.add_argument("source_root", help="A git checkout, or a directory of them.")
+    migrate_inventory.set_defaults(func=_cmd_migrate_inventory)
+
+    migrate_plan = migrate_sub.add_parser(
+        "plan",
+        help="Render the migration plan: each file class to its own destination. Copies nothing, touches nothing in the source.",
+    )
+    migrate_plan.add_argument("source_root", help="A git checkout, or a directory of them.")
+    migrate_plan.add_argument(
+        "--destinations", required=True, help="Path to a migration-destinations JSON document."
+    )
+    migrate_plan.set_defaults(func=_cmd_migrate_plan)
 
     return parser
 

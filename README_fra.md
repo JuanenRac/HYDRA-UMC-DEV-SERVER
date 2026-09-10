@@ -12,10 +12,10 @@
   <img src="https://img.shields.io/badge/Licence-GPL%203.0-blue.svg" alt="GPL 3.0">
   <img src="https://img.shields.io/badge/Langage-Python%203.11%2B-blue.svg" alt="Python">
   <img src="https://img.shields.io/badge/Noyau-stdlib%20uniquement-brightgreen.svg" alt="Noyau stdlib uniquement">
-  <img src="https://img.shields.io/badge/Livraison-DS02%20sur%2010-367BF5.svg" alt="DS02 sur 10">
+  <img src="https://img.shields.io/badge/Livraison-DS03%20sur%2010-367BF5.svg" alt="DS03 sur 10">
 </p>
 
-> **Statut : v0.0.2, scaffolding - DS02 sur 10 (contrats, limites et un
+> **Statut : v0.0.3, scaffolding - DS03 sur 10 (contrats, limites et un
 > squelette vérifiable).** Un schéma de configuration réel et testé
 > (`config validate`) dont la politique par défaut **n'accorde aucune
 > permission de déploiement à aucune tâche**, et une découverte de
@@ -25,7 +25,7 @@
 > (`station validate`), une vérification préalable de l'hôte en
 > **lecture seule** qui se contente d'indiquer si un hôte est prêt
 > (`station preflight`, ne change rien), et un plan de provisionnement
-> **à blanc** (`station plan`, n'exécute jamais une étape). Il n'existe
+> **à blanc** (`station plan`, n'exécute jamais une étape). DS03 ajoute la **migration conservatrice** (`migrate inventory` / `migrate plan`) : elle hache et classe chaque fichier d'un checkout source et planifie chaque classe - propre, modifié localement, non suivi, privé - vers sa **propre destination distincte**, en refusant qu'un fichier privé atterrisse où que ce soit de partageable. Elle ne copie rien et ne touche jamais la source. Il n'existe
 > pas encore d'espace de travail, d'exécuteur de tâches, de file
 > d'attente durable ni d'intégration avec un fournisseur d'IA - ce sera
 > DS04, DS05 et DS06, livraisons futures. Voir
@@ -82,6 +82,23 @@ toutes toujours « valider et décrire, jamais agir » :
    construire un plan par-dessus une vérification préalable en échec.
    Rien n'est exécuté.
 
+DS03 ajoute la migration conservatrice, même règle « lire et décrire,
+jamais agir » - elle ne copie rien et ne touche jamais la source :
+
+6. **Inventaire + plan de migration** (`migrate inventory` / `migrate
+   plan`) - parcourt un checkout source (seulement les fichiers que git
+   considère comme faisant partie du projet - un `.venv` local ou une
+   sortie de build est git-ignoré et jamais vu), calcule le SHA-256 de
+   chaque fichier et classe chacun : `tracked-clean`, `tracked-modified`,
+   `untracked`, `private` (une `PrivacyPolicy` élargissable : le dossier de docs privés,
+   `.env*`, `*.pem`, `id_ed25519*`, ...). Les commits faits mais jamais
+   poussés sont enregistrés à part. `migrate plan` mappe chaque classe
+   vers sa **propre** destination parmi quatre racines prouvablement
+   distinctes (`MigrationDestinations.from_dict` refuse des racines
+   égales ou imbriquées), regroupe les commits non poussés, émet un
+   manifeste de hachages complet, et imprime `REFUSED` si un fichier
+   privé se résolvait sous une racine partageable.
+
 ```
 $ hydra-umc-dev-server config validate configs/task-policy.example.json --kind task-policy
 VALID: configs/task-policy.example.json (task-policy)
@@ -95,7 +112,7 @@ $ hydra-umc-dev-server inventory scan --root ..
 {
   "root": "..",
   "projects": [
-    {"name": "HYDRA-UMC-DEV-SERVER", "version": "0.0.2", "maturity": "scaffolding", "manifest_path": "../HYDRA-UMC-DEV-SERVER/hydra-umc.project.json"},
+    {"name": "HYDRA-UMC-DEV-SERVER", "version": "0.0.3", "maturity": "scaffolding", "manifest_path": "../HYDRA-UMC-DEV-SERVER/hydra-umc.project.json"},
     ...
   ],
   "issues": []
@@ -146,17 +163,20 @@ HYDRA-UMC-DEV-SERVER/
 │   ├── remote_station.py  # RemoteStationProfile : identité + accès distant + outils (DS02)
 │   ├── preflight.py       # Vérification de l'hôte en lecture seule via un inspecteur injectable (DS02)
 │   ├── provision.py       # Plan de provisionnement à blanc + texte de l'unité, jamais exécuté (DS02)
-│   └── cli.py             # Point d'entrée des sous-commandes config / inventory / station
+│   ├── migration.py       # Inventaire de migration conservatrice + plan vers des destinations distinctes, ne copie rien (DS03)
+│   └── cli.py             # Point d'entrée des sous-commandes config / inventory / station / migrate
 ├── configs/
 │   ├── host-profile.example.json
 │   ├── toolchains.example.json
 │   ├── task-policy.example.json      # allow_deploy : false, publié et testé ainsi
-│   └── remote-station.example.json   # écoute sur 127.0.0.1, publié et testé ainsi
+│   ├── remote-station.example.json   # écoute sur 127.0.0.1, publié et testé ainsi
+│   └── migration-destinations.example.json   # quatre racines prouvablement distinctes
 ├── tests/                # Tests réels de chaque module ci-dessus, incl. les configs d'exemple publiées
 ├── docs/
 │   ├── CLI_REFERENCE.md    # Chaque sous-commande, ses options et le contrat des codes de sortie
 │   ├── CONFIG_SCHEMA.md    # La forme JSON réelle des trois documents de configuration
 │   ├── REMOTE_STATION.md   # Le profil de station distante DS02, la vérification préalable et le plan à blanc
+│   ├── MIGRATION_FROM_PC.md  # L'inventaire, les classes et le plan de migration conservatrice DS03
 │   ├── ARCHITECTURE.md     # Objectif, modes de travail, périmètre initial, disque
 │   └── OPS_INTEGRATION.md  # La carte des 17 relations + table des propriétaires
 ├── images/                # Médias et icônes de l'application
@@ -203,16 +223,19 @@ de tests locale complète.
 
 ## 🚀 FEUILLE DE ROUTE
 
-Cette version apporte DS01 et DS02. Ce qui reste, dans l'ordre de
+Cette version apporte DS01, DS02 et DS03. Ce qui reste, dans l'ordre de
 livraison :
 
 - **DS02 - Station distante reproductible.** ✅ Livré : un profil de
   station distante validé, une vérification préalable de l'hôte en
   lecture seule, et un plan de provisionnement à blanc (sous-commandes
   `station`). Aucun hôte n'est modifié et aucune étape n'est exécutée.
-- **DS03 - Migration conservatrice.** Inventaire et copie par lots
-  depuis le PC de l'utilisateur avec hachages, changements locaux et
-  confidentialité traités explicitement.
+- **DS03 - Migration conservatrice.** ✅ Livré : hache et classe chaque
+  fichier d'un checkout source et planifie chaque classe (propre /
+  modifié / non suivi / privé) vers sa propre destination distincte, avec
+  un bundle pour les commits non poussés (sous-commandes `migrate`). Elle
+  ne copie rien et ne touche jamais la source. Exécuter un plan approuvé
+  est une livraison ultérieure.
 - **DS04 - Espace de travail et exécuteur borné.** Isolation réelle par
   tâche : deux tâches ne se percutent jamais, un chemin hors de l'espace
   de travail est rejeté.
@@ -225,7 +248,7 @@ livraison :
   restauration stable, et un paquet de livraison avec une évaluation
   honnête de la maturité.
 
-Rien de DS03-DS10 n'existe encore dans ce dépôt - voir
+Rien de DS04-DS10 n'existe encore dans ce dépôt - voir
 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) pour ce que chaque
 livraison inclut et exclut explicitement.
 
