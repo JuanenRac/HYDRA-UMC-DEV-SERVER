@@ -12,10 +12,10 @@
   <img src="https://img.shields.io/badge/许可证-GPL%203.0-blue.svg" alt="GPL 3.0">
   <img src="https://img.shields.io/badge/语言-Python%203.11%2B-blue.svg" alt="Python">
   <img src="https://img.shields.io/badge/核心-仅标准库-brightgreen.svg" alt="仅标准库核心">
-  <img src="https://img.shields.io/badge/交付-DS09%2F10-367BF5.svg" alt="DS09/10">
+  <img src="https://img.shields.io/badge/交付-DS01--DS10%20已完成%20(脚手架)-brightgreen.svg" alt="DS01-DS10 已完成，脚手架">
 </p>
 
-> **状态：v0.0.9，脚手架阶段 - 十次交付中的 DS09（契约、边界与可验证的骨架）。**
+> **状态：v0.1.0，脚手架阶段 - 十次交付已全部完成，仍为脚手架（契约、边界与可验证的骨架）。**
 > 一套真实、经过测试的配置模式(`config validate`)，其默认策略**不向任何任务授予部署权限**；
 > 以及只读的清单发现功能(`inventory scan`)，可找到本生态系统自身的
 > `hydra-umc.project.json` 文件——包括本仓库自己的那份。
@@ -85,7 +85,7 @@ $ hydra-umc-dev-server inventory scan --root ..
 {
   "root": "..",
   "projects": [
-    {"name": "HYDRA-UMC-DEV-SERVER", "version": "0.0.9", "maturity": "scaffolding", "manifest_path": "../HYDRA-UMC-DEV-SERVER/hydra-umc.project.json"},
+    {"name": "HYDRA-UMC-DEV-SERVER", "version": "0.1.0", "maturity": "scaffolding", "manifest_path": "../HYDRA-UMC-DEV-SERVER/hydra-umc.project.json"},
     ...
   ],
   "issues": []
@@ -135,7 +135,8 @@ HYDRA-UMC-DEV-SERVER/
 │   ├── incident_transport.py  # HMAC 签名的事件消息 + verify + 完整的往返会话（DS07）
 │   ├── repair_cycle.py    # 带门禁与回滚的 repro->...->verify 周期 + 候选门禁（DS08）
 │   ├── operations.py      # 经校验的状态备份/恢复 + 运行健康检查（DS09）
-│   └── cli.py             # config / inventory / station / migrate / task / queue / provider / incident / repair / ops 子命令入口
+│   ├── delivery.py        # 交付清单（每个文件一个 sha256）+ 诚实的成熟度评估，绝不夸大（DS10）
+│   └── cli.py             # config / inventory / station / migrate / task / queue / provider / incident / repair / ops / deliver 子命令入口
 ├── configs/
 │   ├── host-profile.example.json
 │   ├── toolchains.example.json
@@ -156,6 +157,7 @@ HYDRA-UMC-DEV-SERVER/
 │   ├── INCIDENT_TRANSPORT.md # DS07 的签名消息、校验与往返会话
 │   ├── REPAIR_CYCLE.md       # DS08 的带门禁修复周期、其控制与回滚
 │   ├── OPERATIONS.md         # DS09 的经校验备份/恢复与运行健康检查
+│   ├── DELIVERY.md           # DS10 的交付清单与诚实的成熟度评估
 │   ├── ARCHITECTURE.md     # 目的、工作模式、初始范围、磁盘布局
 │   └── OPS_INTEGRATION.md  # 17 项关系图谱 + 归属表
 ├── images/                # 媒体与应用图标
@@ -197,7 +199,7 @@ chmod +x build.sh   # 一次性
 
 ## 🚀 路线图
 
-本版本交付 DS01 至 DS09。按交付顺序，剩余部分为：
+本版本交付 DS01 至 DS10：十次交付的计划已完成。按交付顺序，各次交付为：
 
 - **DS02 - 可复现的远程站点。** ✅ 已交付：一个经校验的远程站点配置、
   一项只读的主机预检，以及一份空跑的置备计划（`station` 子命令）。
@@ -209,9 +211,16 @@ chmod +x build.sh   # 一次性
 - **DS07 - 与 HYDRA-UMC-OPS-AGENT 协调的事件处理。** ✅ 已交付：一个 HMAC 认证的事件传输，带有重放 / 冒充 / 过载 / 版本检查，以及一个完整的 提交 → 诊断 → 部署后验证 往返流程，在网络中断后会进行对账（`incident verify`）。
 - **DS08 - 第一个完全受控的修复周期。** ✅ 已交付：一个带门禁的状态机 repro->事件->补丁->回归->build-test->批准->隔离安装->验证，它会阻止被篡改或错误定向的候选，并在安装后检查失败时回滚（`repair check-candidate`）。
 - **DS09 - 稳定的运行/恢复。** ✅ 已交付：对队列和磁盘的运行健康检查，以及一个经校验的状态备份/恢复，它会拒绝来自另一实例的备份或损坏的备份（`ops` 子命令）。
-- **DS10** - 带有诚实成熟度评估的交付包。
+- **DS10 - 交付包与诚实的成熟度评估。** ✅ 已交付：`deliver manifest`
+  为每个已交付文件记录一个 sha256，并回读真实的 CLI 命令面、版本与测试数量；
+  `deliver evaluate` 对照真实证据报告十次交付中的每一次（DS06 为 `partial`——
+  只交付了 fake），清晰列出七条限制，并报告一个在代码中固定为 `scaffolding`
+  的 `overall_maturity`。
 
-DS10 目前尚未存在于本仓库中——每次交付明确包含与排除的内容，
+**成熟度。** 计划已完成；成熟度有意保持为 `scaffolding`。本仓库中的内容是
+契约、边界与一个可验证的骨架。这里没有任何东西会置备主机、执行部署、把各部分
+接成一个工作循环，或触碰过真实硬件。`deliver evaluate` 正是这样说的，其
+`known_limitations` 列表就是诚实的待办事项。每次交付明确包含与排除的内容，
 见 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)。
 
 ## 🔗 相关项目

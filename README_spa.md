@@ -12,10 +12,11 @@
   <img src="https://img.shields.io/badge/Licencia-GPL%203.0-blue.svg" alt="GPL 3.0">
   <img src="https://img.shields.io/badge/Lenguaje-Python%203.11%2B-blue.svg" alt="Python">
   <img src="https://img.shields.io/badge/Núcleo-solo%20stdlib-brightgreen.svg" alt="Núcleo solo stdlib">
-  <img src="https://img.shields.io/badge/Entrega-DS09%20de%2010-367BF5.svg" alt="DS09 de 10">
+  <img src="https://img.shields.io/badge/Entrega-DS01--DS10%20completo%20(scaffolding)-brightgreen.svg" alt="DS01-DS10 completo, scaffolding">
 </p>
 
-> **Estado: v0.0.9, scaffolding - DS09 de 10 (contratos, límites y un
+> **Estado: v0.1.0, scaffolding - las diez de diez entregadas, sigue
+> siendo scaffolding (contratos, límites y un
 > esqueleto verificable).** Un esquema de configuración real y probado
 > (`config validate`) cuya política por defecto **no concede permiso de
 > despliegue a ninguna tarea**, y un descubrimiento de manifiestos de
@@ -145,7 +146,7 @@ $ hydra-umc-dev-server inventory scan --root ..
 {
   "root": "..",
   "projects": [
-    {"name": "HYDRA-UMC-DEV-SERVER", "version": "0.0.9", "maturity": "scaffolding", "manifest_path": "../HYDRA-UMC-DEV-SERVER/hydra-umc.project.json"},
+    {"name": "HYDRA-UMC-DEV-SERVER", "version": "0.1.0", "maturity": "scaffolding", "manifest_path": "../HYDRA-UMC-DEV-SERVER/hydra-umc.project.json"},
     ...
   ],
   "issues": []
@@ -205,7 +206,8 @@ HYDRA-UMC-DEV-SERVER/
 │   ├── incident_transport.py  # Mensajes de incidente firmados con HMAC + verify + sesion de ida y vuelta completa (DS07)
 │   ├── repair_cycle.py    # Ciclo repro->...->verify con puertas y rollback + la puerta de candidato (DS08)
 │   ├── operations.py      # Backup/restore de estado verificado + comprobacion de salud operativa (DS09)
-│   └── cli.py             # Punto de entrada de los subcomandos config / inventory / station / migrate / task / queue / provider / incident / repair / ops
+│   ├── delivery.py        # Manifiesto de entrega (sha256 por archivo) + evaluacion honesta de madurez, nunca sobreafirma (DS10)
+│   └── cli.py             # Punto de entrada de los subcomandos config / inventory / station / migrate / task / queue / provider / incident / repair / ops / deliver
 ├── configs/
 │   ├── host-profile.example.json
 │   ├── toolchains.example.json
@@ -225,6 +227,7 @@ HYDRA-UMC-DEV-SERVER/
 │   ├── INCIDENT_TRANSPORT.md # El mensaje firmado DS07, las comprobaciones y la sesion de ida y vuelta
 │   ├── REPAIR_CYCLE.md       # El ciclo de reparacion DS08 con puertas, sus controles y el rollback
 │   ├── OPERATIONS.md         # El backup/restore verificado DS09 y la comprobacion de salud operativa
+│   ├── DELIVERY.md           # El manifiesto de entrega DS10 y la evaluacion honesta de madurez
 │   ├── ARCHITECTURE.md     # Propósito, modos de trabajo, alcance inicial, disco
 │   └── OPS_INTEGRATION.md  # El mapa de 17 relaciones + tabla de propietarios
 ├── images/                # Medios e iconos de la app
@@ -270,7 +273,8 @@ de pruebas local completa.
 
 ## 🚀 HOJA DE RUTA
 
-Esta versión trae DS01 hasta DS09. Lo que queda, en orden de entrega:
+Esta versión trae DS01 hasta DS10: el plan de diez entregas está
+completo. Cada entrega, en orden:
 
 - **DS02 - Estación remota reproducible.** ✅ Entregado: un perfil de
   estación remota validado, una comprobación previa del host de solo
@@ -314,10 +318,20 @@ Esta versión trae DS01 hasta DS09. Lo que queda, en orden de entrega:
   comprobaciones de salud operativa sobre la cola y el disco, y un
   backup/restore de estado verificado que rechaza un backup de otra
   instancia o uno corrupto (subcomandos `ops`).
-- **DS10** - un paquete de entrega con una evaluación honesta de
-  madurez.
+- **DS10 - Paquete de entrega y evaluación honesta de madurez.** ✅
+  Entregado: `deliver manifest` registra un sha256 por cada archivo
+  entregado y relee la superficie CLI real, la versión y el número de
+  tests; `deliver evaluate` reporta cada una de las diez entregas contra
+  evidencia real (DS06 es `partial` - solo se entrega el fake), lista
+  siete limitaciones con claridad, y reporta un `overall_maturity` fijado
+  a `scaffolding` en el código.
 
-Nada de DS10 existe todavía en este repositorio - ver
+**Madurez.** El plan está completo; la madurez sigue siendo `scaffolding`
+a propósito. Lo que hay en este repositorio son contratos, límites y un
+esqueleto verificable. Nada aquí aprovisiona un host, ejecuta un
+despliegue, une las piezas en un bucle de trabajo, ni ha tocado hardware
+real. `deliver evaluate` dice exactamente esto, y su lista
+`known_limitations` es la tarea pendiente honesta. Ver
 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) para lo que cada entrega
 incluye y excluye explícitamente.
 

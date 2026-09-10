@@ -249,6 +249,33 @@ class OpsCommandTests(unittest.TestCase):
             self.assertEqual(code, 1)
 
 
+class DeliverCommandTests(unittest.TestCase):
+    def _run_json(self, argv):
+        import contextlib
+        import io
+
+        buf = io.StringIO()
+        with contextlib.redirect_stdout(buf):
+            code = main(argv)
+        return code, json.loads(buf.getvalue())
+
+    def test_deliver_manifest_reports_this_repos_real_version_and_cli_surface(self):
+        code, payload = self._run_json(["deliver", "manifest"])
+        self.assertEqual(code, 0)
+        self.assertEqual(payload["version"], __version__)
+        self.assertIn("deliver", payload["cli_subcommands"])
+        self.assertIn("src/hydra_umc_dev_server/delivery.py", payload["files"])
+        self.assertGreaterEqual(payload["test_files"], 10)
+
+    def test_deliver_evaluate_lists_ten_deliveries_and_never_exceeds_scaffolding(self):
+        code, payload = self._run_json(["deliver", "evaluate"])
+        self.assertEqual(code, 0)
+        self.assertEqual(payload["overall_maturity"], "scaffolding")
+        self.assertEqual(len(payload["deliveries"]), 10)
+        self.assertTrue(all(d["module_present"] for d in payload["deliveries"]))
+        self.assertTrue(len(payload["known_limitations"]) >= 5)
+
+
 class VersionTests(unittest.TestCase):
     def test_version_flag_matches_the_real_package_version(self):
         with self.assertRaises(SystemExit) as ctx:

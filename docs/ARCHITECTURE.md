@@ -4,7 +4,7 @@ Copyright (C) 2026 JuanenRac (Electro Hobby 3D) <electrohobby3d@gmail.com>
 GPL-3.0 - see LICENSE
 ============================================================================= -->
 
-# Architecture (DS01-DS09)
+# Architecture (DS01-DS10)
 
 This document describes this project's purpose, working modes, initial
 scope and disk layout, and the target design across all ten deliveries
@@ -21,13 +21,18 @@ for the round trip with HYDRA-UMC-OPS-AGENT (`incident` - see
 `INCIDENT_TRANSPORT.md`); and DS08's one fully controlled repair cycle
 (`repair` - see `REPAIR_CYCLE.md`), gated at every step with rollback on
 a failed post-install check; and DS09's stable-operation health checks
-plus a verified state backup/restore (`ops` - see `OPERATIONS.md`).
-DS01-DS03, DS05 and DS06 only read, describe and record. DS04 is the
+plus a verified state backup/restore (`ops` - see `OPERATIONS.md`); and
+DS10's delivery package plus an honest maturity evaluation (`deliver` -
+see `DELIVERY.md`), which enumerates what the repository ships with a
+sha256 per file and reports each delivery against real evidence without
+ever claiming more than `scaffolding`. DS01-DS03, DS05, DS06 and DS10
+only read, describe and record. DS04 is the
 only delivery that executes a subprocess - and only an allow-listed command, in a per-task
 isolated workspace, with a scrubbed environment, under a bounded timeout
 that kills the whole process group; it still deploys nothing.
 Everything else on this page is a documented target, not a claim about
-what runs today.
+what runs today. The ten-delivery plan is now complete; the maturity
+stays `scaffolding` - contracts, limits and a verifiable skeleton.
 
 ## Purpose and status
 

@@ -12,11 +12,12 @@
   <img src="https://img.shields.io/badge/Licencia-GPL%203.0-blue.svg" alt="GPL 3.0">
   <img src="https://img.shields.io/badge/Language-Python%203.11%2B-blue.svg" alt="Python">
   <img src="https://img.shields.io/badge/Core-stdlib%20only-brightgreen.svg" alt="stdlib-only core">
-  <img src="https://img.shields.io/badge/Delivery-DS09%20of%2010-367BF5.svg" alt="DS09 of 10">
+  <img src="https://img.shields.io/badge/Delivery-DS01--DS10%20complete%20(scaffolding)-brightgreen.svg" alt="DS01-DS10 complete, scaffolding">
 </p>
 
-> **Status: v0.0.9, scaffolding - DS09 of 10 (contracts, limits and a
-> verifiable skeleton).** A tested configuration schema
+> **Status: v0.1.0, scaffolding - all ten of ten shipped, still
+> scaffolding (contracts, limits and a verifiable skeleton).** A tested
+> configuration schema
 > (`config validate`), read-only manifest discovery (`inventory scan`),
 > a remote-station profile + host preflight + dry-run provisioning plan
 > (`station …`), **conservative migration** (`migrate …`) that plans
@@ -49,7 +50,13 @@
 > verified state backup/restore** (`ops health` / `ops verify-backup`):
 > every backup file carries a sha256, and a restore is **refused** for a
 > backup taken for another instance or schema, or one whose files no
-> longer match. It still deploys nothing. See
+> longer match. **DS10 closes the plan with a delivery package and an
+> honest maturity evaluation** (`deliver manifest` / `deliver
+> evaluate`): a sha256 for every shipped file, each of the ten
+> deliveries reported against real evidence, seven plainly-stated
+> limitations, and an `overall_maturity` that is **hard-coded
+> `scaffolding`** - the code has no branch that can claim more. It still
+> deploys nothing. See
 > [docs/CLI_REFERENCE.md](docs/CLI_REFERENCE.md) for the exact command
 > surface that exists today.
 
@@ -180,7 +187,7 @@ $ hydra-umc-dev-server inventory scan --root ..
 {
   "root": "..",
   "projects": [
-    {"name": "HYDRA-UMC-DEV-SERVER", "version": "0.0.9", "maturity": "scaffolding", "manifest_path": "../HYDRA-UMC-DEV-SERVER/hydra-umc.project.json"},
+    {"name": "HYDRA-UMC-DEV-SERVER", "version": "0.1.0", "maturity": "scaffolding", "manifest_path": "../HYDRA-UMC-DEV-SERVER/hydra-umc.project.json"},
     ...
   ],
   "issues": []
@@ -238,7 +245,8 @@ HYDRA-UMC-DEV-SERVER/
 │   ├── incident_transport.py  # HMAC-signed incident messages + verify + full round-trip session (DS07)
 │   ├── repair_cycle.py    # Gated repro→...→verify cycle with rollback + the candidate gate (DS08)
 │   ├── operations.py      # Verified state backup/restore + operational health check (DS09)
-│   └── cli.py             # config / inventory / station / migrate / task / queue / provider / incident / repair / ops subcommand entry point
+│   ├── delivery.py        # Delivery manifest (sha256 per shipped file) + honest maturity evaluation, never over-claims (DS10)
+│   └── cli.py             # config / inventory / station / migrate / task / queue / provider / incident / repair / ops / deliver subcommand entry point
 ├── configs/
 │   ├── host-profile.example.json
 │   ├── toolchains.example.json
@@ -261,6 +269,7 @@ HYDRA-UMC-DEV-SERVER/
 │   ├── INCIDENT_TRANSPORT.md # The DS07 signed message, verify checks and round-trip session
 │   ├── REPAIR_CYCLE.md       # The DS08 gated repair cycle, its gates and rollback
 │   ├── OPERATIONS.md         # The DS09 verified backup/restore and operational health check
+│   ├── DELIVERY.md           # The DS10 delivery manifest and honest maturity evaluation
 │   ├── ARCHITECTURE.md       # Purpose, working modes, initial scope, disk layout
 │   └── OPS_INTEGRATION.md    # The 17-relationship map + state-ownership table
 ├── images/                # Media and app icons
@@ -306,7 +315,8 @@ local test suite.
 
 ## 🚀 ROADMAP
 
-This version ships DS01 through DS09. What remains, in delivery order:
+This version ships DS01 through DS10 - the ten-delivery plan is
+complete. Each delivery, in order:
 
 - **DS02 - Reproducible remote station.** ✅ Shipped: a validated
   remote-station profile, a read-only host preflight, and a dry-run
@@ -346,9 +356,23 @@ This version ships DS01 through DS09. What remains, in delivery order:
   health checks over the queue and disk, and a verified state
   backup/restore that refuses a backup for another instance or a
   corrupted one (`ops` subcommands).
-- **DS10** - a delivery package with an honest maturity evaluation.
+- **DS10 - Delivery package and honest maturity evaluation.** ✅
+  Shipped: `deliver manifest` records a sha256 for every shipped file
+  and reads back the real CLI surface, version and test count; `deliver
+  evaluate` reports each of the ten deliveries against real evidence
+  (DS06 is `partial` - only the fake ships), lists seven limitations
+  plainly, and reports an `overall_maturity` that is hard-coded
+  `scaffolding`.
 
-None of DS10 exists in this repository yet - see
+**Maturity.** The plan is complete; the maturity stays `scaffolding` on
+purpose. What is in this repository is contracts, limits and a
+verifiable skeleton - a configuration schema, validated profiles,
+dry-run plans, one bounded runner, a durable queue, a fake provider, a
+signed transport, a gated repair cycle, verified backups, and an
+evaluation that refuses to over-claim. Nothing here provisions a host,
+runs a deploy, wires the pieces into a worker loop, or has touched
+target hardware. `deliver evaluate` says exactly this, and its
+`known_limitations` list is the honest to-do. See
 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for what each delivery is
 scoped to include and explicitly exclude.
 

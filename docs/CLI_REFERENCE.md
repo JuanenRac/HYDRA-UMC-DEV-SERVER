@@ -4,7 +4,7 @@ Copyright (C) 2026 JuanenRac (Electro Hobby 3D) <electrohobby3d@gmail.com>
 GPL-3.0 - see LICENSE
 ============================================================================= -->
 
-# CLI reference (DS01 + DS02 + DS03 + DS04 + DS05 + DS06 + DS07 + DS08 + DS09)
+# CLI reference (DS01 + DS02 + DS03 + DS04 + DS05 + DS06 + DS07 + DS08 + DS09 + DS10)
 
 `hydra-umc-dev-server` (entry point installed by `pip install -e .`) or
 `python -m hydra_umc_dev_server.cli` - both run the exact same code.
@@ -40,7 +40,7 @@ $ hydra-umc-dev-server inventory scan --root ..
 {
   "root": "..",
   "projects": [
-    {"name": "HYDRA-UMC-DEV-SERVER", "version": "0.0.9", "maturity": "scaffolding", "manifest_path": "../HYDRA-UMC-DEV-SERVER/hydra-umc.project.json"},
+    {"name": "HYDRA-UMC-DEV-SERVER", "version": "0.1.0", "maturity": "scaffolding", "manifest_path": "../HYDRA-UMC-DEV-SERVER/hydra-umc.project.json"},
     ...
   ],
   "issues": []
@@ -196,6 +196,37 @@ Re-hashes every file in a state backup against its manifest. Prints
 missing file. `restore_backup()` (tested, no CLI yet) additionally
 refuses a backup for a different instance id or schema version.
 
+## `deliver manifest [--repo-root DIR]` (DS10)
+
+Prints the delivery manifest for this repository as JSON: a sha256 for
+every shipped file (`src/*.py`, `docs/*.md`, `configs/*.json`, plus
+`pyproject.toml` / `hydra-umc.project.json` / `CHANGELOG.md` /
+`README.md`), the real CLI subcommand list read from `cli.py`, the
+package version, and the `tests/test_*.py` count. `--repo-root` defaults
+to this checkout. **Read-only.**
+
+## `deliver evaluate [--repo-root DIR]` (DS10)
+
+Prints the honest maturity evaluation as JSON (see `DELIVERY.md`): each
+of the ten deliveries as `shipped` / `partial` / `not-started` against
+whether its module is actually in the tree (DS06 is `partial` on purpose
+- only the deterministic fake ships), seven plain-language
+`known_limitations`, and `overall_maturity`, which is hard-coded
+`"scaffolding"`. Exits `1` if the maturity it reads back is ever not
+`"scaffolding"` - the guard is that the evaluation cannot over-claim.
+
+```
+$ hydra-umc-dev-server deliver evaluate
+{
+  "project": "HYDRA-UMC-DEV-SERVER",
+  "version": "0.1.0",
+  "overall_maturity": "scaffolding",
+  "deliveries": [ ... ten entries ... ],
+  "known_limitations": [ ... seven statements ... ],
+  "honest_summary": "All ten deliveries are in the repository ..."
+}
+```
+
 ## `--version`
 
 Prints the installed package version (mirrors `pyproject.toml`'s own
@@ -203,13 +234,15 @@ Prints the installed package version (mirrors `pyproject.toml`'s own
 
 ## Not yet implemented
 
-There is no worker loop that feeds a queued task's context to `provider
-suggest` and then runs the result through `task run`; that glue, and
-coordination with HYDRA-UMC-OPS-AGENT over an authenticated transport,
-are DS07/DS08. No real AI provider is wired - which one, and its
-authorization, is a user decision. `station plan` describes a provisioning it never
-carries out; `migrate plan` describes a migration it never carries out;
-there is no command that creates a user, writes a unit file, opens a
-port, or copies a single file. `task run` is the only command that
-executes anything, and only an allow-listed command in an isolated
-workspace with no inherited secrets - it deploys nothing.
+The ten-delivery plan is complete, but it is scaffolding by design -
+`deliver evaluate` reports exactly this. There is still no worker loop
+that feeds a queued task's context to `provider suggest` and then runs
+the result through `task run` and the DS08 repair cycle; each piece is
+exercised in isolation. No real AI provider is wired - which one, and
+its authorization, is a user decision. `station plan` describes a
+provisioning it never carries out; `migrate plan` describes a migration
+it never carries out; there is no command that creates a user, writes a
+unit file, opens a port, or copies a single file. `task run` is the only
+command that executes anything, and only an allow-listed command in an
+isolated workspace with no inherited secrets - it deploys nothing. No
+target hardware has been provisioned or validated.
