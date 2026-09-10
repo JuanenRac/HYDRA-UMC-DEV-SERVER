@@ -4,7 +4,7 @@ Copyright (C) 2026 JuanenRac (Electro Hobby 3D) <electrohobby3d@gmail.com>
 GPL-3.0 - see LICENSE
 ============================================================================= -->
 
-# CLI reference (DS01 + DS02 + DS03 + DS04)
+# CLI reference (DS01 + DS02 + DS03 + DS04 + DS05)
 
 `hydra-umc-dev-server` (entry point installed by `pip install -e .`) or
 `python -m hydra_umc_dev_server.cli` - both run the exact same code.
@@ -40,7 +40,7 @@ $ hydra-umc-dev-server inventory scan --root ..
 {
   "root": "..",
   "projects": [
-    {"name": "HYDRA-UMC-DEV-SERVER", "version": "0.0.4", "maturity": "scaffolding", "manifest_path": "../HYDRA-UMC-DEV-SERVER/hydra-umc.project.json"},
+    {"name": "HYDRA-UMC-DEV-SERVER", "version": "0.0.5", "maturity": "scaffolding", "manifest_path": "../HYDRA-UMC-DEV-SERVER/hydra-umc.project.json"},
     ...
   ],
   "issues": []
@@ -124,6 +124,31 @@ Exits `0` only on `completed` with exit code `0`. A disallowed command
 or an escaping input path is `rejected` with **nothing spawned**. It
 deploys nothing.
 
+## `queue enqueue <recipe_file> --db PATH --base-fingerprint HEX` (DS05)
+
+Adds one task recipe to a SQLite durable queue (created if absent). A
+second call with the same `task_id` is a no-op - `created: false`, no
+journal row, never a second job. `--base-fingerprint` is any opaque
+string the caller derives from the source state the task is pinned to;
+DS05 stores it and later compares it.
+
+## `queue status --db PATH [--reconcile]` (DS05)
+
+Prints entry counts by state and the journal row count. `--reconcile`
+first returns every expired lease to `queued`.
+
+## `queue reconcile --db PATH` (DS05)
+
+Returns every entry whose lease has expired to `queued`. Safe on every
+process start; idempotent. Prints `{"returned_to_queued": N}`.
+
+## `queue journal <task_id> --db PATH` (DS05)
+
+Prints the append-only execution journal for one task (`enqueued` /
+`leased` / `lease-expired` / `completed` / `result-rejected` /
+`cancelled`, each with its `attempt`, timestamp and JSON detail). Exits
+`1` if the task has no journal.
+
 ## `--version`
 
 Prints the installed package version (mirrors `pyproject.toml`'s own
@@ -131,9 +156,9 @@ Prints the installed package version (mirrors `pyproject.toml`'s own
 
 ## Not yet implemented
 
-No `queue` or `provider` subcommand exists yet - DS05 (durable queue,
-leases, execution journal) and DS06 (interchangeable AI provider) are
-later deliveries. `station plan` describes a provisioning it never
+No `provider` subcommand exists yet - DS06 (interchangeable AI provider,
+a deterministic fake first) is a later delivery. There is no worker loop
+that pulls from the queue and calls `task run`; that glue is DS06/DS07. `station plan` describes a provisioning it never
 carries out; `migrate plan` describes a migration it never carries out;
 there is no command that creates a user, writes a unit file, opens a
 port, or copies a single file. `task run` is the only command that

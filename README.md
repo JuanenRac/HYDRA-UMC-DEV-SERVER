@@ -12,27 +12,29 @@
   <img src="https://img.shields.io/badge/Licencia-GPL%203.0-blue.svg" alt="GPL 3.0">
   <img src="https://img.shields.io/badge/Language-Python%203.11%2B-blue.svg" alt="Python">
   <img src="https://img.shields.io/badge/Core-stdlib%20only-brightgreen.svg" alt="stdlib-only core">
-  <img src="https://img.shields.io/badge/Delivery-DS04%20of%2010-367BF5.svg" alt="DS04 of 10">
+  <img src="https://img.shields.io/badge/Delivery-DS05%20of%2010-367BF5.svg" alt="DS05 of 10">
 </p>
 
-> **Status: v0.0.4, scaffolding - DS04 of 10 (contracts, limits and a
+> **Status: v0.0.5, scaffolding - DS05 of 10 (contracts, limits and a
 > verifiable skeleton).** A tested configuration schema
-> (`config validate`) whose default policy grants **no task deployment
-> permission**, read-only manifest discovery (`inventory scan`), a
-> validated remote-station profile + **read-only** host preflight +
-> **dry-run** provisioning plan (`station …`), and **conservative
-> migration** (`migrate …`) that hashes/classifies every file in a
-> source checkout and plans each class into its own separate
-> destination - all of which only read and describe. **DS04 adds the
-> bounded runner** (`task validate` / `task run`): it runs **one**
-> allow-listed command in a **per-task isolated workspace** (a `..`,
-> absolute path or out-of-workspace symlink is refused; two tasks never
+> (`config validate`), read-only manifest discovery (`inventory scan`),
+> a validated remote-station profile + host preflight + dry-run
+> provisioning plan (`station …`), **conservative migration**
+> (`migrate …`) that plans each file class into its own separate
+> destination, and the **bounded runner** (`task …`) that runs **one**
+> allow-listed command in a **per-task isolated workspace** (`..`,
+> absolute and out-of-workspace symlink paths refused; two tasks never
 > share one), with a **scrubbed environment** (no inherited
-> `*_TOKEN` / `*_KEY` / `*_SECRET`), under a bounded timeout that
-> **kills the whole process group**. It still deploys nothing. No
-> durable queue or AI provider integration exists yet - those are DS05
-> and DS06. See [docs/CLI_REFERENCE.md](docs/CLI_REFERENCE.md) for the
-> exact command surface that exists today.
+> `*_TOKEN` / `*_KEY` / `*_SECRET`), under a timeout that **kills the
+> whole process group**. **DS05 adds a durable SQLite queue + execution
+> journal** (`queue …`) that survives a restart: a duplicate `enqueue`
+> is never a second job; a crashed worker's lease expires and
+> `reconcile` returns the task to `queued`; a result from a worker that
+> no longer holds the lease is **rejected, not marked done**; a base
+> that moved since enqueue **blocks promotion even on exit 0**. It still
+> deploys nothing. No AI provider integration exists yet - that is DS06.
+> See [docs/CLI_REFERENCE.md](docs/CLI_REFERENCE.md) for the exact
+> command surface that exists today.
 
 ---
 
@@ -113,6 +115,24 @@ tightly gated:
    path, or an out-of-workspace symlink in the recipe's `input_paths` is
    refused. It deploys nothing.
 
+DS05 adds durability - a task queue and its execution journal that
+survive a process restart. It records, it does not run:
+
+8. **Durable queue + execution journal** (`queue enqueue` / `status` /
+   `reconcile` / `journal`) - a SQLite store (WAL, immediate
+   transactions for the lease). `enqueue` is idempotent - a second call
+   with the same `task_id` returns `created=False`, **never a second
+   job**. `lease(worker, ttl)` claims the oldest `queued` entry;
+   `reconcile()` returns an expired lease to `queued` (safe on every
+   startup). A `record_result` from a worker that no longer holds the
+   lease is **rejected, not accepted as done** - an interruption never
+   becomes a false success. If the base fingerprint observed at result
+   time differs from the one recorded at `enqueue`, the result is stored
+   `failed` / not promotable **even on exit code 0**. The `completed`
+   journal event always carries `revision` + `recipe_fingerprint`; the
+   journal keeps only truncated tails and `prune_journal` caps rows, so
+   disk stays bounded.
+
 ```
 $ hydra-umc-dev-server config validate configs/task-policy.example.json --kind task-policy
 VALID: configs/task-policy.example.json (task-policy)
@@ -126,7 +146,7 @@ $ hydra-umc-dev-server inventory scan --root ..
 {
   "root": "..",
   "projects": [
-    {"name": "HYDRA-UMC-DEV-SERVER", "version": "0.0.4", "maturity": "scaffolding", "manifest_path": "../HYDRA-UMC-DEV-SERVER/hydra-umc.project.json"},
+    {"name": "HYDRA-UMC-DEV-SERVER", "version": "0.0.5", "maturity": "scaffolding", "manifest_path": "../HYDRA-UMC-DEV-SERVER/hydra-umc.project.json"},
     ...
   ],
   "issues": []
@@ -179,7 +199,8 @@ HYDRA-UMC-DEV-SERVER/
 │   ├── workspace.py       # Per-task isolated workspace; refuses ../, absolute, out-of-workspace symlink (DS04)
 │   ├── recipe.py          # TaskRecipe: pinned revision + allow-listed command (DS04)
 │   ├── runner.py          # Bounded runner: scrubbed env, timeout, whole-process-group kill (DS04)
-│   └── cli.py             # config / inventory / station / migrate / task subcommand entry point
+│   ├── durable_queue.py   # SQLite durable queue + leases + append-only execution journal, survives a restart (DS05)
+│   └── cli.py             # config / inventory / station / migrate / task / queue subcommand entry point
 ├── configs/
 │   ├── host-profile.example.json
 │   ├── toolchains.example.json
@@ -187,6 +208,7 @@ HYDRA-UMC-DEV-SERVER/
 │   ├── remote-station.example.json       # binds 127.0.0.1, shipped and tested that way
 │   ├── migration-destinations.example.json   # four provably-separate roots
 │   └── task-recipe.example.json          # pinned revision + allow-listed command
+│   # (queue commands take a --db path, no config file)
 ├── tests/                # Real tests for every module above, incl. the shipped example configs
 ├── docs/
 │   ├── CLI_REFERENCE.md      # Every subcommand, flags, exit codes
@@ -194,6 +216,7 @@ HYDRA-UMC-DEV-SERVER/
 │   ├── REMOTE_STATION.md     # The DS02 remote-station profile, preflight and dry-run plan
 │   ├── MIGRATION_FROM_PC.md  # The DS03 conservative-migration inventory, classes and plan
 │   ├── WORKSPACE_AND_RUNNER.md  # The DS04 recipe, isolated workspace and bounded runner
+│   ├── DURABLE_QUEUE.md      # The DS05 durable queue, leases and execution journal
 │   ├── ARCHITECTURE.md       # Purpose, working modes, initial scope, disk layout
 │   └── OPS_INTEGRATION.md    # The 17-relationship map + state-ownership table
 ├── images/                # Media and app icons
@@ -239,7 +262,7 @@ local test suite.
 
 ## 🚀 ROADMAP
 
-This version ships DS01, DS02, DS03 and DS04. What remains, in delivery order:
+This version ships DS01 through DS05. What remains, in delivery order:
 
 - **DS02 - Reproducible remote station.** ✅ Shipped: a validated
   remote-station profile, a read-only host preflight, and a dry-run
@@ -256,15 +279,18 @@ This version ships DS01, DS02, DS03 and DS04. What remains, in delivery order:
   symlink paths refused), an allow-listed command only, a scrubbed
   environment, and a timeout that kills the whole process group
   (`task` subcommands). It executes a subprocess but deploys nothing.
-- **DS05 - Durable queue and traceable results.** IDs, leases, a real
-  execution journal that survives a restart.
+- **DS05 - Durable queue and traceable results.** ✅ Shipped: a SQLite
+  queue with leases and an append-only execution journal that survive a
+  restart; a duplicate enqueue is never a second job, an interruption
+  never a false success, a moved base blocks promotion (`queue`
+  subcommands).
 - **DS06 - Interchangeable AI provider.** A deterministic fake provider
   first, a real authorized one after.
 - **DS07-DS10** - coordinated incidents with HYDRA-UMC-OPS-AGENT, a first
   fully controlled repair cycle, stable operation/restoration, and a
   delivery package with an honest maturity evaluation.
 
-None of DS05-DS10 exists in this repository yet - see
+None of DS06-DS10 exists in this repository yet - see
 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for what each delivery is
 scoped to include and explicitly exclude.
 

@@ -12,10 +12,10 @@
   <img src="https://img.shields.io/badge/ライセンス-GPL%203.0-blue.svg" alt="GPL 3.0">
   <img src="https://img.shields.io/badge/言語-Python%203.11%2B-blue.svg" alt="Python">
   <img src="https://img.shields.io/badge/コア-stdlibのみ-brightgreen.svg" alt="stdlibのみのコア">
-  <img src="https://img.shields.io/badge/デリバリー-DS04%2F10-367BF5.svg" alt="DS04/10">
+  <img src="https://img.shields.io/badge/デリバリー-DS05%2F10-367BF5.svg" alt="DS05/10">
 </p>
 
-> **状態: v0.0.4、スキャフォールディング - 全10回中のDS04（契約・制約・検証可能な骨格）。**
+> **状態: v0.0.5、スキャフォールディング - 全10回中のDS05（契約・制約・検証可能な骨格）。**
 > 実在してテスト済みの設定スキーマ(`config validate`)は、デフォルトポリシーで
 > **どのタスクにもデプロイ権限を与えない**。また読み取り専用のマニフェスト発見機能
 > (`inventory scan`)は、このエコシステム自身の `hydra-umc.project.json` を
@@ -23,7 +23,7 @@
 > リモートステーションプロファイル(`station validate`)、ホストが準備できて
 > いるかを報告するだけの**読み取り専用**の事前チェック(`station preflight`、
 > 何も変更しない)、および**ドライラン**のプロビジョニング計画(`station plan`、
-> 一切のステップを実行しない)を追加する。DS03は**保守的な移行**(`migrate inventory` / `migrate plan`)を追加する: ソースのチェックアウト内の各ファイルをハッシュ化して分類し、各クラス — クリーン、ローカル変更、未追跡、プライベート — を**それぞれ独立した宛先**に計画し、プライベートファイルが共有可能な場所に着地するなら拒否する。何もコピーせず、ソースには決して触れない。以上はすべて読み取り記述のみ。**DS04は境界付きランナーを追加する**(`task validate` / `task run`): **タスクごとに隔離されたワークスペース**内で**1つの**許可リストのコマンドを実行し(`..`、絶対パス、ワークスペース外へのsymlinkは拒否される。2つのタスクが1つを共有することはない)、**サニタイズされた環境**(継承された `*_TOKEN` / `*_KEY` / `*_SECRET` はなし)で、境界のあるタイムアウトのもとで**プロセスグループ全体をkill**する。依然として何もデプロイしない。まだ
+> 一切のステップを実行しない)を追加する。DS03は**保守的な移行**(`migrate inventory` / `migrate plan`)を追加する: ソースのチェックアウト内の各ファイルをハッシュ化して分類し、各クラス — クリーン、ローカル変更、未追跡、プライベート — を**それぞれ独立した宛先**に計画し、プライベートファイルが共有可能な場所に着地するなら拒否する。何もコピーせず、ソースには決して触れない。以上はすべて読み取り記述のみ。**DS04は境界付きランナーを追加する**(`task validate` / `task run`): **タスクごとに隔離されたワークスペース**内で**1つの**許可リストのコマンドを実行し(`..`、絶対パス、ワークスペース外へのsymlinkは拒否される。2つのタスクが1つを共有することはない)、**サニタイズされた環境**(継承された `*_TOKEN` / `*_KEY` / `*_SECRET` はなし)で、境界のあるタイムアウトのもとで**プロセスグループ全体をkill**する。**DS05は永続的なSQLiteキュー + 実行ジャーナル**(`queue …`)を追加する。これらはプロセス再起動を生き延びる: 重複した `enqueue` は決して2つ目のジョブにならない。クラッシュしたワーカーのリースは期限切れになり、`reconcile` がタスクを `queued` に戻す。リースをもう保持していないワーカーからの結果は**拒否され、完了とはマークされない**。エンキュー以降に変わったベースは**終了コードが0でも昇格をブロックする**。依然として何もデプロイしない。まだ
 > 永続キュー、AIプロバイダー連携は存在しない - それらはDS05、DS06という
 > 今後の提供物である。
 > 今日存在する正確なコマンド面については
@@ -82,6 +82,10 @@ DS04はサブプロセスを実行する最初の提供物であり、依然と�
 
 7. **タスクレシピ + ワークスペースランナー** (`task validate` / `task run`) - `TaskRecipe` は `revision` を固定し(ブランチ名は拒否される)、許可リストの `command` を持つ(`argv[0]` はポリシーの `allowed_commands` に含まれていなければならず、さもなければ実行は `rejected` となり何も起動されない)。`task run` は `<base>/<task_id>/` を作成し - 既に存在するものは拒否するので**2つのタスクがワークスペースを共有することはない** - そこで**サニタイズされた環境**でコマンドを実行する(`PATH` / `HOME` / `LANG` / `TZ` のみ。継承された `GITHUB_TOKEN`、`AWS_SECRET_ACCESS_KEY`、`ANTHROPIC_API_KEY`、`SSH_AUTH_SOCK` は決してない)。`timeout_seconds` で境界付けられ、期限切れまたはキャンセル時に**プロセスグループ全体をkill**する - 孫プロセスを起動して両方が消えることを確認する実際のテストで証明済み。`input_paths` 内の `..`、絶対パス、ワークスペース外へのsymlinkは拒否される。何もデプロイしない。
 
+DS05は永続性を追加する - タスクキューとその実行ジャーナルがプロセス再起動を生き延びる。実行せず、記録する:
+
+8. **永続キュー + 実行ジャーナル** (`queue enqueue` / `status` / `reconcile` / `journal`) - SQLiteストア(WAL、リースには即時トランザクション)。`enqueue` は冪等 - 同じ `task_id` での2回目の呼び出しは `created=False` を返し、**決して2つ目のジョブにならない**。`lease(worker, ttl)` は最も古い `queued` エントリを要求する。`reconcile()` は期限切れのリースを `queued` に戻す(起動のたびに安全)。リースをもう保持していないワーカーからの `record_result` は**拒否され、完了とは受理されない** - 中断が偽の成功になることは決してない。結果時に観測されたベースのフィンガープリントが `enqueue` 時のものと異なる場合、結果は `failed` / 昇格不可として保存される(**終了コードが0でも**)。ジャーナルの `completed` イベントは常に `revision` + `recipe_fingerprint` を持つ。ジャーナルは切り詰めた末尾のみを保持し、`prune_journal` が行数を制限するので、ディスクは境界内に保たれる。
+
 ```
 $ hydra-umc-dev-server config validate configs/task-policy.example.json --kind task-policy
 VALID: configs/task-policy.example.json (task-policy)
@@ -95,7 +99,7 @@ $ hydra-umc-dev-server inventory scan --root ..
 {
   "root": "..",
   "projects": [
-    {"name": "HYDRA-UMC-DEV-SERVER", "version": "0.0.4", "maturity": "scaffolding", "manifest_path": "../HYDRA-UMC-DEV-SERVER/hydra-umc.project.json"},
+    {"name": "HYDRA-UMC-DEV-SERVER", "version": "0.0.5", "maturity": "scaffolding", "manifest_path": "../HYDRA-UMC-DEV-SERVER/hydra-umc.project.json"},
     ...
   ],
   "issues": []
@@ -146,7 +150,8 @@ HYDRA-UMC-DEV-SERVER/
 │   ├── workspace.py       # タスクごとに隔離されたワークスペース; ../、絶対パス、ワークスペース外へのsymlinkを拒否(DS04)
 │   ├── recipe.py          # TaskRecipe: 固定されたrevision + 許可リストのコマンド(DS04)
 │   ├── runner.py          # 境界付きランナー: サニタイズされた環境、タイムアウト、プロセスグループ全体をkill(DS04)
-│   └── cli.py             # config / inventory / station / migrate / task サブコマンドのエントリポイント
+│   ├── durable_queue.py   # SQLite永続キュー + リース + append-only実行ジャーナル、再起動を生き延びる(DS05)
+│   └── cli.py             # config / inventory / station / migrate / task / queue サブコマンドのエントリポイント
 ├── configs/
 │   ├── host-profile.example.json
 │   ├── toolchains.example.json
@@ -161,6 +166,7 @@ HYDRA-UMC-DEV-SERVER/
 │   ├── REMOTE_STATION.md   # DS02のリモートステーションプロファイル、事前チェック、ドライラン計画
 │   ├── MIGRATION_FROM_PC.md  # DS03の保守的な移行のインベントリ、クラス、計画
 │   ├── WORKSPACE_AND_RUNNER.md  # DS04のレシピ、隔離ワークスペース、境界付きランナー
+│   ├── DURABLE_QUEUE.md      # DS05の永続キュー、リース、実行ジャーナル
 │   ├── ARCHITECTURE.md     # 目的、作業モード、初期範囲、ディスク
 │   └── OPS_INTEGRATION.md  # 17関係マップ＋所有権表
 ├── images/                # メディアとアプリアイコン
@@ -206,7 +212,7 @@ CHANGELOGには一切触れない - これ自体はテストスイートを実�
 
 ## 🚀 ロードマップ
 
-このバージョンはDS01、DS02、DS03、DS04を提供する。提供順に、残っているのは:
+このバージョンはDS01からDS05までを提供する。提供順に、残っているのは:
 
 - **DS02 - 再現可能なリモートステーション。** ✅ 提供済み: 検証済みの
   リモートステーションプロファイル、読み取り専用のホスト事前チェック、
@@ -214,15 +220,17 @@ CHANGELOGには一切触れない - これ自体はテストスイートを実�
   変更されず、ステップも実行されない。
 - **DS03 - 保守的な移行。** ✅ 提供済み: ソースのチェックアウト内の各ファイルをハッシュ化して分類し、各クラス(クリーン / 変更 / 未追跡 / プライベート)をそれぞれ独立した宛先に計画し、未プッシュのコミット用のバンドルを添える(`migrate` サブコマンド)。何もコピーせず、ソースには決して触れない。承認された計画の実行は後続の提供物である。
 - **DS04 - ワークスペースと境界付きランナー。** ✅ 提供済み: タスクごとに隔離されたワークスペース(2つのタスクが決して衝突しない。`..`、絶対パス、ワークスペース外へのsymlinkは拒否)、許可リストのコマンドのみ、サニタイズされた環境、そしてプロセスグループ全体をkillするタイムアウト(`task` サブコマンド)。サブプロセスを実行するが、何もデプロイしない。
-- **DS05 - 永続キューと追跡可能な結果。** ID、リース、再起動を生き延びる
-  実際の実行ジャーナル。
+- **DS05 - 永続キューと追跡可能な結果。** ✅ 提供済み: リース付きのSQLite
+  キューとappend-onlyの実行ジャーナルが再起動を生き延びる。重複エンキュー
+  は決して2つ目のジョブにならず、中断は決して偽の成功にならず、変わった
+  ベースは昇格をブロックする(`queue` サブコマンド)。
 - **DS06 - 交換可能なAIプロバイダー。** まず決定論的な偽プロバイダー、
   その後に実際の承認されたプロバイダー。
 - **DS07-DS10** - HYDRA-UMC-OPS-AGENTと連携したインシデント対応、
   完全に制御された最初の修復サイクル、安定した運用/復旧、そして
   正直な成熟度評価を伴う配布パッケージ。
 
-DS05-DS10のいずれも、まだこのリポジトリには存在しない - 各提供物が明示的に
+DS06-DS10のいずれも、まだこのリポジトリには存在しない - 各提供物が明示的に
 含むもの・除外するものについては [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
 を参照。
 

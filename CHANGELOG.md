@@ -5,6 +5,43 @@ version number follows this ecosystem's "odometer" scheme: PATCH +1 on
 every real build, rolling into MINOR past 9 (`0.0.9` -> `0.1.0`); MAJOR is
 bumped manually only. See `bump_version.py`.
 
+## [0.0.5] - DS05: durable SQLite queue + append-only execution journal
+
+Fifth delivery of ten. A task queue and its execution journal that
+survive a process restart. Nothing here runs a task - DS04's runner does
+that; this records, durably, what happened.
+
+- **`durable_queue.py`** - `DurableQueue(path)` over SQLite (WAL,
+  immediate transactions for the lease). Two tables: `entries` (one row
+  per `task_id`, the primary key) and `journal` (append-only).
+  - `enqueue(recipe, base_fingerprint)` is idempotent - a second call
+    with the same `task_id` returns `created=False` and adds no journal
+    row. **A duplicate never becomes a second job.**
+  - `lease(worker_id, ttl)` atomically claims the oldest `queued` entry,
+    bumps `attempt`, sets `lease_expires_at`. `reconcile()` returns every
+    entry whose lease has expired to `queued` (safe on every startup,
+    idempotent).
+  - `record_result(task_id, worker_id, run_result, observed_base_fingerprint)`
+    is **rejected** (not accepted as done) if that worker no longer
+    holds the lease - **an interruption never produces a false
+    success**. If the observed base fingerprint differs from the one
+    recorded at enqueue, the result is stored `failed` / `promotable=False`
+    even on exit code `0` - **a base that moved invalidates promotion**.
+    The `completed` journal event always carries `revision` and the
+    `recipe_fingerprint` (sha256 of the canonical recipe).
+  - the journal stores only truncated (2 KiB) stdout/stderr tails, and
+    `prune_journal(keep_last_n_per_task)` caps rows - **logs and disk
+    stay bounded** regardless of retry churn.
+- **`cli.py`** - new `queue enqueue` / `queue status` / `queue reconcile`
+  / `queue journal` subcommands.
+- **`docs/DURABLE_QUEUE.md`**, README x7 synced.
+- 15 new tests (`test_durable_queue.py` incl. a real tmp-file
+  restart-survival case, plus `queue` cases in `test_cli.py`) - 156
+  total.
+
+DS06 (interchangeable AI provider - a deterministic fake first) does not
+exist yet.
+
 ## [0.0.4] - DS04: bounded task recipe + isolated workspace runner
 
 Fourth delivery of ten. This is the first delivery that actually

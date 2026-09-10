@@ -29,11 +29,17 @@
   recipe's allow-listed command in it, with a scrubbed environment and a
   bounded timeout; kills the whole process group on timeout
   (workspace.py + runner.py, DS04).
+- `queue enqueue / status / reconcile / journal` - a SQLite-backed
+  durable queue with leases and an append-only execution journal that
+  survives a restart (durable_queue.py, DS05). A duplicate `enqueue` is
+  a no-op; `reconcile` returns an expired lease to `queued`; a result
+  from a worker that no longer holds the lease is rejected, not accepted
+  as done; a base that moved since enqueue blocks promotion.
 
-No durable queue or AI provider integration exists yet - those are
-DS05/DS06. `task run` is the first thing here that executes a subprocess,
-and only an allow-listed command, in an isolated workspace, with no
-inherited secrets; it still deploys nothing.
+No AI provider integration exists yet - that is DS06. `task run` is the
+only command that executes a subprocess, and only an allow-listed
+command, in an isolated workspace, with no inherited secrets; it still
+deploys nothing.
 """
 from __future__ import annotations
 
@@ -52,6 +58,7 @@ from .migration import (
     build_migration_plan,
     build_repo_inventory,
 )
+from .durable_queue import DurableQueue
 from .preflight import SystemHostInspector, run_preflight
 from .provision import build_provision_plan
 from .recipe import TaskRecipe
@@ -219,10 +226,47 @@ def _cmd_task_run(args: argparse.Namespace) -> int:
     return 0 if result.outcome == "completed" and result.exit_code == 0 else 1
 
 
+def _cmd_queue_enqueue(args: argparse.Namespace) -> int:
+    try:
+        recipe = TaskRecipe.from_dict(load_json_document(Path(args.recipe_file)))
+    except ConfigValidationError as exc:
+        print(f"INVALID: {args.recipe_file} (task-recipe): {exc}", file=sys.stderr)
+        return 1
+    with DurableQueue(args.db) as queue:
+        outcome = queue.enqueue(recipe, args.base_fingerprint)
+    print(json.dumps({"created": outcome.created, "entry": outcome.entry.to_dict()}, indent=2))
+    return 0
+
+
+def _cmd_queue_status(args: argparse.Namespace) -> int:
+    with DurableQueue(args.db) as queue:
+        reclaimed = queue.reconcile() if args.reconcile else 0
+        stats = queue.stats()
+    print(json.dumps({"reconciled": reclaimed, **stats}, indent=2))
+    return 0
+
+
+def _cmd_queue_reconcile(args: argparse.Namespace) -> int:
+    with DurableQueue(args.db) as queue:
+        count = queue.reconcile()
+    print(json.dumps({"returned_to_queued": count}, indent=2))
+    return 0
+
+
+def _cmd_queue_journal(args: argparse.Namespace) -> int:
+    with DurableQueue(args.db) as queue:
+        events = queue.journal_for(args.task_id)
+    if not events:
+        print(f"no journal entries for task {args.task_id!r}", file=sys.stderr)
+        return 1
+    print(json.dumps(events, indent=2))
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="hydra-umc-dev-server",
-        description="Reproducible development host for the HYDRA-UMC/URTC ecosystem - DS01 (config schema, manifest inventory), DS02 (remote-station profile, host preflight, provisioning plan), DS03 (conservative-migration inventory and plan) and DS04 (bounded task recipe + isolated workspace runner). Only 'task run' executes anything, and only an allow-listed command in an isolated workspace with no inherited secrets.",
+        description="Reproducible development host for the HYDRA-UMC/URTC ecosystem - DS01 (config schema, manifest inventory), DS02 (remote-station profile, host preflight, provisioning plan), DS03 (conservative-migration inventory and plan), DS04 (bounded task recipe + isolated workspace runner) and DS05 (durable SQLite queue + execution journal). Only 'task run' executes anything, and only an allow-listed command in an isolated workspace with no inherited secrets.",
     )
     parser.add_argument("--version", action="version", version=__version__)
     subparsers = parser.add_subparsers(dest="command", required=True)
@@ -304,6 +348,36 @@ def build_parser() -> argparse.ArgumentParser:
     task_run.add_argument("--policy", required=True, help="Path to a task-policy JSON document.")
     task_run.add_argument("--workspace-base", required=True, help="Absolute directory under which the per-task workspace is created.")
     task_run.set_defaults(func=_cmd_task_run)
+
+    queue = subparsers.add_parser("queue", help="Durable task queue + execution journal commands (DS05).")
+    queue_sub = queue.add_subparsers(dest="queue_command", required=True)
+
+    queue_enqueue = queue_sub.add_parser(
+        "enqueue", help="Add one task recipe to the durable queue. A duplicate task_id is a no-op, never a second job."
+    )
+    queue_enqueue.add_argument("recipe_file", help="Path to a task-recipe JSON document.")
+    queue_enqueue.add_argument("--db", required=True, help="Path to the SQLite queue database (created if absent).")
+    queue_enqueue.add_argument(
+        "--base-fingerprint", required=True,
+        help="Opaque fingerprint of the source base this task is pinned to; a different one at result time blocks promotion.",
+    )
+    queue_enqueue.set_defaults(func=_cmd_queue_enqueue)
+
+    queue_status = queue_sub.add_parser("status", help="Print entry counts by state and the journal row count.")
+    queue_status.add_argument("--db", required=True, help="Path to the SQLite queue database.")
+    queue_status.add_argument("--reconcile", action="store_true", help="Return expired leases to 'queued' first.")
+    queue_status.set_defaults(func=_cmd_queue_status)
+
+    queue_reconcile = queue_sub.add_parser(
+        "reconcile", help="Return every entry with an expired lease to 'queued'. Safe on every startup; idempotent."
+    )
+    queue_reconcile.add_argument("--db", required=True, help="Path to the SQLite queue database.")
+    queue_reconcile.set_defaults(func=_cmd_queue_reconcile)
+
+    queue_journal = queue_sub.add_parser("journal", help="Print the append-only execution journal for one task.")
+    queue_journal.add_argument("task_id", help="The task id.")
+    queue_journal.add_argument("--db", required=True, help="Path to the SQLite queue database.")
+    queue_journal.set_defaults(func=_cmd_queue_journal)
 
     return parser
 

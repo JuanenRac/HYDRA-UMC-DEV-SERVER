@@ -12,10 +12,10 @@
   <img src="https://img.shields.io/badge/Licence-GPL%203.0-blue.svg" alt="GPL 3.0">
   <img src="https://img.shields.io/badge/Langage-Python%203.11%2B-blue.svg" alt="Python">
   <img src="https://img.shields.io/badge/Noyau-stdlib%20uniquement-brightgreen.svg" alt="Noyau stdlib uniquement">
-  <img src="https://img.shields.io/badge/Livraison-DS04%20sur%2010-367BF5.svg" alt="DS04 sur 10">
+  <img src="https://img.shields.io/badge/Livraison-DS05%20sur%2010-367BF5.svg" alt="DS05 sur 10">
 </p>
 
-> **Statut : v0.0.4, scaffolding - DS04 sur 10 (contrats, limites et un
+> **Statut : v0.0.5, scaffolding - DS05 sur 10 (contrats, limites et un
 > squelette vérifiable).** Un schéma de configuration réel et testé
 > (`config validate`) dont la politique par défaut **n'accorde aucune
 > permission de déploiement à aucune tâche**, et une découverte de
@@ -25,7 +25,7 @@
 > (`station validate`), une vérification préalable de l'hôte en
 > **lecture seule** qui se contente d'indiquer si un hôte est prêt
 > (`station preflight`, ne change rien), et un plan de provisionnement
-> **à blanc** (`station plan`, n'exécute jamais une étape), et une **migration conservatrice** qui ne copie rien. DS04 ajoute l'**exécuteur borné** (`task validate` / `task run`) : il lance **une** commande d'une liste blanche dans un **espace de travail isolé par tâche** (un `..`, un chemin absolu ou un symlink hors de l'espace de travail est refusé ; deux tâches n'en partagent jamais un), avec un **environnement expurgé** (aucun `*_TOKEN` / `*_KEY` / `*_SECRET` hérité), sous un délai borné qui **tue tout le groupe de processus**. Il ne déploie toujours rien. DS03 ajoute la **migration conservatrice** (`migrate inventory` / `migrate plan`) : elle hache et classe chaque fichier d'un checkout source et planifie chaque classe - propre, modifié localement, non suivi, privé - vers sa **propre destination distincte**, en refusant qu'un fichier privé atterrisse où que ce soit de partageable. Elle ne copie rien et ne touche jamais la source. Il n'existe
+> **à blanc** (`station plan`, n'exécute jamais une étape), et une **migration conservatrice** qui ne copie rien. DS04 ajoute l'**exécuteur borné** (`task validate` / `task run`) : il lance **une** commande d'une liste blanche dans un **espace de travail isolé par tâche** (un `..`, un chemin absolu ou un symlink hors de l'espace de travail est refusé ; deux tâches n'en partagent jamais un), avec un **environnement expurgé** (aucun `*_TOKEN` / `*_KEY` / `*_SECRET` hérité), sous un délai borné qui **tue tout le groupe de processus**. **DS05 ajoute une file durable SQLite + un journal d'exécution** (`queue …`) qui survivent à un redémarrage : un `enqueue` en double n'est jamais un second travail ; le bail d'un worker planté expire et `reconcile` renvoie la tâche à `queued` ; un résultat d'un worker qui ne détient plus le bail est **refusé, pas marqué fait** ; une base qui a bougé depuis l'enqueue **bloque la promotion même sur un code de sortie 0**. Il ne déploie toujours rien. DS03 ajoute la **migration conservatrice** (`migrate inventory` / `migrate plan`) : elle hache et classe chaque fichier d'un checkout source et planifie chaque classe - propre, modifié localement, non suivi, privé - vers sa **propre destination distincte**, en refusant qu'un fichier privé atterrisse où que ce soit de partageable. Elle ne copie rien et ne touche jamais la source. Il n'existe
 > pas encore d'espace de travail, d'exécuteur de tâches, de file
 > d'attente durable ni d'intégration avec un fournisseur d'IA - ce sera
 > DS04, DS05 et DS06, livraisons futures. Voir
@@ -118,6 +118,26 @@ reste très encadrée :
    absolu ou un symlink hors de l'espace de travail dans `input_paths`
    est refusé. Il ne déploie rien.
 
+DS05 ajoute la durabilité - une file de tâches et son journal
+d'exécution qui survivent à un redémarrage du processus. Il enregistre,
+il n'exécute pas :
+
+8. **File durable + journal d'exécution** (`queue enqueue` / `status` /
+   `reconcile` / `journal`) - un stockage SQLite (WAL, transactions
+   immédiates pour le bail). `enqueue` est idempotent - un second appel
+   avec le même `task_id` renvoie `created=False`, **jamais un second
+   travail**. `lease(worker, ttl)` réclame l'entrée `queued` la plus
+   ancienne ; `reconcile()` renvoie un bail expiré à `queued` (sûr à
+   chaque démarrage). Un `record_result` d'un worker qui ne détient
+   plus le bail est **refusé, pas accepté comme fait** - une
+   interruption ne devient jamais un faux succès. Si l'empreinte de la
+   base observée au moment du résultat diffère de celle de l'`enqueue`,
+   le résultat est stocké `failed` / non promouvable **même sur un code
+   de sortie 0**. L'événement `completed` du journal porte toujours
+   `revision` + `recipe_fingerprint` ; le journal ne garde que des
+   queues tronquées et `prune_journal` borne les lignes, donc le disque
+   reste borné.
+
 ```
 $ hydra-umc-dev-server config validate configs/task-policy.example.json --kind task-policy
 VALID: configs/task-policy.example.json (task-policy)
@@ -131,7 +151,7 @@ $ hydra-umc-dev-server inventory scan --root ..
 {
   "root": "..",
   "projects": [
-    {"name": "HYDRA-UMC-DEV-SERVER", "version": "0.0.4", "maturity": "scaffolding", "manifest_path": "../HYDRA-UMC-DEV-SERVER/hydra-umc.project.json"},
+    {"name": "HYDRA-UMC-DEV-SERVER", "version": "0.0.5", "maturity": "scaffolding", "manifest_path": "../HYDRA-UMC-DEV-SERVER/hydra-umc.project.json"},
     ...
   ],
   "issues": []
@@ -186,7 +206,8 @@ HYDRA-UMC-DEV-SERVER/
 │   ├── workspace.py       # Espace de travail isolé par tâche ; refuse ../, absolu, symlink hors de l'espace (DS04)
 │   ├── recipe.py          # TaskRecipe : révision fixée + commande de liste blanche (DS04)
 │   ├── runner.py          # Exécuteur borné : environnement expurgé, délai, tue tout le groupe de processus (DS04)
-│   └── cli.py             # Point d'entrée des sous-commandes config / inventory / station / migrate / task
+│   ├── durable_queue.py   # File durable SQLite + baux + journal d'exécution append-only, survit à un redémarrage (DS05)
+│   └── cli.py             # Point d'entrée des sous-commandes config / inventory / station / migrate / task / queue
 ├── configs/
 │   ├── host-profile.example.json
 │   ├── toolchains.example.json
@@ -201,6 +222,7 @@ HYDRA-UMC-DEV-SERVER/
 │   ├── REMOTE_STATION.md   # Le profil de station distante DS02, la vérification préalable et le plan à blanc
 │   ├── MIGRATION_FROM_PC.md  # L'inventaire, les classes et le plan de migration conservatrice DS03
 │   ├── WORKSPACE_AND_RUNNER.md  # La recette DS04, l'espace de travail isolé et l'exécuteur borné
+│   ├── DURABLE_QUEUE.md      # La file durable DS05, les baux et le journal d'exécution
 │   ├── ARCHITECTURE.md     # Objectif, modes de travail, périmètre initial, disque
 │   └── OPS_INTEGRATION.md  # La carte des 17 relations + table des propriétaires
 ├── images/                # Médias et icônes de l'application
@@ -247,7 +269,7 @@ de tests locale complète.
 
 ## 🚀 FEUILLE DE ROUTE
 
-Cette version apporte DS01, DS02, DS03 et DS04. Ce qui reste, dans l'ordre de
+Cette version apporte DS01 à DS05. Ce qui reste, dans l'ordre de
 livraison :
 
 - **DS02 - Station distante reproductible.** ✅ Livré : un profil de
@@ -266,8 +288,11 @@ livraison :
   commande de liste blanche, un environnement expurgé, et un délai qui
   tue tout le groupe de processus (sous-commandes `task`). Il exécute un
   sous-processus mais ne déploie rien.
-- **DS05 - File d'attente durable et résultats traçables.** IDs, leases,
-  un journal d'exécution réel qui survit à un redémarrage.
+- **DS05 - File d'attente durable et résultats traçables.** ✅ Livré :
+  une file SQLite avec des baux et un journal d'exécution append-only
+  qui survivent à un redémarrage ; un enqueue en double n'est jamais un
+  second travail, une interruption jamais un faux succès, une base qui a
+  bougé bloque la promotion (sous-commandes `queue`).
 - **DS06 - Fournisseur d'IA interchangeable.** D'abord un fournisseur
   factice déterministe, puis un fournisseur réel autorisé.
 - **DS07-DS10** - incidents coordonnés avec HYDRA-UMC-OPS-AGENT, un
@@ -275,7 +300,7 @@ livraison :
   restauration stable, et un paquet de livraison avec une évaluation
   honnête de la maturité.
 
-Rien de DS05-DS10 n'existe encore dans ce dépôt - voir
+Rien de DS06-DS10 n'existe encore dans ce dépôt - voir
 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) pour ce que chaque
 livraison inclut et exclut explicitement.
 
