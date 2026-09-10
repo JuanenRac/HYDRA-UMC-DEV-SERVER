@@ -12,10 +12,10 @@
   <img src="https://img.shields.io/badge/许可证-GPL%203.0-blue.svg" alt="GPL 3.0">
   <img src="https://img.shields.io/badge/语言-Python%203.11%2B-blue.svg" alt="Python">
   <img src="https://img.shields.io/badge/核心-仅标准库-brightgreen.svg" alt="仅标准库核心">
-  <img src="https://img.shields.io/badge/交付-DS07%2F10-367BF5.svg" alt="DS07/10">
+  <img src="https://img.shields.io/badge/交付-DS08%2F10-367BF5.svg" alt="DS08/10">
 </p>
 
-> **状态：v0.0.7，脚手架阶段 - 十次交付中的 DS07（契约、边界与可验证的骨架）。**
+> **状态：v0.0.8，脚手架阶段 - 十次交付中的 DS08（契约、边界与可验证的骨架）。**
 > 一套真实、经过测试的配置模式(`config validate`)，其默认策略**不向任何任务授予部署权限**；
 > 以及只读的清单发现功能(`inventory scan`)，可找到本生态系统自身的
 > `hydra-umc.project.json` 文件——包括本仓库自己的那份。
@@ -85,7 +85,7 @@ $ hydra-umc-dev-server inventory scan --root ..
 {
   "root": "..",
   "projects": [
-    {"name": "HYDRA-UMC-DEV-SERVER", "version": "0.0.7", "maturity": "scaffolding", "manifest_path": "../HYDRA-UMC-DEV-SERVER/hydra-umc.project.json"},
+    {"name": "HYDRA-UMC-DEV-SERVER", "version": "0.0.8", "maturity": "scaffolding", "manifest_path": "../HYDRA-UMC-DEV-SERVER/hydra-umc.project.json"},
     ...
   ],
   "issues": []
@@ -133,7 +133,8 @@ HYDRA-UMC-DEV-SERVER/
 │   ├── durable_queue.py   # SQLite 持久队列 + 租约 + append-only 执行日志，可在重启后存活（DS05）
 │   ├── ai_provider.py     # 可替换 AI 提供方 seam + 安全契约；仅确定性假提供方（DS06）
 │   ├── incident_transport.py  # HMAC 签名的事件消息 + verify + 完整的往返会话（DS07）
-│   └── cli.py             # config / inventory / station / migrate / task / queue / provider / incident 子命令入口
+│   ├── repair_cycle.py    # 带门禁与回滚的 repro->...->verify 周期 + 候选门禁（DS08）
+│   └── cli.py             # config / inventory / station / migrate / task / queue / provider / incident / repair 子命令入口
 ├── configs/
 │   ├── host-profile.example.json
 │   ├── toolchains.example.json
@@ -152,6 +153,7 @@ HYDRA-UMC-DEV-SERVER/
 │   ├── DURABLE_QUEUE.md      # DS05 的持久队列、租约与执行日志
 │   ├── AI_PROVIDER.md        # DS06 的提供方 seam 与安全契约（仅假）
 │   ├── INCIDENT_TRANSPORT.md # DS07 的签名消息、校验与往返会话
+│   ├── REPAIR_CYCLE.md       # DS08 的带门禁修复周期、其控制与回滚
 │   ├── ARCHITECTURE.md     # 目的、工作模式、初始范围、磁盘布局
 │   └── OPS_INTEGRATION.md  # 17 项关系图谱 + 归属表
 ├── images/                # 媒体与应用图标
@@ -193,7 +195,7 @@ chmod +x build.sh   # 一次性
 
 ## 🚀 路线图
 
-本版本交付 DS01 至 DS07。按交付顺序，剩余部分为：
+本版本交付 DS01 至 DS08。按交付顺序，剩余部分为：
 
 - **DS02 - 可复现的远程站点。** ✅ 已交付：一个经校验的远程站点配置、
   一项只读的主机预检，以及一份空跑的置备计划（`station` 子命令）。
@@ -203,9 +205,10 @@ chmod +x build.sh   # 一次性
 - **DS05 - 持久队列与可追溯结果。** ✅ 已交付：一个带租约的 SQLite 队列和一份 append-only 执行日志，可在重启后存活；重复入队绝不是第二个作业，中断绝不是虚假成功，变化的基线会阻止晋级（`queue` 子命令）。
 - **DS06 - 可替换的 AI 提供方。** ✅ 已交付（假的那一半）：一个位于安全契约之后的确定性假提供方——超时 / 格式错误 / 配额都变成有界结果，预算会停止该步骤，建议是不授予任何权限、不部署任何内容的惰性数据（`provider suggest`）。真实提供方由用户决定。
 - **DS07 - 与 HYDRA-UMC-OPS-AGENT 协调的事件处理。** ✅ 已交付：一个 HMAC 认证的事件传输，带有重放 / 冒充 / 过载 / 版本检查，以及一个完整的 提交 → 诊断 → 部署后验证 往返流程，在网络中断后会进行对账（`incident verify`）。
-- **DS08-DS10** - 第一个完全受控的修复周期、稳定的运行/恢复，以及带有诚实成熟度评估的交付包。
+- **DS08 - 第一个完全受控的修复周期。** ✅ 已交付：一个带门禁的状态机 repro->事件->补丁->回归->build-test->批准->隔离安装->验证，它会阻止被篡改或错误定向的候选，并在安装后检查失败时回滚（`repair check-candidate`）。
+- **DS09-DS10** - 稳定的运行/恢复，以及带有诚实成熟度评估的交付包。
 
-DS08-DS10 目前均尚未存在于本仓库中——每次交付明确包含与排除的内容，
+DS09-DS10 目前均尚未存在于本仓库中——每次交付明确包含与排除的内容，
 见 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)。
 
 ## 🔗 相关项目

@@ -185,6 +185,41 @@ class IncidentCommandTests(unittest.TestCase):
             self.assertEqual(code, 1)
 
 
+class RepairCommandTests(unittest.TestCase):
+    def _write(self, tmp: Path, **over):
+        import hashlib
+        import hmac
+
+        secret = "cand-secret"
+        (tmp / "secret").write_text(secret, encoding="utf-8")
+        body = {
+            "candidate_id": "c1", "for_incident_id": "INC-1", "for_base_fingerprint": "base-1",
+            "for_target": "test-node", "patch_ref": "abc1234",
+        }
+        body.update(over)
+        canon = json.dumps(body, sort_keys=True, separators=(",", ":")).encode()
+        body["signature"] = hmac.new(secret.encode(), canon, hashlib.sha256).hexdigest()
+        cf = tmp / "candidate.json"
+        cf.write_text(json.dumps(body), encoding="utf-8")
+        return cf, tmp / "secret"
+
+    def test_check_candidate_accepts_a_matching_one(self):
+        with tempfile.TemporaryDirectory() as t:
+            tmp = Path(t)
+            cf, sf = self._write(tmp)
+            code = main(["repair", "check-candidate", str(cf), "--secret-file", str(sf),
+                         "--incident", "INC-1", "--base", "base-1", "--target", "test-node"])
+            self.assertEqual(code, 0)
+
+    def test_check_candidate_blocks_a_candidate_for_another_base(self):
+        with tempfile.TemporaryDirectory() as t:
+            tmp = Path(t)
+            cf, sf = self._write(tmp)
+            code = main(["repair", "check-candidate", str(cf), "--secret-file", str(sf),
+                         "--incident", "INC-1", "--base", "OTHER-BASE", "--target", "test-node"])
+            self.assertEqual(code, 1)
+
+
 class VersionTests(unittest.TestCase):
     def test_version_flag_matches_the_real_package_version(self):
         with self.assertRaises(SystemExit) as ctx:

@@ -51,6 +51,13 @@
   submit -> diagnosis -> post-deploy-verification round trip, and
   reconciliation after a dropped connection, are exercised by
   `IncidentSession` in tests.
+- `repair check-candidate` - the candidate gate of the controlled
+  repair cycle (repair_cycle.py, DS08): a candidate whose signature does
+  not verify, or that is pinned to a different incident / base
+  fingerprint / target, is blocked. The full repro -> incident -> patch
+  -> regression -> build-test -> approval -> isolated install -> verify
+  cycle (with rollback on a failed post-install check and an I60/T07
+  "apparent success" control) is exercised by `RepairCycle` in tests.
 
 `task run` is the only command that executes a subprocess, and only an
 allow-listed command, in an isolated workspace, with no inherited
@@ -82,6 +89,7 @@ from .incident_transport import (
     VerifierState,
     verify_message,
 )
+from .repair_cycle import RepairCandidate, check_candidate
 from .preflight import SystemHostInspector, run_preflight
 from .provision import build_provision_plan
 from .recipe import TaskRecipe
@@ -317,10 +325,25 @@ def _cmd_incident_verify(args: argparse.Namespace) -> int:
     return 0 if result.ok else 1
 
 
+def _cmd_repair_check_candidate(args: argparse.Namespace) -> int:
+    try:
+        candidate = RepairCandidate.from_dict(load_json_document(Path(args.candidate_file)))
+    except ConfigValidationError as exc:
+        print(f"INVALID: {args.candidate_file} (repair-candidate): {exc}", file=sys.stderr)
+        return 1
+    secret = Path(args.secret_file).read_text(encoding="utf-8").strip()
+    check = check_candidate(
+        candidate, secret,
+        incident_id=args.incident, base_fingerprint=args.base, target=args.target,
+    )
+    print(json.dumps(check.to_dict(), indent=2))
+    return 0 if check.accepted else 1
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="hydra-umc-dev-server",
-        description="Reproducible development host for the HYDRA-UMC/URTC ecosystem - DS01 (config schema, manifest inventory), DS02 (remote-station profile, host preflight, provisioning plan), DS03 (conservative-migration inventory and plan), DS04 (bounded task recipe + isolated workspace runner), DS05 (durable SQLite queue + execution journal), DS06 (interchangeable AI provider - deterministic fake only) and DS07 (authenticated incident transport for the OPS-AGENT round trip). Only 'task run' executes anything, and only an allow-listed command in an isolated workspace with no inherited secrets.",
+        description="Reproducible development host for the HYDRA-UMC/URTC ecosystem - DS01 (config schema, manifest inventory), DS02 (remote-station profile, host preflight, provisioning plan), DS03 (conservative-migration inventory and plan), DS04 (bounded task recipe + isolated workspace runner), DS05 (durable SQLite queue + execution journal), DS06 (interchangeable AI provider - deterministic fake only) DS07 (authenticated incident transport for the OPS-AGENT round trip) and DS08 (one fully controlled repair cycle - gated repro/patch/regression/build-test/approval/isolated-install/verify with rollback). Only 'task run' executes anything, and only an allow-listed command in an isolated workspace with no inherited secrets.",
     )
     parser.add_argument("--version", action="version", version=__version__)
     subparsers = parser.add_subparsers(dest="command", required=True)
@@ -458,6 +481,19 @@ def build_parser() -> argparse.ArgumentParser:
     incident_verify.add_argument("--registry", required=True, help="Path to a JSON object mapping node id -> HMAC secret (operator-held, never committed).")
     incident_verify.add_argument("--authenticated-as", required=True, help="The node id the channel proved (e.g. the client-cert CN).")
     incident_verify.set_defaults(func=_cmd_incident_verify)
+
+    repair = subparsers.add_parser("repair", help="Controlled repair-cycle commands (DS08).")
+    repair_sub = repair.add_subparsers(dest="repair_command", required=True)
+    repair_check = repair_sub.add_parser(
+        "check-candidate",
+        help="Check one repair candidate: signature + that it is pinned to THIS incident, base and target. Blocks a tampered or misdirected candidate.",
+    )
+    repair_check.add_argument("candidate_file", help="Path to a repair-candidate JSON document.")
+    repair_check.add_argument("--secret-file", required=True, help="File holding the candidate signer's HMAC secret (operator-held, never committed).")
+    repair_check.add_argument("--incident", required=True, help="The incident id this cycle is for.")
+    repair_check.add_argument("--base", required=True, help="The base fingerprint this cycle is pinned to.")
+    repair_check.add_argument("--target", required=True, help="The target this cycle installs to.")
+    repair_check.set_defaults(func=_cmd_repair_check_candidate)
 
     return parser
 
