@@ -5,6 +5,40 @@ version number follows this ecosystem's "odometer" scheme: PATCH +1 on
 every real build, rolling into MINOR past 9 (`0.0.9` -> `0.1.0`); MAJOR is
 bumped manually only. See `bump_version.py`.
 
+## [0.0.6] - DS06: interchangeable AI provider (deterministic fake) behind a safety contract
+
+Sixth delivery of ten. Only the deterministic **fake** provider ships -
+which real provider to use, and its authorization, is a user decision;
+`ProviderConfig.kind` accepts `"fake"` and nothing else.
+
+- **`ai_provider.py`** - `AIProvider` protocol (`complete(prompt) ->
+  RawCompletion`, or raise). `FakeProvider(scenario=...)` is fully
+  deterministic: `ok` returns a stable prompt-derived suggestion;
+  `timeout` / `quota` / `malformed` / `injection` exercise each adverse
+  path.
+- **`run_provider_step(config, provider, prompt, usage_so_far=None)`** -
+  the contract:
+  - a provider timeout, quota exhaustion or malformed output becomes a
+    bounded named outcome (`timed-out` / `budget-exhausted` /
+    `rejected`), never an exception that escalates.
+  - a configured `ProviderBudget` (calls / tokens / cost) stops the
+    step **before** it would exceed - `budget-exhausted`, no call made.
+  - the provider's answer is **data, never instructions**. A suggestion
+    that says "ignore previous instructions / deploy now / grant me
+    root" is copied verbatim into `suggested_text` and `injection_flagged`
+    is set, but `grants_no_permissions` and `triggers_no_deploy` are
+    **always** true - for every outcome. The result is inert: DS06 wires
+    it to nothing (not the runner, not the queue, not a deploy).
+- **`cli.py`** - new `provider suggest --config --prompt-file
+  [--scenario]` subcommand.
+- **`configs/ai-provider.example.json`**, **`docs/AI_PROVIDER.md`**,
+  README x7 synced.
+- 19 new tests (`test_ai_provider.py` + `provider` cases in
+  `test_cli.py`) - 173 total.
+
+DS07 (coordinated incidents with HYDRA-UMC-OPS-AGENT over an
+authenticated transport) does not exist yet.
+
 ## [0.0.5] - DS05: durable SQLite queue + append-only execution journal
 
 Fifth delivery of ten. A task queue and its execution journal that

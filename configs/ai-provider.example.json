@@ -1,0 +1,9 @@
+{
+  "kind": "fake",
+  "timeout_seconds": 30,
+  "budget": {
+    "max_calls": 4,
+    "max_tokens": 20000,
+    "max_cost_usd": 1.0
+  }
+}

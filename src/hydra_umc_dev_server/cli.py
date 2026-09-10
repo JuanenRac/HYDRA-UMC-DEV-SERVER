@@ -35,11 +35,17 @@
   a no-op; `reconcile` returns an expired lease to `queued`; a result
   from a worker that no longer holds the lease is rejected, not accepted
   as done; a base that moved since enqueue blocks promotion.
+- `provider suggest` - runs one step of a deterministic FAKE AI provider
+  through a safety contract (ai_provider.py, DS06): a timeout, malformed
+  output or quota exhaustion is a bounded named outcome; a configured
+  budget stops the step; the suggestion is returned as inert data with
+  `grants_no_permissions` / `triggers_no_deploy` always true, and an
+  instruction-like suggestion is flagged, never acted on. Which real
+  provider to use is a user decision - only `kind: "fake"` is accepted.
 
-No AI provider integration exists yet - that is DS06. `task run` is the
-only command that executes a subprocess, and only an allow-listed
-command, in an isolated workspace, with no inherited secrets; it still
-deploys nothing.
+`task run` is the only command that executes a subprocess, and only an
+allow-listed command, in an isolated workspace, with no inherited
+secrets; it still deploys nothing.
 """
 from __future__ import annotations
 
@@ -58,6 +64,7 @@ from .migration import (
     build_migration_plan,
     build_repo_inventory,
 )
+from .ai_provider import FakeProvider, ProviderConfig, run_provider_step
 from .durable_queue import DurableQueue
 from .preflight import SystemHostInspector, run_preflight
 from .provision import build_provision_plan
@@ -263,10 +270,22 @@ def _cmd_queue_journal(args: argparse.Namespace) -> int:
     return 0
 
 
+def _cmd_provider_suggest(args: argparse.Namespace) -> int:
+    try:
+        config = ProviderConfig.from_dict(load_json_document(Path(args.config)))
+    except ConfigValidationError as exc:
+        print(f"INVALID: {args.config} (ai-provider): {exc}", file=sys.stderr)
+        return 1
+    prompt = Path(args.prompt_file).read_text(encoding="utf-8")
+    result = run_provider_step(config, FakeProvider(args.scenario), prompt)
+    print(json.dumps(result.to_dict(), indent=2))
+    return 0 if result.outcome == "suggested" else 1
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="hydra-umc-dev-server",
-        description="Reproducible development host for the HYDRA-UMC/URTC ecosystem - DS01 (config schema, manifest inventory), DS02 (remote-station profile, host preflight, provisioning plan), DS03 (conservative-migration inventory and plan), DS04 (bounded task recipe + isolated workspace runner) and DS05 (durable SQLite queue + execution journal). Only 'task run' executes anything, and only an allow-listed command in an isolated workspace with no inherited secrets.",
+        description="Reproducible development host for the HYDRA-UMC/URTC ecosystem - DS01 (config schema, manifest inventory), DS02 (remote-station profile, host preflight, provisioning plan), DS03 (conservative-migration inventory and plan), DS04 (bounded task recipe + isolated workspace runner), DS05 (durable SQLite queue + execution journal) and DS06 (interchangeable AI provider - deterministic fake only, behind a safety contract). Only 'task run' executes anything, and only an allow-listed command in an isolated workspace with no inherited secrets.",
     )
     parser.add_argument("--version", action="version", version=__version__)
     subparsers = parser.add_subparsers(dest="command", required=True)
@@ -378,6 +397,20 @@ def build_parser() -> argparse.ArgumentParser:
     queue_journal.add_argument("task_id", help="The task id.")
     queue_journal.add_argument("--db", required=True, help="Path to the SQLite queue database.")
     queue_journal.set_defaults(func=_cmd_queue_journal)
+
+    provider = subparsers.add_parser("provider", help="Interchangeable AI provider commands (DS06, deterministic fake only).")
+    provider_sub = provider.add_subparsers(dest="provider_command", required=True)
+    provider_suggest = provider_sub.add_parser(
+        "suggest",
+        help="Run one provider step through the safety contract and print the inert ProviderResult. Wires the suggestion to nothing.",
+    )
+    provider_suggest.add_argument("--config", required=True, help="Path to an ai-provider JSON document (kind must be 'fake').")
+    provider_suggest.add_argument("--prompt-file", required=True, help="Path to a text file with the prompt.")
+    provider_suggest.add_argument(
+        "--scenario", default="ok", choices=("ok", "timeout", "malformed", "quota", "injection"),
+        help="Which fake-provider path to exercise (default: ok).",
+    )
+    provider_suggest.set_defaults(func=_cmd_provider_suggest)
 
     return parser
 

@@ -12,10 +12,10 @@
   <img src="https://img.shields.io/badge/Lizenz-GPL%203.0-blue.svg" alt="GPL 3.0">
   <img src="https://img.shields.io/badge/Sprache-Python%203.11%2B-blue.svg" alt="Python">
   <img src="https://img.shields.io/badge/Kern-nur%20stdlib-brightgreen.svg" alt="Nur-stdlib-Kern">
-  <img src="https://img.shields.io/badge/Lieferung-DS05%20von%2010-367BF5.svg" alt="DS05 von 10">
+  <img src="https://img.shields.io/badge/Lieferung-DS06%20von%2010-367BF5.svg" alt="DS06 von 10">
 </p>
 
-> **Status: v0.0.5, Scaffolding - DS05 von 10 (Verträge, Grenzen und ein
+> **Status: v0.0.6, Scaffolding - DS06 von 10 (Verträge, Grenzen und ein
 > überprüfbares Gerüst).** Ein reales, getestetes Konfigurationsschema
 > (`config validate`), dessen Standardrichtlinie **keiner Aufgabe eine
 > Deployment-Berechtigung erteilt**, sowie eine schreibgeschützte
@@ -152,7 +152,7 @@ $ hydra-umc-dev-server inventory scan --root ..
 {
   "root": "..",
   "projects": [
-    {"name": "HYDRA-UMC-DEV-SERVER", "version": "0.0.5", "maturity": "scaffolding", "manifest_path": "../HYDRA-UMC-DEV-SERVER/hydra-umc.project.json"},
+    {"name": "HYDRA-UMC-DEV-SERVER", "version": "0.0.6", "maturity": "scaffolding", "manifest_path": "../HYDRA-UMC-DEV-SERVER/hydra-umc.project.json"},
     ...
   ],
   "issues": []
@@ -209,7 +209,8 @@ HYDRA-UMC-DEV-SERVER/
 │   ├── recipe.py          # TaskRecipe: fixierte Revision + Befehl aus der Allow-Liste (DS04)
 │   ├── runner.py          # Begrenzter Runner: bereinigte Umgebung, Timeout, killt die ganze Prozessgruppe (DS04)
 │   ├── durable_queue.py   # Dauerhafte SQLite-Warteschlange + Leases + Append-only-Ausführungsjournal, übersteht einen Neustart (DS05)
-│   └── cli.py             # Einstiegspunkt der Unterbefehle config / inventory / station / migrate / task / queue
+│   ├── ai_provider.py     # Austauschbarer KI-Provider-Seam + Sicherheitsvertrag; nur deterministischer Fake (DS06)
+│   └── cli.py             # Einstiegspunkt der Unterbefehle config / inventory / station / migrate / task / queue / provider
 ├── configs/
 │   ├── host-profile.example.json
 │   ├── toolchains.example.json
@@ -225,6 +226,7 @@ HYDRA-UMC-DEV-SERVER/
 │   ├── MIGRATION_FROM_PC.md  # Das DS03-Inventar, die Klassen und der Plan der konservativen Migration
 │   ├── WORKSPACE_AND_RUNNER.md  # Das DS04-Recipe, der isolierte Workspace und der begrenzte Runner
 │   ├── DURABLE_QUEUE.md      # Die DS05-Warteschlange, die Leases und das Ausführungsjournal
+│   ├── AI_PROVIDER.md        # Der DS06-Provider-Seam und sein Sicherheitsvertrag (nur Fake)
 │   ├── ARCHITECTURE.md     # Zweck, Arbeitsmodi, anfänglicher Umfang, Festplatte
 │   └── OPS_INTEGRATION.md  # Die 17-Beziehungs-Karte + Eigentümer-Tabelle
 ├── images/                # Medien und App-Icons
@@ -273,7 +275,7 @@ vollständige lokale Testsuite aus.
 
 ## 🚀 ROADMAP
 
-Diese Version bringt DS01 bis DS05. Was in der Lieferreihenfolge noch
+Diese Version bringt DS01 bis DS06. Was in der Lieferreihenfolge noch
 bleibt:
 
 - **DS02 - Reproduzierbare Remote-Station.** ✅ Geliefert: ein
@@ -299,14 +301,18 @@ bleibt:
   doppeltes Enqueue ist nie ein zweiter Job, eine Unterbrechung nie ein
   falscher Erfolg, eine geänderte Basis blockiert die Promotion
   (`queue`-Unterbefehle).
-- **DS06 - Austauschbarer KI-Provider.** Zuerst ein deterministischer
-  Fake-Provider, danach ein echter autorisierter.
+- **DS06 - Austauschbarer KI-Provider.** ✅ Geliefert (Fake-Hälfte): ein
+  deterministischer Fake-Provider hinter einem Sicherheitsvertrag -
+  Timeout / fehlerhaft / Kontingent werden begrenzte Ergebnisse, ein
+  Budget stoppt den Schritt, der Vorschlag ist inerte Daten, die nichts
+  gewähren und nichts bereitstellen (`provider suggest`). Der echte
+  Provider ist eine Nutzerentscheidung.
 - **DS07-DS10** - koordinierte Vorfälle mit HYDRA-UMC-OPS-AGENT, ein
   erster vollständig kontrollierter Reparaturzyklus, stabiler Betrieb/
   Wiederherstellung, und ein Lieferpaket mit ehrlicher
   Reifegradbewertung.
 
-Nichts von DS06-DS10 existiert bisher in diesem Repository - siehe
+Nichts von DS07-DS10 existiert bisher in diesem Repository - siehe
 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) dafür, was jede Lieferung
 explizit ein- und ausschließt.
 

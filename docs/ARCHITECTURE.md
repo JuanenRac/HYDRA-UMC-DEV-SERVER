@@ -4,7 +4,7 @@ Copyright (C) 2026 JuanenRac (Electro Hobby 3D) <electrohobby3d@gmail.com>
 GPL-3.0 - see LICENSE
 ============================================================================= -->
 
-# Architecture (DS01-DS05)
+# Architecture (DS01-DS06)
 
 This document describes this project's purpose, working modes, initial
 scope and disk layout, and the target design across all ten deliveries
@@ -13,10 +13,12 @@ manifest discovery; DS02's remote-station profile, read-only host
 preflight and dry-run provisioning plan (`station` - see
 `REMOTE_STATION.md`); DS03's conservative-migration inventory and plan
 (`migrate` - see `MIGRATION_FROM_PC.md`); DS04's bounded task recipe and isolated workspace runner (`task` - see
-`WORKSPACE_AND_RUNNER.md`); and DS05's durable SQLite queue and
-append-only execution journal (`queue` - see `DURABLE_QUEUE.md`).
-DS01-DS03, DS05 only read, describe and record. DS04 is the only
-delivery that executes a subprocess - and only an allow-listed command, in a per-task
+`WORKSPACE_AND_RUNNER.md`); DS05's durable SQLite queue and append-only execution journal (`queue`
+- see `DURABLE_QUEUE.md`); and DS06's interchangeable AI provider behind
+a safety contract (`provider` - see `AI_PROVIDER.md`), of which only the
+deterministic fake ships.
+DS01-DS03, DS05 and DS06 only read, describe and record. DS04 is the
+only delivery that executes a subprocess - and only an allow-listed command, in a per-task
 isolated workspace, with a scrubbed environment, under a bounded timeout
 that kills the whole process group; it still deploys nothing.
 Everything else on this page is a documented target, not a claim about
