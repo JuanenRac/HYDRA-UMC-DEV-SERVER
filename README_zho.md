@@ -12,16 +12,16 @@
   <img src="https://img.shields.io/badge/许可证-GPL%203.0-blue.svg" alt="GPL 3.0">
   <img src="https://img.shields.io/badge/语言-Python%203.11%2B-blue.svg" alt="Python">
   <img src="https://img.shields.io/badge/核心-仅标准库-brightgreen.svg" alt="仅标准库核心">
-  <img src="https://img.shields.io/badge/交付-DS02%2F10-367BF5.svg" alt="DS02/10">
+  <img src="https://img.shields.io/badge/交付-DS03%2F10-367BF5.svg" alt="DS03/10">
 </p>
 
-> **状态：v0.0.2，脚手架阶段 - 十次交付中的 DS02（契约、边界与可验证的骨架）。**
+> **状态：v0.0.3，脚手架阶段 - 十次交付中的 DS03（契约、边界与可验证的骨架）。**
 > 一套真实、经过测试的配置模式(`config validate`)，其默认策略**不向任何任务授予部署权限**；
 > 以及只读的清单发现功能(`inventory scan`)，可找到本生态系统自身的
 > `hydra-umc.project.json` 文件——包括本仓库自己的那份。
 > DS02 新增一个经校验的远程站点配置(`station validate`)、一项**只读**的主机预检——
 > 它仅报告某台主机是否就绪(`station preflight`，不改变任何东西)，
-> 以及一份**空跑**的置备计划(`station plan`，从不执行任何步骤)。
+> 以及一份**空跑**的置备计划(`station plan`，从不执行任何步骤)。DS03 新增**保守迁移**（`migrate inventory` / `migrate plan`）：它对源 checkout 中的每个文件计算哈希并分类，并将每一类——干净、本地已修改、未跟踪、私有——规划到它**各自独立的目标**，若某个私有文件会落到任何可共享的位置则拒绝。它不复制任何内容，也从不触碰源。
 > 目前尚不存在工作区、任务执行器、持久队列或 AI 提供方集成——
 > 那些是 DS04、DS05 和 DS06，属于后续交付。
 > 完整、真实的命令界面见 [docs/CLI_REFERENCE.md](docs/CLI_REFERENCE.md)。
@@ -61,6 +61,10 @@ DS02 又新增三项，全部位于 `station` 子命令之下，且仍然是"只
    （每一步的 argv 以数据形式记录）以及完整的 systemd unit 文本，
    并且在预检失败时拒绝构建计划。不执行任何内容。
 
+DS03 新增保守迁移，同样遵循"只读取与描述，绝不执行"——它不复制任何内容，也从不触碰源：
+
+6. **迁移清单 + 计划**（`migrate inventory` / `migrate plan`）——遍历一个源 checkout（只包含 git 认为属于项目的文件——本地 `.venv` 或构建输出在 gitignore 中，永远看不到），对每个文件计算 SHA-256 并分类：`tracked-clean`、`tracked-modified`、`untracked`、`private`（一个可扩展的 `PrivacyPolicy`：私有文档文件夹、`.env*`、`*.pem`、`id_ed25519*` ……）。已提交但从未推送的提交单独记录。`migrate plan` 将每一类映射到其**各自**的目标——四个可证明彼此分离的根（`MigrationDestinations.from_dict` 拒绝相等或嵌套的根），打包未推送的提交，输出完整的哈希清单，若某个私有文件会落到可共享的根之下则打印 `REFUSED`。
+
 ```
 $ hydra-umc-dev-server config validate configs/task-policy.example.json --kind task-policy
 VALID: configs/task-policy.example.json (task-policy)
@@ -74,7 +78,7 @@ $ hydra-umc-dev-server inventory scan --root ..
 {
   "root": "..",
   "projects": [
-    {"name": "HYDRA-UMC-DEV-SERVER", "version": "0.0.2", "maturity": "scaffolding", "manifest_path": "../HYDRA-UMC-DEV-SERVER/hydra-umc.project.json"},
+    {"name": "HYDRA-UMC-DEV-SERVER", "version": "0.0.3", "maturity": "scaffolding", "manifest_path": "../HYDRA-UMC-DEV-SERVER/hydra-umc.project.json"},
     ...
   ],
   "issues": []
@@ -115,17 +119,20 @@ HYDRA-UMC-DEV-SERVER/
 │   ├── remote_station.py  # RemoteStationProfile：身份 + 远程访问 + 工具（DS02）
 │   ├── preflight.py       # 通过可注入的检查器对主机进行只读检查（DS02）
 │   ├── provision.py       # 空跑置备计划 + unit 文本，从不执行（DS02）
-│   └── cli.py             # config / inventory / station 子命令入口
+│   ├── migration.py       # 保守迁移的清单 + 分离目标计划，不复制任何内容（DS03）
+│   └── cli.py             # config / inventory / station / migrate 子命令入口
 ├── configs/
 │   ├── host-profile.example.json
 │   ├── toolchains.example.json
 │   ├── task-policy.example.json      # allow_deploy: false，以此形式发布并测试
-│   └── remote-station.example.json   # 绑定 127.0.0.1，以此形式发布并测试
+│   ├── remote-station.example.json   # 绑定 127.0.0.1，以此形式发布并测试
+│   └── migration-destinations.example.json   # 四个可证明彼此分离的根
 ├── tests/                # 上述每个模块的真实测试，包括所发布的示例配置
 ├── docs/
 │   ├── CLI_REFERENCE.md    # 每个子命令、其参数与退出码契约
 │   ├── CONFIG_SCHEMA.md    # 三份配置文档的真实 JSON 结构
 │   ├── REMOTE_STATION.md   # DS02 远程站点配置、预检与空跑计划
+│   ├── MIGRATION_FROM_PC.md  # DS03 保守迁移的清单、类别与计划
 │   ├── ARCHITECTURE.md     # 目的、工作模式、初始范围、磁盘布局
 │   └── OPS_INTEGRATION.md  # 17 项关系图谱 + 归属表
 ├── images/                # 媒体与应用图标
@@ -167,13 +174,12 @@ chmod +x build.sh   # 一次性
 
 ## 🚀 路线图
 
-本版本交付 DS01 与 DS02。按交付顺序，剩余部分为：
+本版本交付 DS01、DS02 与 DS03。按交付顺序，剩余部分为：
 
 - **DS02 - 可复现的远程站点。** ✅ 已交付：一个经校验的远程站点配置、
   一项只读的主机预检，以及一份空跑的置备计划（`station` 子命令）。
   不改变任何主机，也不执行任何步骤。
-- **DS03 - 保守迁移。** 从用户 PC 进行库存清点与批量复制，明确处理哈希值、
-  本地更改与隐私。
+- **DS03 - 保守迁移。** ✅ 已交付：对源 checkout 中的每个文件计算哈希并分类，并将每一类（干净 / 已修改 / 未跟踪 / 私有）规划到其各自独立的目标，并为未推送的提交生成一个 bundle（`migrate` 子命令）。它不复制任何内容，也从不触碰源。执行一份已批准的计划属于后续交付。
 - **DS04 - 工作区与受限执行器。** 真正按任务隔离：两个任务永不冲突，
   工作区之外的路径会被拒绝。
 - **DS05 - 持久队列与可追溯结果。** ID、租约，一份能在重启后存活的真实执行日志。
@@ -181,7 +187,7 @@ chmod +x build.sh   # 一次性
 - **DS07-DS10** - 与 HYDRA-UMC-OPS-AGENT 协调的事件处理、第一个完全受控的修复周期、
   稳定的运行/恢复，以及带有诚实成熟度评估的交付包。
 
-DS03-DS10 目前均尚未存在于本仓库中——每次交付明确包含与排除的内容，
+DS04-DS10 目前均尚未存在于本仓库中——每次交付明确包含与排除的内容，
 见 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)。
 
 ## 🔗 相关项目

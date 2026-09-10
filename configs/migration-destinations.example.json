@@ -1,0 +1,13 @@
+{
+  "reference_root": "/srv/hydra-umc-dev/repos",
+  "local_changes_root": "/srv/hydra-umc-dev/migration/local-changes",
+  "private_root": "/srv/hydra-umc-dev/private",
+  "work_in_progress_root": "/srv/hydra-umc-dev/migration/work-in-progress",
+  "privacy_policy": {
+    "name_globs": [
+      ".env", ".env.*", "*.pem", "*.key", "id_ed25519*", "id_rsa*",
+      "*.secret", "refresh_tokens.json", "*.p12", "*.keystore"
+    ],
+    "extra_relpaths": []
+  }
+}

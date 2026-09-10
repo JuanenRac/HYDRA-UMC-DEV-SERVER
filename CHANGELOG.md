@@ -5,6 +5,44 @@ version number follows this ecosystem's "odometer" scheme: PATCH +1 on
 every real build, rolling into MINOR past 9 (`0.0.9` -> `0.1.0`); MAJOR is
 bumped manually only. See `bump_version.py`.
 
+## [0.0.3] - DS03: conservative migration (inventory + classification + separate-destination plan)
+
+Third delivery of ten. Still read-and-describe only: nothing here copies a
+file, deletes a file, runs a mutating `git` command, or touches the
+source in any way.
+
+- **`migration.py`** - `build_repo_inventory()` walks a source checkout
+  (exactly the files git considers part of the project - a local
+  virtualenv / build output / `__pycache__` is git-ignored and never
+  inventoried), SHA-256s every file, and classifies each one:
+  `tracked-clean` (published, matches origin), `tracked-modified`
+  (uncommitted local edits), `untracked` (working files git does not
+  track), `private` (a `PrivacyPolicy` - the private-planning folder, `.env*`, `*.pem`,
+  `id_ed25519*`, ... - widenable by a document, never silently
+  narrowed). It also records commits on the branch that were never
+  pushed.
+- **`build_migration_plan()`** - maps every file to exactly one
+  destination by class, into four provably-separate roots
+  (`MigrationDestinations.from_dict` refuses any pair that is equal or
+  nested), plus a `<repo>.unpushed.bundle` under the work-in-progress
+  root for the local commits. It refuses outright if a private file
+  would ever resolve under a shareable root. The plan is JSON data with
+  a full hash manifest; a later delivery (or a person) carries it out.
+- **`SourceInspector`** protocol - every real disk/git read goes through
+  it, so the whole suite runs against a fake tree; `SystemSourceInspector`
+  is the one real, read-only implementation.
+- **`cli.py`** - new `migrate inventory` and `migrate plan
+  --destinations` subcommands. Accepts a single checkout or a directory
+  of them.
+- **`configs/migration-destinations.example.json`**,
+  **`docs/MIGRATION_FROM_PC.md`** (the guide `docs/ARCHITECTURE.md`
+  already referenced), README x7 synced.
+- 34 new tests (`test_migration.py` + `migrate` cases in
+  `test_cli.py`), 107 total, all offline.
+
+DS04 (workspace + bounded runner), DS05 (durable queue) and DS06
+(interchangeable AI provider) do not exist yet.
+
 ## [0.0.2] - DS02: reproducible remote station (profile, read-only preflight, dry-run plan)
 
 Second delivery of ten. Still "validate and describe, never act" - no

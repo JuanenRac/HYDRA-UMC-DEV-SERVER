@@ -12,19 +12,22 @@
   <img src="https://img.shields.io/badge/Licencia-GPL%203.0-blue.svg" alt="GPL 3.0">
   <img src="https://img.shields.io/badge/Language-Python%203.11%2B-blue.svg" alt="Python">
   <img src="https://img.shields.io/badge/Core-stdlib%20only-brightgreen.svg" alt="stdlib-only core">
-  <img src="https://img.shields.io/badge/Delivery-DS02%20of%2010-367BF5.svg" alt="DS02 of 10">
+  <img src="https://img.shields.io/badge/Delivery-DS03%20of%2010-367BF5.svg" alt="DS03 of 10">
 </p>
 
-> **Status: v0.0.2, scaffolding - DS02 of 10 (contracts, limits and a
+> **Status: v0.0.3, scaffolding - DS03 of 10 (contracts, limits and a
 > verifiable skeleton).** A real, tested configuration schema
 > (`config validate`) whose default policy grants **no task deployment
-> permission**, and read-only manifest discovery (`inventory scan`) that
-> can find this ecosystem's own `hydra-umc.project.json` files -
-> including this repository's own. DS02 adds a validated remote-station
-> profile (`station validate`), a **read-only** host preflight that only
-> ever reports whether a host is ready (`station preflight`, changes
-> nothing), and a **dry-run** provisioning plan (`station plan`, never
-> executes a step). No workspace, task runner, durable queue, or AI
+> permission**, and read-only manifest discovery (`inventory scan`). DS02
+> adds a validated remote-station profile (`station validate`), a
+> **read-only** host preflight (`station preflight`, changes nothing) and
+> a **dry-run** provisioning plan (`station plan`, never executes a
+> step). DS03 adds **conservative migration** (`migrate inventory` /
+> `migrate plan`): it hashes and classifies every file in a source
+> checkout and plans each class - clean, locally-modified, untracked,
+> private - into its **own separate destination**, refusing if a private
+> file would land anywhere shareable. It copies nothing and never
+> touches the source. No workspace, task runner, durable queue, or AI
 > provider integration exists yet - those are DS04, DS05 and DS06, later
 > deliveries. See [docs/CLI_REFERENCE.md](docs/CLI_REFERENCE.md) for the
 > exact command surface that exists today.
@@ -74,6 +77,22 @@ DS02 adds three more, all under the `station` subcommand and all still
    full systemd unit text, and refuses to build a plan at all over a
    failed preflight. Nothing is executed.
 
+DS03 adds conservative migration, same "read and describe, never act"
+rule - it copies nothing and never touches the source:
+
+6. **Migration inventory + plan** (`migrate inventory` / `migrate
+   plan`) - walks a source checkout (only the files git considers part
+   of the project - a local `.venv` / build output is git-ignored and
+   never seen), SHA-256s every file, and classifies each one:
+   `tracked-clean`, `tracked-modified`, `untracked`, `private` (a
+   widenable `PrivacyPolicy`: the private-docs folder, `.env*`, `*.pem`,
+   `id_ed25519*`, ...). Commits made but never pushed are recorded
+   separately. `migrate plan` maps each class to its **own** of four
+   provably-separate destinations (`MigrationDestinations.from_dict`
+   refuses equal or nested roots), bundles the unpushed commits, emits a
+   full hash manifest, and prints `REFUSED` if a private file would ever
+   resolve under a shareable root.
+
 ```
 $ hydra-umc-dev-server config validate configs/task-policy.example.json --kind task-policy
 VALID: configs/task-policy.example.json (task-policy)
@@ -87,7 +106,7 @@ $ hydra-umc-dev-server inventory scan --root ..
 {
   "root": "..",
   "projects": [
-    {"name": "HYDRA-UMC-DEV-SERVER", "version": "0.0.2", "maturity": "scaffolding", "manifest_path": "../HYDRA-UMC-DEV-SERVER/hydra-umc.project.json"},
+    {"name": "HYDRA-UMC-DEV-SERVER", "version": "0.0.3", "maturity": "scaffolding", "manifest_path": "../HYDRA-UMC-DEV-SERVER/hydra-umc.project.json"},
     ...
   ],
   "issues": []
@@ -136,19 +155,22 @@ HYDRA-UMC-DEV-SERVER/
 │   ├── remote_station.py  # RemoteStationProfile: identity + remote access + tools (DS02)
 │   ├── preflight.py       # Read-only host readiness check via an injectable inspector (DS02)
 │   ├── provision.py       # Dry-run provisioning plan + systemd unit text, never executed (DS02)
-│   └── cli.py             # config / inventory / station subcommand entry point
+│   ├── migration.py       # Conservative-migration inventory + separate-destination plan, copies nothing (DS03)
+│   └── cli.py             # config / inventory / station / migrate subcommand entry point
 ├── configs/
 │   ├── host-profile.example.json
 │   ├── toolchains.example.json
-│   ├── task-policy.example.json      # allow_deploy: false, shipped and tested that way
-│   └── remote-station.example.json   # binds 127.0.0.1, shipped and tested that way
+│   ├── task-policy.example.json          # allow_deploy: false, shipped and tested that way
+│   ├── remote-station.example.json       # binds 127.0.0.1, shipped and tested that way
+│   └── migration-destinations.example.json   # four provably-separate roots
 ├── tests/                # Real tests for every module above, incl. the shipped example configs
 ├── docs/
-│   ├── CLI_REFERENCE.md    # Every subcommand, flags, exit codes
-│   ├── CONFIG_SCHEMA.md    # The real JSON shape of all three configuration documents
-│   ├── REMOTE_STATION.md   # The DS02 remote-station profile, preflight and dry-run plan
-│   ├── ARCHITECTURE.md     # Purpose, working modes, initial scope, disk layout
-│   └── OPS_INTEGRATION.md  # The 17-relationship map + state-ownership table
+│   ├── CLI_REFERENCE.md      # Every subcommand, flags, exit codes
+│   ├── CONFIG_SCHEMA.md      # The real JSON shape of all three configuration documents
+│   ├── REMOTE_STATION.md     # The DS02 remote-station profile, preflight and dry-run plan
+│   ├── MIGRATION_FROM_PC.md  # The DS03 conservative-migration inventory, classes and plan
+│   ├── ARCHITECTURE.md       # Purpose, working modes, initial scope, disk layout
+│   └── OPS_INTEGRATION.md    # The 17-relationship map + state-ownership table
 ├── images/                # Media and app icons
 ├── tools/
 │   ├── build_test.py      # Non-versioning build/compile check
@@ -192,14 +214,18 @@ local test suite.
 
 ## 🚀 ROADMAP
 
-This version ships DS01 and DS02. What remains, in delivery order:
+This version ships DS01, DS02 and DS03. What remains, in delivery order:
 
 - **DS02 - Reproducible remote station.** ✅ Shipped: a validated
   remote-station profile, a read-only host preflight, and a dry-run
   provisioning plan (`station` subcommands). No host is changed and no
   step is executed.
-- **DS03 - Conservative migration.** Inventory and batch-copy from the
-  user's PC with hashes, local changes and privacy handled explicitly.
+- **DS03 - Conservative migration.** ✅ Shipped: hash + classify every
+  file in a source checkout and plan each class (clean / modified /
+  untracked / private) into its own separate destination, with a bundle
+  for unpushed commits (`migrate` subcommands). It copies nothing and
+  never touches the source. Executing an approved plan is a later
+  delivery.
 - **DS04 - Workspace and bounded runner.** Real per-task isolation: two
   tasks never collide, a path outside the workspace is rejected.
 - **DS05 - Durable queue and traceable results.** IDs, leases, a real
@@ -210,7 +236,7 @@ This version ships DS01 and DS02. What remains, in delivery order:
   fully controlled repair cycle, stable operation/restoration, and a
   delivery package with an honest maturity evaluation.
 
-None of DS03-DS10 exists in this repository yet - see
+None of DS04-DS10 exists in this repository yet - see
 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for what each delivery is
 scoped to include and explicitly exclude.
 
