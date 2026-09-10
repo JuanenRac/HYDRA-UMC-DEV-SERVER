@@ -12,10 +12,10 @@
   <img src="https://img.shields.io/badge/Licencia-GPL%203.0-blue.svg" alt="GPL 3.0">
   <img src="https://img.shields.io/badge/Lenguaje-Python%203.11%2B-blue.svg" alt="Python">
   <img src="https://img.shields.io/badge/Núcleo-solo%20stdlib-brightgreen.svg" alt="Núcleo solo stdlib">
-  <img src="https://img.shields.io/badge/Entrega-DS04%20de%2010-367BF5.svg" alt="DS04 de 10">
+  <img src="https://img.shields.io/badge/Entrega-DS05%20de%2010-367BF5.svg" alt="DS05 de 10">
 </p>
 
-> **Estado: v0.0.4, scaffolding - DS04 de 10 (contratos, límites y un
+> **Estado: v0.0.5, scaffolding - DS05 de 10 (contratos, límites y un
 > esqueleto verificable).** Un esquema de configuración real y probado
 > (`config validate`) cuya política por defecto **no concede permiso de
 > despliegue a ninguna tarea**, y un descubrimiento de manifiestos de
@@ -25,7 +25,7 @@
 > (`station validate`), una comprobación previa del host de **solo
 > lectura** que únicamente informa si un host está listo (`station
 > preflight`, no cambia nada), y un plan de aprovisionamiento **en
-> seco** (`station plan`, nunca ejecuta un paso), y una **migración conservadora** que no copia nada. DS04 añade el **runner acotado** (`task validate` / `task run`): ejecuta **un** comando de una lista blanca en un **workspace aislado por tarea** (se rechaza `..`, ruta absoluta o symlink fuera del workspace; dos tareas nunca comparten uno), con un **entorno saneado** (sin `*_TOKEN` / `*_KEY` / `*_SECRET` heredados), bajo un timeout acotado que **mata todo el grupo de procesos**. Sigue sin desplegar nada. DS03 añade **migración conservadora** (`migrate inventory` / `migrate plan`): calcula el hash y clasifica cada archivo de un checkout de origen y planifica cada clase - limpio, modificado localmente, no seguido, privado - a su **propio destino separado**, negándose si un archivo privado acabaría en un sitio compartible. No copia nada y nunca toca el origen. Todavía no existe
+> seco** (`station plan`, nunca ejecuta un paso), y una **migración conservadora** que no copia nada. DS04 añade el **runner acotado** (`task validate` / `task run`): ejecuta **un** comando de una lista blanca en un **workspace aislado por tarea** (se rechaza `..`, ruta absoluta o symlink fuera del workspace; dos tareas nunca comparten uno), con un **entorno saneado** (sin `*_TOKEN` / `*_KEY` / `*_SECRET` heredados), bajo un timeout acotado que **mata todo el grupo de procesos**. **DS05 añade una cola durable SQLite + diario de ejecución** (`queue …`) que sobrevive a un reinicio: un `enqueue` duplicado nunca es un segundo trabajo; el lease de un worker caído expira y `reconcile` devuelve la tarea a `queued`; un resultado de un worker que ya no tiene el lease se **rechaza, no se marca como hecho**; una base que cambió desde el enqueue **bloquea la promoción aunque el exit sea 0**. Sigue sin desplegar nada. DS03 añade **migración conservadora** (`migrate inventory` / `migrate plan`): calcula el hash y clasifica cada archivo de un checkout de origen y planifica cada clase - limpio, modificado localmente, no seguido, privado - a su **propio destino separado**, negándose si un archivo privado acabaría en un sitio compartible. No copia nada y nunca toca el origen. Todavía no existe
 > workspace, ejecutor de tareas, cola durable ni integración con un
 > proveedor de IA - eso es DS04, DS05 y DS06, entregas futuras. Ver
 > [docs/CLI_REFERENCE.md](docs/CLI_REFERENCE.md) para la superficie de
@@ -114,6 +114,24 @@ acotada:
    confirma que ambos mueren. Un `..`, una ruta absoluta o un symlink
    fuera del workspace en `input_paths` se rechaza. No despliega nada.
 
+DS05 añade durabilidad - una cola de tareas y su diario de ejecución que
+sobreviven a un reinicio del proceso. Registra, no ejecuta:
+
+8. **Cola durable + diario de ejecución** (`queue enqueue` / `status` /
+   `reconcile` / `journal`) - un almacen SQLite (WAL, transacciones
+   inmediatas para el lease). `enqueue` es idempotente - una segunda
+   llamada con el mismo `task_id` devuelve `created=False`, **nunca un
+   segundo trabajo**. `lease(worker, ttl)` reclama la entrada `queued`
+   mas antigua; `reconcile()` devuelve un lease expirado a `queued`
+   (seguro en cada arranque). Un `record_result` de un worker que ya no
+   tiene el lease se **rechaza, no se acepta como hecho** - una
+   interrupcion nunca se vuelve un exito falso. Si la huella de la base
+   observada al registrar el resultado difiere de la del `enqueue`, el
+   resultado se guarda `failed` / no promocionable **aunque el exit sea
+   0**. El evento `completed` del diario siempre lleva `revision` +
+   `recipe_fingerprint`; el diario guarda solo colas truncadas y
+   `prune_journal` acota las filas, asi el disco queda acotado.
+
 ```
 $ hydra-umc-dev-server config validate configs/task-policy.example.json --kind task-policy
 VALID: configs/task-policy.example.json (task-policy)
@@ -127,7 +145,7 @@ $ hydra-umc-dev-server inventory scan --root ..
 {
   "root": "..",
   "projects": [
-    {"name": "HYDRA-UMC-DEV-SERVER", "version": "0.0.4", "maturity": "scaffolding", "manifest_path": "../HYDRA-UMC-DEV-SERVER/hydra-umc.project.json"},
+    {"name": "HYDRA-UMC-DEV-SERVER", "version": "0.0.5", "maturity": "scaffolding", "manifest_path": "../HYDRA-UMC-DEV-SERVER/hydra-umc.project.json"},
     ...
   ],
   "issues": []
@@ -182,7 +200,8 @@ HYDRA-UMC-DEV-SERVER/
 │   ├── workspace.py       # Workspace aislado por tarea; rechaza ../, absoluta, symlink fuera del workspace (DS04)
 │   ├── recipe.py          # TaskRecipe: revisión fijada + comando de lista blanca (DS04)
 │   ├── runner.py          # Runner acotado: entorno saneado, timeout, mata todo el grupo de procesos (DS04)
-│   └── cli.py             # Punto de entrada de los subcomandos config / inventory / station / migrate / task
+│   ├── durable_queue.py   # Cola durable SQLite + leases + diario de ejecucion append-only, sobrevive a un reinicio (DS05)
+│   └── cli.py             # Punto de entrada de los subcomandos config / inventory / station / migrate / task / queue
 ├── configs/
 │   ├── host-profile.example.json
 │   ├── toolchains.example.json
@@ -197,6 +216,7 @@ HYDRA-UMC-DEV-SERVER/
 │   ├── REMOTE_STATION.md   # El perfil de estación remota DS02, la comprobación previa y el plan en seco
 │   ├── MIGRATION_FROM_PC.md  # El inventario, las clases y el plan de migración conservadora DS03
 │   ├── WORKSPACE_AND_RUNNER.md  # La receta DS04, el workspace aislado y el runner acotado
+│   ├── DURABLE_QUEUE.md      # La cola durable DS05, los leases y el diario de ejecucion
 │   ├── ARCHITECTURE.md     # Propósito, modos de trabajo, alcance inicial, disco
 │   └── OPS_INTEGRATION.md  # El mapa de 17 relaciones + tabla de propietarios
 ├── images/                # Medios e iconos de la app
@@ -242,7 +262,7 @@ de pruebas local completa.
 
 ## 🚀 HOJA DE RUTA
 
-Esta versión trae DS01, DS02, DS03 y DS04. Lo que queda, en orden de entrega:
+Esta versión trae DS01 hasta DS05. Lo que queda, en orden de entrega:
 
 - **DS02 - Estación remota reproducible.** ✅ Entregado: un perfil de
   estación remota validado, una comprobación previa del host de solo
@@ -260,8 +280,11 @@ Esta versión trae DS01, DS02, DS03 y DS04. Lo que queda, en orden de entrega:
   blanca, un entorno saneado, y un timeout que mata todo el grupo de
   procesos (subcomandos `task`). Ejecuta un subproceso pero no despliega
   nada.
-- **DS05 - Cola durable y resultados trazables.** IDs, leases, un diario
-  de ejecución real que sobrevive a un reinicio.
+- **DS05 - Cola durable y resultados trazables.** ✅ Entregado: una cola
+  SQLite con leases y un diario de ejecución append-only que sobreviven
+  a un reinicio; un enqueue duplicado nunca es un segundo trabajo, una
+  interrupción nunca un éxito falso, una base cambiada bloquea la
+  promoción (subcomandos `queue`).
 - **DS06 - Proveedor de IA intercambiable.** Primero un proveedor falso
   determinista, después uno real autorizado.
 - **DS07-DS10** - incidencias coordinadas con HYDRA-UMC-OPS-AGENT, un
@@ -269,7 +292,7 @@ Esta versión trae DS01, DS02, DS03 y DS04. Lo que queda, en orden de entrega:
   restauración estable, y un paquete de entrega con una evaluación
   honesta de madurez.
 
-Nada de DS05-DS10 existe todavía en este repositorio - ver
+Nada de DS06-DS10 existe todavía en este repositorio - ver
 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) para lo que cada entrega
 incluye y excluye explícitamente.
 

@@ -108,6 +108,25 @@ class MigrateCommandTests(unittest.TestCase):
             self.assertEqual(exit_code, 1)
 
 
+class QueueCommandTests(unittest.TestCase):
+    _recipe = Path(__file__).resolve().parent.parent / "configs" / "task-recipe.example.json"
+
+    def test_enqueue_is_idempotent_and_status_and_journal_read_it_back(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            db = str(Path(tmp) / "q.sqlite3")
+            self.assertEqual(main(["queue", "enqueue", str(self._recipe), "--db", db, "--base-fingerprint", "b1"]), 0)
+            self.assertEqual(main(["queue", "enqueue", str(self._recipe), "--db", db, "--base-fingerprint", "b1"]), 0)
+            self.assertEqual(main(["queue", "status", "--db", db]), 0)
+            self.assertEqual(main(["queue", "reconcile", "--db", db]), 0)
+            self.assertEqual(main(["queue", "journal", "example-lint-0001", "--db", db]), 0)
+
+    def test_journal_of_an_unknown_task_exits_nonzero(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            db = str(Path(tmp) / "q.sqlite3")
+            main(["queue", "status", "--db", db])  # create the db
+            self.assertEqual(main(["queue", "journal", "nope", "--db", db]), 1)
+
+
 class VersionTests(unittest.TestCase):
     def test_version_flag_matches_the_real_package_version(self):
         with self.assertRaises(SystemExit) as ctx:
