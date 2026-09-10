@@ -5,6 +5,49 @@ version number follows this ecosystem's "odometer" scheme: PATCH +1 on
 every real build, rolling into MINOR past 9 (`0.0.9` -> `0.1.0`); MAJOR is
 bumped manually only. See `bump_version.py`.
 
+## [0.0.4] - DS04: bounded task recipe + isolated workspace runner
+
+Fourth delivery of ten. This is the first delivery that actually
+executes something - and it stays tightly gated. `task run` runs one
+allow-listed command, in a per-task isolated workspace, with a scrubbed
+environment, under a bounded timeout; it deploys nothing.
+
+- **`workspace.py`** - `Workspace.resolve()` / `resolve_with()` refuse a
+  path that escapes the workspace: a `..` that climbs past the root, an
+  absolute path, or (via the real, symlink-followed path) a symlink
+  whose target lands outside. `allocate_workspace()` gives each task id
+  its own directory and refuses one that already exists - two tasks
+  never share a workspace. All filesystem contact is behind the
+  injectable `WorkspaceFs` seam.
+- **`recipe.py`** - `TaskRecipe.from_dict()` (DS01-style error
+  accumulation): a pinned `revision` (commit hash / vX.Y.Z tag /
+  `refs/tags/...` - a bare branch name is rejected), a `command`, a
+  bounded `timeout_seconds` (<= 1h). `validate_against(policy)` refuses
+  any command whose `argv[0]` is not in the task policy's own
+  `allowed_commands` (DS01 schema). `resolved_input_paths(workspace)`
+  refuses a declared path that escapes the workspace.
+- **`runner.py`** - `run_task()` rejects (spawning nothing) a
+  disallowed command or an escaping input path; otherwise it spawns the
+  child with a SCRUBBED environment - only `PATH` / `HOME` / `LANG` /
+  `TZ` (plus non-secret OS basics on Windows), never an inherited
+  `*_TOKEN` / `*_KEY` / `*_SECRET` / `ANTHROPIC_*` / `GITHUB_*` /
+  `SSH_*`. On timeout or cancel the WHOLE process group is killed, not
+  just the direct child. The `ProcessLauncher` seam lets the control
+  tests prove all of this against a fake; `SubprocessLauncher` is the
+  real one (POSIX `start_new_session` + `killpg`, Windows
+  `CREATE_NEW_PROCESS_GROUP` + `taskkill /T`).
+- **`cli.py`** - new `task validate` (recipe vs policy, runs nothing)
+  and `task run --workspace-base` (the real, gated execution).
+- **`configs/task-recipe.example.json`**,
+  **`docs/WORKSPACE_AND_RUNNER.md`**, README x7 synced.
+- 34 new tests (`test_workspace.py`, `test_recipe.py`, `test_runner.py`
+  incl. one real test that spawns a child-of-a-child and confirms both
+  are gone after a cancel, plus `task` cases in `test_cli.py`) - 141
+  total.
+
+DS05 (durable queue + traceable results) and DS06 (interchangeable AI
+provider) do not exist yet.
+
 ## [0.0.3] - DS03: conservative migration (inventory + classification + separate-destination plan)
 
 Third delivery of ten. Still read-and-describe only: nothing here copies a

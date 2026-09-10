@@ -12,10 +12,10 @@
   <img src="https://img.shields.io/badge/Licenza-GPL%203.0-blue.svg" alt="GPL 3.0">
   <img src="https://img.shields.io/badge/Linguaggio-Python%203.11%2B-blue.svg" alt="Python">
   <img src="https://img.shields.io/badge/Nucleo-solo%20stdlib-brightgreen.svg" alt="Nucleo solo stdlib">
-  <img src="https://img.shields.io/badge/Consegna-DS03%20di%2010-367BF5.svg" alt="DS03 di 10">
+  <img src="https://img.shields.io/badge/Consegna-DS04%20di%2010-367BF5.svg" alt="DS04 di 10">
 </p>
 
-> **Stato: v0.0.3, scaffolding - DS03 di 10 (contratti, limiti e uno
+> **Stato: v0.0.4, scaffolding - DS04 di 10 (contratti, limiti e uno
 > scheletro verificabile).** Uno schema di configurazione reale e
 > testato (`config validate`) la cui politica predefinita **non
 > concede alcun permesso di deploy a nessun task**, e una scoperta di
@@ -25,7 +25,7 @@
 > validato (`station validate`), un controllo preliminare dell'host in
 > **sola lettura** che si limita a segnalare se un host è pronto
 > (`station preflight`, non cambia nulla), e un piano di
-> provisioning **a secco** (`station plan`, non esegue mai un passo). DS03 aggiunge la **migrazione conservativa** (`migrate inventory` / `migrate plan`): calcola l'hash e classifica ogni file di un checkout sorgente e pianifica ogni classe - pulito, modificato localmente, non tracciato, privato - verso la sua **propria destinazione separata**, rifiutando che un file privato finisca in un luogo condivisibile. Non copia nulla e non tocca mai il sorgente.
+> provisioning **a secco** (`station plan`, non esegue mai un passo), e una **migrazione conservativa** che non copia nulla. DS04 aggiunge l'**esecutore limitato** (`task validate` / `task run`): esegue **un** comando di una lista consentita in un **workspace isolato per task** (un `..`, un percorso assoluto o un symlink fuori dal workspace viene rifiutato; due task non ne condividono mai uno), con un **ambiente ripulito** (nessun `*_TOKEN` / `*_KEY` / `*_SECRET` ereditato), sotto un timeout limitato che **uccide l'intero gruppo di processi**. Continua a non distribuire nulla. DS03 aggiunge la **migrazione conservativa** (`migrate inventory` / `migrate plan`): calcola l'hash e classifica ogni file di un checkout sorgente e pianifica ogni classe - pulito, modificato localmente, non tracciato, privato - verso la sua **propria destinazione separata**, rifiutando che un file privato finisca in un luogo condivisibile. Non copia nulla e non tocca mai il sorgente.
 > Non esistono ancora workspace, esecutore di task, coda durevole né
 > integrazione con un provider IA - saranno DS04, DS05 e DS06, consegne
 > future. Vedi
@@ -99,6 +99,25 @@ descrivere, mai agire" - non copia nulla e non tocca mai il sorgente:
    hash completo, e stampa `REFUSED` se un file privato finirebbe sotto
    una radice condivisibile.
 
+DS04 è la prima consegna che esegue un sottoprocesso - e resta
+strettamente delimitata:
+
+7. **Recipe di task + esecutore di workspace** (`task validate` / `task
+   run`) - una `TaskRecipe` fissa una `revision` (un nome di branch
+   viene rifiutato) e un `command` di una lista consentita (`argv[0]`
+   deve essere in `allowed_commands` della policy, altrimenti il run è
+   `rejected` e non viene lanciato nulla). `task run` crea
+   `<base>/<task_id>/` - rifiutandone uno che esiste già, quindi **due
+   task non condividono mai un workspace** - vi esegue il comando con un
+   **ambiente ripulito** (solo `PATH` / `HOME` / `LANG` / `TZ`; mai un
+   `GITHUB_TOKEN`, `AWS_SECRET_ACCESS_KEY`, `ANTHROPIC_API_KEY`,
+   `SSH_AUTH_SOCK` ereditato), limitato da `timeout_seconds`, e alla
+   scadenza o all'annullamento **uccide l'intero gruppo di processi** -
+   dimostrato da un test reale che lancia un nipote e conferma che
+   entrambi muoiono. Un `..`, un percorso assoluto o un symlink fuori
+   dal workspace in `input_paths` viene rifiutato. Non distribuisce
+   nulla.
+
 ```
 $ hydra-umc-dev-server config validate configs/task-policy.example.json --kind task-policy
 VALID: configs/task-policy.example.json (task-policy)
@@ -112,7 +131,7 @@ $ hydra-umc-dev-server inventory scan --root ..
 {
   "root": "..",
   "projects": [
-    {"name": "HYDRA-UMC-DEV-SERVER", "version": "0.0.3", "maturity": "scaffolding", "manifest_path": "../HYDRA-UMC-DEV-SERVER/hydra-umc.project.json"},
+    {"name": "HYDRA-UMC-DEV-SERVER", "version": "0.0.4", "maturity": "scaffolding", "manifest_path": "../HYDRA-UMC-DEV-SERVER/hydra-umc.project.json"},
     ...
   ],
   "issues": []
@@ -165,19 +184,24 @@ HYDRA-UMC-DEV-SERVER/
 │   ├── preflight.py       # Controllo dell'host in sola lettura tramite un ispettore iniettabile (DS02)
 │   ├── provision.py       # Piano di provisioning a secco + testo della unit, mai eseguito (DS02)
 │   ├── migration.py       # Inventario di migrazione conservativa + piano verso destinazioni separate, non copia nulla (DS03)
-│   └── cli.py             # Entry point dei sottocomandi config / inventory / station / migrate
+│   ├── workspace.py       # Workspace isolato per task; rifiuta ../, assoluto, symlink fuori dal workspace (DS04)
+│   ├── recipe.py          # TaskRecipe: revisione fissata + comando di lista consentita (DS04)
+│   ├── runner.py          # Esecutore limitato: ambiente ripulito, timeout, uccide l'intero gruppo di processi (DS04)
+│   └── cli.py             # Entry point dei sottocomandi config / inventory / station / migrate / task
 ├── configs/
 │   ├── host-profile.example.json
 │   ├── toolchains.example.json
 │   ├── task-policy.example.json      # allow_deploy: false, pubblicato e testato così
 │   ├── remote-station.example.json   # ascolta su 127.0.0.1, pubblicato e testato così
-│   └── migration-destinations.example.json   # quattro radici dimostrabilmente separate
+│   ├── migration-destinations.example.json   # quattro radici dimostrabilmente separate
+│   └── task-recipe.example.json          # revisione fissata + comando di lista consentita
 ├── tests/                # Test reali per ogni modulo sopra, incl. i config di esempio pubblicati
 ├── docs/
 │   ├── CLI_REFERENCE.md    # Ogni sottocomando, i suoi flag e il contratto dei codici di uscita
 │   ├── CONFIG_SCHEMA.md    # La forma JSON reale dei tre documenti di configurazione
 │   ├── REMOTE_STATION.md   # Il profilo di stazione remota DS02, il controllo preliminare e il piano a secco
 │   ├── MIGRATION_FROM_PC.md  # L'inventario, le classi e il piano di migrazione conservativa DS03
+│   ├── WORKSPACE_AND_RUNNER.md  # La recipe DS04, il workspace isolato e l'esecutore limitato
 │   ├── ARCHITECTURE.md     # Scopo, modalità di lavoro, ambito iniziale, disco
 │   └── OPS_INTEGRATION.md  # La mappa delle 17 relazioni + tabella dei proprietari
 ├── images/                # Media e icone dell'app
@@ -223,7 +247,7 @@ suite di test locale completa.
 
 ## 🚀 ROADMAP
 
-Questa versione porta DS01, DS02 e DS03. Ciò che resta, nell'ordine di
+Questa versione porta DS01, DS02, DS03 e DS04. Ciò che resta, nell'ordine di
 consegna:
 
 - **DS02 - Stazione remota riproducibile.** ✅ Consegnato: un profilo di
@@ -236,9 +260,12 @@ consegna:
   destinazione separata, con un bundle per i commit non inviati
   (sottocomandi `migrate`). Non copia nulla e non tocca mai il sorgente.
   Eseguire un piano approvato e' una consegna successiva.
-- **DS04 - Workspace ed esecutore limitato.** Isolamento reale per
-  task: due task non collidono mai, un percorso fuori dal workspace
-  viene respinto.
+- **DS04 - Workspace ed esecutore limitato.** ✅ Consegnato: workspace
+  isolato per task (due task non collidono mai; percorsi `..`, assoluti
+  e symlink fuori dal workspace rifiutati), solo un comando di lista
+  consentita, un ambiente ripulito, e un timeout che uccide l'intero
+  gruppo di processi (sottocomandi `task`). Esegue un sottoprocesso ma
+  non distribuisce nulla.
 - **DS05 - Coda durevole e risultati tracciabili.** ID, lease, un
   diario di esecuzione reale che sopravvive a un riavvio.
 - **DS06 - Provider IA intercambiabile.** Prima un provider fittizio
@@ -248,7 +275,7 @@ consegna:
   ripristino stabile, e un pacchetto di consegna con una valutazione
   onesta della maturità.
 
-Nulla di DS04-DS10 esiste ancora in questo repository - vedi
+Nulla di DS05-DS10 esiste ancora in questo repository - vedi
 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) per ciò che ogni consegna
 include ed esclude esplicitamente.
 

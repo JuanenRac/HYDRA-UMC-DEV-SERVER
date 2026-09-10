@@ -12,10 +12,10 @@
   <img src="https://img.shields.io/badge/ライセンス-GPL%203.0-blue.svg" alt="GPL 3.0">
   <img src="https://img.shields.io/badge/言語-Python%203.11%2B-blue.svg" alt="Python">
   <img src="https://img.shields.io/badge/コア-stdlibのみ-brightgreen.svg" alt="stdlibのみのコア">
-  <img src="https://img.shields.io/badge/デリバリー-DS03%2F10-367BF5.svg" alt="DS03/10">
+  <img src="https://img.shields.io/badge/デリバリー-DS04%2F10-367BF5.svg" alt="DS04/10">
 </p>
 
-> **状態: v0.0.3、スキャフォールディング - 全10回中のDS03（契約・制約・検証可能な骨格）。**
+> **状態: v0.0.4、スキャフォールディング - 全10回中のDS04（契約・制約・検証可能な骨格）。**
 > 実在してテスト済みの設定スキーマ(`config validate`)は、デフォルトポリシーで
 > **どのタスクにもデプロイ権限を与えない**。また読み取り専用のマニフェスト発見機能
 > (`inventory scan`)は、このエコシステム自身の `hydra-umc.project.json` を
@@ -23,8 +23,8 @@
 > リモートステーションプロファイル(`station validate`)、ホストが準備できて
 > いるかを報告するだけの**読み取り専用**の事前チェック(`station preflight`、
 > 何も変更しない)、および**ドライラン**のプロビジョニング計画(`station plan`、
-> 一切のステップを実行しない)を追加する。DS03は**保守的な移行**(`migrate inventory` / `migrate plan`)を追加する: ソースのチェックアウト内の各ファイルをハッシュ化して分類し、各クラス — クリーン、ローカル変更、未追跡、プライベート — を**それぞれ独立した宛先**に計画し、プライベートファイルが共有可能な場所に着地するなら拒否する。何もコピーせず、ソースには決して触れない。まだワークスペース、タスクランナー、
-> 永続キュー、AIプロバイダー連携は存在しない - それらはDS04、DS05、DS06という
+> 一切のステップを実行しない)を追加する。DS03は**保守的な移行**(`migrate inventory` / `migrate plan`)を追加する: ソースのチェックアウト内の各ファイルをハッシュ化して分類し、各クラス — クリーン、ローカル変更、未追跡、プライベート — を**それぞれ独立した宛先**に計画し、プライベートファイルが共有可能な場所に着地するなら拒否する。何もコピーせず、ソースには決して触れない。以上はすべて読み取り記述のみ。**DS04は境界付きランナーを追加する**(`task validate` / `task run`): **タスクごとに隔離されたワークスペース**内で**1つの**許可リストのコマンドを実行し(`..`、絶対パス、ワークスペース外へのsymlinkは拒否される。2つのタスクが1つを共有することはない)、**サニタイズされた環境**(継承された `*_TOKEN` / `*_KEY` / `*_SECRET` はなし)で、境界のあるタイムアウトのもとで**プロセスグループ全体をkill**する。依然として何もデプロイしない。まだ
+> 永続キュー、AIプロバイダー連携は存在しない - それらはDS05、DS06という
 > 今後の提供物である。
 > 今日存在する正確なコマンド面については
 > [docs/CLI_REFERENCE.md](docs/CLI_REFERENCE.md) を参照。
@@ -78,6 +78,10 @@ DS03は保守的な移行を追加する。同じく「読み取り記述する�
 
 6. **移行インベントリ + 計画** (`migrate inventory` / `migrate plan`) —ソースのチェックアウトを走査し(gitがプロジェクトの一部とみなすファイルのみ —ローカルの `.venv` やビルド出力はgit-ignoreされ決して見えない)、各ファイルのSHA-256を計算して分類する: `tracked-clean`、`tracked-modified`、`untracked`、`private`(拡張可能な `PrivacyPolicy`: プライベート文書フォルダ、`.env*`、`*.pem`、`id_ed25519*` …)。作成されたがプッシュされていないコミットは別途記録される。`migrate plan` は各クラスを、証明可能に分離された4つのルートのうち**それぞれ**の宛先にマッピングし(`MigrationDestinations.from_dict` は等しいまたは入れ子のルートを拒否する)、未プッシュのコミットをバンドルし、完全なハッシュマニフェストを出力し、プライベートファイルが共有可能なルート配下に解決される場合は `REFUSED` を出力する。
 
+DS04はサブプロセスを実行する最初の提供物であり、依然として厳しく境界付けられている:
+
+7. **タスクレシピ + ワークスペースランナー** (`task validate` / `task run`) - `TaskRecipe` は `revision` を固定し(ブランチ名は拒否される)、許可リストの `command` を持つ(`argv[0]` はポリシーの `allowed_commands` に含まれていなければならず、さもなければ実行は `rejected` となり何も起動されない)。`task run` は `<base>/<task_id>/` を作成し - 既に存在するものは拒否するので**2つのタスクがワークスペースを共有することはない** - そこで**サニタイズされた環境**でコマンドを実行する(`PATH` / `HOME` / `LANG` / `TZ` のみ。継承された `GITHUB_TOKEN`、`AWS_SECRET_ACCESS_KEY`、`ANTHROPIC_API_KEY`、`SSH_AUTH_SOCK` は決してない)。`timeout_seconds` で境界付けられ、期限切れまたはキャンセル時に**プロセスグループ全体をkill**する - 孫プロセスを起動して両方が消えることを確認する実際のテストで証明済み。`input_paths` 内の `..`、絶対パス、ワークスペース外へのsymlinkは拒否される。何もデプロイしない。
+
 ```
 $ hydra-umc-dev-server config validate configs/task-policy.example.json --kind task-policy
 VALID: configs/task-policy.example.json (task-policy)
@@ -91,7 +95,7 @@ $ hydra-umc-dev-server inventory scan --root ..
 {
   "root": "..",
   "projects": [
-    {"name": "HYDRA-UMC-DEV-SERVER", "version": "0.0.3", "maturity": "scaffolding", "manifest_path": "../HYDRA-UMC-DEV-SERVER/hydra-umc.project.json"},
+    {"name": "HYDRA-UMC-DEV-SERVER", "version": "0.0.4", "maturity": "scaffolding", "manifest_path": "../HYDRA-UMC-DEV-SERVER/hydra-umc.project.json"},
     ...
   ],
   "issues": []
@@ -139,19 +143,24 @@ HYDRA-UMC-DEV-SERVER/
 │   ├── preflight.py       # 注入可能なインスペクタ経由のホストの読み取り専用チェック（DS02）
 │   ├── provision.py       # ドライランのプロビジョニング計画 + unitテキスト、決して実行しない（DS02）
 │   ├── migration.py       # 保守的な移行のインベントリ + 分離した宛先への計画、何もコピーしない（DS03）
-│   └── cli.py             # config / inventory / station / migrate サブコマンドのエントリポイント
+│   ├── workspace.py       # タスクごとに隔離されたワークスペース; ../、絶対パス、ワークスペース外へのsymlinkを拒否(DS04)
+│   ├── recipe.py          # TaskRecipe: 固定されたrevision + 許可リストのコマンド(DS04)
+│   ├── runner.py          # 境界付きランナー: サニタイズされた環境、タイムアウト、プロセスグループ全体をkill(DS04)
+│   └── cli.py             # config / inventory / station / migrate / task サブコマンドのエントリポイント
 ├── configs/
 │   ├── host-profile.example.json
 │   ├── toolchains.example.json
 │   ├── task-policy.example.json      # allow_deploy: false、この形で公開・テスト済み
 │   ├── remote-station.example.json   # 127.0.0.1 にバインド、この形で公開・テスト済み
-│   └── migration-destinations.example.json   # 証明可能に分離された4つのルート
+│   ├── migration-destinations.example.json   # 証明可能に分離された4つのルート
+│   └── task-recipe.example.json          # 固定されたrevision + 許可リストのコマンド
 ├── tests/                # 上記各モジュールの実際のテスト、公開されているサンプル設定を含む
 ├── docs/
 │   ├── CLI_REFERENCE.md    # 各サブコマンド、そのフラグ、終了コード契約
 │   ├── CONFIG_SCHEMA.md    # 3つの設定文書の実際のJSON形状
 │   ├── REMOTE_STATION.md   # DS02のリモートステーションプロファイル、事前チェック、ドライラン計画
 │   ├── MIGRATION_FROM_PC.md  # DS03の保守的な移行のインベントリ、クラス、計画
+│   ├── WORKSPACE_AND_RUNNER.md  # DS04のレシピ、隔離ワークスペース、境界付きランナー
 │   ├── ARCHITECTURE.md     # 目的、作業モード、初期範囲、ディスク
 │   └── OPS_INTEGRATION.md  # 17関係マップ＋所有権表
 ├── images/                # メディアとアプリアイコン
@@ -197,15 +206,14 @@ CHANGELOGには一切触れない - これ自体はテストスイートを実�
 
 ## 🚀 ロードマップ
 
-このバージョンはDS01、DS02、DS03を提供する。提供順に、残っているのは:
+このバージョンはDS01、DS02、DS03、DS04を提供する。提供順に、残っているのは:
 
 - **DS02 - 再現可能なリモートステーション。** ✅ 提供済み: 検証済みの
   リモートステーションプロファイル、読み取り専用のホスト事前チェック、
   ドライランのプロビジョニング計画（`station` サブコマンド）。ホストは
   変更されず、ステップも実行されない。
 - **DS03 - 保守的な移行。** ✅ 提供済み: ソースのチェックアウト内の各ファイルをハッシュ化して分類し、各クラス(クリーン / 変更 / 未追跡 / プライベート)をそれぞれ独立した宛先に計画し、未プッシュのコミット用のバンドルを添える(`migrate` サブコマンド)。何もコピーせず、ソースには決して触れない。承認された計画の実行は後続の提供物である。
-- **DS04 - ワークスペースと境界付きランナー。** タスクごとの実際の分離:
-  2つのタスクが決して衝突せず、ワークスペース外へのパスは拒否される。
+- **DS04 - ワークスペースと境界付きランナー。** ✅ 提供済み: タスクごとに隔離されたワークスペース(2つのタスクが決して衝突しない。`..`、絶対パス、ワークスペース外へのsymlinkは拒否)、許可リストのコマンドのみ、サニタイズされた環境、そしてプロセスグループ全体をkillするタイムアウト(`task` サブコマンド)。サブプロセスを実行するが、何もデプロイしない。
 - **DS05 - 永続キューと追跡可能な結果。** ID、リース、再起動を生き延びる
   実際の実行ジャーナル。
 - **DS06 - 交換可能なAIプロバイダー。** まず決定論的な偽プロバイダー、
@@ -214,7 +222,7 @@ CHANGELOGには一切触れない - これ自体はテストスイートを実�
   完全に制御された最初の修復サイクル、安定した運用/復旧、そして
   正直な成熟度評価を伴う配布パッケージ。
 
-DS04-DS10のいずれも、まだこのリポジトリには存在しない - 各提供物が明示的に
+DS05-DS10のいずれも、まだこのリポジトリには存在しない - 各提供物が明示的に
 含むもの・除外するものについては [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
 を参照。
 

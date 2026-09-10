@@ -23,10 +23,17 @@
   locally-modified, untracked and private files each go to their own
   destination; unpushed commits get a bundle. Copies nothing and never
   touches the source (migration.py, DS03).
+- `task validate` - checks a task recipe against a task policy (pinned
+  revision, allowed command). Runs nothing (recipe.py, DS04).
+- `task run` - allocates an isolated per-task workspace and runs the
+  recipe's allow-listed command in it, with a scrubbed environment and a
+  bounded timeout; kills the whole process group on timeout
+  (workspace.py + runner.py, DS04).
 
-No workspace, task runner, queue or AI provider integration exists yet -
-those are DS04/DS05/DS06, later deliveries. Nothing here executes a task,
-provisions a host, migrates a file, or deploys anything.
+No durable queue or AI provider integration exists yet - those are
+DS05/DS06. `task run` is the first thing here that executes a subprocess,
+and only an allow-listed command, in an isolated workspace, with no
+inherited secrets; it still deploys nothing.
 """
 from __future__ import annotations
 
@@ -47,7 +54,10 @@ from .migration import (
 )
 from .preflight import SystemHostInspector, run_preflight
 from .provision import build_provision_plan
+from .recipe import TaskRecipe
 from .remote_station import RemoteStationProfile
+from .runner import SubprocessLauncher, run_task
+from .workspace import SystemWorkspaceFs, allocate_workspace
 
 _KIND_LOADERS = {
     "host-profile": HostProfile.from_dict,
@@ -173,10 +183,46 @@ def _cmd_migrate_plan(args: argparse.Namespace) -> int:
     return 0
 
 
+def _load_task_policy(path: str) -> TaskPolicy:
+    return TaskPolicy.from_dict(load_json_document(Path(path)))
+
+
+def _cmd_task_validate(args: argparse.Namespace) -> int:
+    recipe_path = Path(args.recipe_file)
+    try:
+        recipe = TaskRecipe.from_dict(load_json_document(recipe_path))
+        policy = _load_task_policy(args.policy)
+        recipe.validate_against(policy)
+    except ConfigValidationError as exc:
+        print(f"INVALID: {recipe_path} (task-recipe): {exc}", file=sys.stderr)
+        return 1
+    print(f"VALID: {recipe_path} (task-recipe)")
+    print(json.dumps(recipe.to_dict(), indent=2))
+    return 0
+
+
+def _cmd_task_run(args: argparse.Namespace) -> int:
+    recipe_path = Path(args.recipe_file)
+    try:
+        recipe = TaskRecipe.from_dict(load_json_document(recipe_path))
+        policy = _load_task_policy(args.policy)
+    except ConfigValidationError as exc:
+        print(f"INVALID: {recipe_path} (task-recipe): {exc}", file=sys.stderr)
+        return 1
+    try:
+        workspace = allocate_workspace(str(Path(args.workspace_base)), recipe.task_id, SystemWorkspaceFs())
+    except ConfigValidationError as exc:
+        print(f"REFUSED: {exc}", file=sys.stderr)
+        return 1
+    result = run_task(recipe, policy, workspace, SubprocessLauncher())
+    print(json.dumps(result.to_dict(), indent=2))
+    return 0 if result.outcome == "completed" and result.exit_code == 0 else 1
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="hydra-umc-dev-server",
-        description="Reproducible development host for the HYDRA-UMC/URTC ecosystem - DS01 (config schema, manifest inventory), DS02 (remote-station profile, read-only host preflight, dry-run provisioning plan) and DS03 (conservative-migration inventory and plan). Reads and describes only.",
+        description="Reproducible development host for the HYDRA-UMC/URTC ecosystem - DS01 (config schema, manifest inventory), DS02 (remote-station profile, host preflight, provisioning plan), DS03 (conservative-migration inventory and plan) and DS04 (bounded task recipe + isolated workspace runner). Only 'task run' executes anything, and only an allow-listed command in an isolated workspace with no inherited secrets.",
     )
     parser.add_argument("--version", action="version", version=__version__)
     subparsers = parser.add_subparsers(dest="command", required=True)
@@ -238,6 +284,26 @@ def build_parser() -> argparse.ArgumentParser:
         "--destinations", required=True, help="Path to a migration-destinations JSON document."
     )
     migrate_plan.set_defaults(func=_cmd_migrate_plan)
+
+    task = subparsers.add_parser("task", help="Bounded task recipe/runner commands (DS04).")
+    task_sub = task.add_subparsers(dest="task_command", required=True)
+
+    task_validate = task_sub.add_parser(
+        "validate",
+        help="Validate a task recipe against a task-policy document (pinned revision, allowed command). Runs nothing.",
+    )
+    task_validate.add_argument("recipe_file", help="Path to a task-recipe JSON document.")
+    task_validate.add_argument("--policy", required=True, help="Path to a task-policy JSON document (DS01 schema).")
+    task_validate.set_defaults(func=_cmd_task_validate)
+
+    task_run = task_sub.add_parser(
+        "run",
+        help="Allocate an isolated workspace and run the recipe's allowed command in it, with a scrubbed environment and a bounded timeout. Kills the whole process group on timeout.",
+    )
+    task_run.add_argument("recipe_file", help="Path to a task-recipe JSON document.")
+    task_run.add_argument("--policy", required=True, help="Path to a task-policy JSON document.")
+    task_run.add_argument("--workspace-base", required=True, help="Absolute directory under which the per-task workspace is created.")
+    task_run.set_defaults(func=_cmd_task_run)
 
     return parser
 
