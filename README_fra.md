@@ -12,10 +12,10 @@
   <img src="https://img.shields.io/badge/Licence-GPL%203.0-blue.svg" alt="GPL 3.0">
   <img src="https://img.shields.io/badge/Langage-Python%203.11%2B-blue.svg" alt="Python">
   <img src="https://img.shields.io/badge/Noyau-stdlib%20uniquement-brightgreen.svg" alt="Noyau stdlib uniquement">
-  <img src="https://img.shields.io/badge/Livraison-DS06%20sur%2010-367BF5.svg" alt="DS06 sur 10">
+  <img src="https://img.shields.io/badge/Livraison-DS07%20sur%2010-367BF5.svg" alt="DS07 sur 10">
 </p>
 
-> **Statut : v0.0.6, scaffolding - DS06 sur 10 (contrats, limites et un
+> **Statut : v0.0.7, scaffolding - DS07 sur 10 (contrats, limites et un
 > squelette vérifiable).** Un schéma de configuration réel et testé
 > (`config validate`) dont la politique par défaut **n'accorde aucune
 > permission de déploiement à aucune tâche**, et une découverte de
@@ -151,7 +151,7 @@ $ hydra-umc-dev-server inventory scan --root ..
 {
   "root": "..",
   "projects": [
-    {"name": "HYDRA-UMC-DEV-SERVER", "version": "0.0.6", "maturity": "scaffolding", "manifest_path": "../HYDRA-UMC-DEV-SERVER/hydra-umc.project.json"},
+    {"name": "HYDRA-UMC-DEV-SERVER", "version": "0.0.7", "maturity": "scaffolding", "manifest_path": "../HYDRA-UMC-DEV-SERVER/hydra-umc.project.json"},
     ...
   ],
   "issues": []
@@ -208,7 +208,8 @@ HYDRA-UMC-DEV-SERVER/
 │   ├── runner.py          # Exécuteur borné : environnement expurgé, délai, tue tout le groupe de processus (DS04)
 │   ├── durable_queue.py   # File durable SQLite + baux + journal d'exécution append-only, survit à un redémarrage (DS05)
 │   ├── ai_provider.py     # Seam de fournisseur d'IA interchangeable + contrat de sécurité ; fake déterministe seulement (DS06)
-│   └── cli.py             # Point d'entrée des sous-commandes config / inventory / station / migrate / task / queue / provider
+│   ├── incident_transport.py  # Messages d'incident signés HMAC + verify + session aller-retour complète (DS07)
+│   └── cli.py             # Point d'entrée des sous-commandes config / inventory / station / migrate / task / queue / provider / incident
 ├── configs/
 │   ├── host-profile.example.json
 │   ├── toolchains.example.json
@@ -225,6 +226,7 @@ HYDRA-UMC-DEV-SERVER/
 │   ├── WORKSPACE_AND_RUNNER.md  # La recette DS04, l'espace de travail isolé et l'exécuteur borné
 │   ├── DURABLE_QUEUE.md      # La file durable DS05, les baux et le journal d'exécution
 │   ├── AI_PROVIDER.md        # Le seam de fournisseur DS06 et son contrat de sécurité (fake seulement)
+│   ├── INCIDENT_TRANSPORT.md # Le message signé DS07, les vérifications et la session aller-retour
 │   ├── ARCHITECTURE.md     # Objectif, modes de travail, périmètre initial, disque
 │   └── OPS_INTEGRATION.md  # La carte des 17 relations + table des propriétaires
 ├── images/                # Médias et icônes de l'application
@@ -271,7 +273,7 @@ de tests locale complète.
 
 ## 🚀 FEUILLE DE ROUTE
 
-Cette version apporte DS01 à DS06. Ce qui reste, dans l'ordre de
+Cette version apporte DS01 à DS07. Ce qui reste, dans l'ordre de
 livraison :
 
 - **DS02 - Station distante reproductible.** ✅ Livré : un profil de
@@ -301,12 +303,16 @@ livraison :
   arrête l'étape, la suggestion est une donnée inerte qui n'accorde rien
   et ne déploie rien (`provider suggest`). Le fournisseur réel est une
   décision de l'utilisateur.
-- **DS07-DS10** - incidents coordonnés avec HYDRA-UMC-OPS-AGENT, un
-  premier cycle de réparation entièrement contrôlé, exploitation/
-  restauration stable, et un paquet de livraison avec une évaluation
-  honnête de la maturité.
+- **DS07 - Incidents coordonnés avec HYDRA-UMC-OPS-AGENT.** ✅ Livré :
+  un transport d'incidents authentifié par HMAC avec des vérifications
+  replay / usurpation / surcharge / version et un aller-retour complet
+  envoi → diagnostic → vérification post-déploiement qui se réconcilie
+  après une coupure réseau (`incident verify`).
+- **DS08-DS10** - un premier cycle de réparation entièrement contrôlé,
+  exploitation/restauration stable, et un paquet de livraison avec une
+  évaluation honnête de la maturité.
 
-Rien de DS07-DS10 n'existe encore dans ce dépôt - voir
+Rien de DS08-DS10 n'existe encore dans ce dépôt - voir
 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) pour ce que chaque
 livraison inclut et exclut explicitement.
 

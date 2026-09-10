@@ -5,6 +5,39 @@ version number follows this ecosystem's "odometer" scheme: PATCH +1 on
 every real build, rolling into MINOR past 9 (`0.0.9` -> `0.1.0`); MAJOR is
 bumped manually only. See `bump_version.py`.
 
+## [0.0.7] - DS07: authenticated incident transport for the OPS-AGENT round trip
+
+Seventh delivery of ten. A real protocol object - not a manual file
+drop - for the incident round trip with HYDRA-UMC-OPS-AGENT.
+
+- **`incident_transport.py`** - every message is HMAC-SHA256-signed by a
+  registered node and carries a `nonce`, a `sent_at` and a
+  `contract_version`. `verify_message()` rejects, each with a named code
+  and a test:
+  - `unknown-identity` (the channel is authenticated as a node not in
+    the registry)
+  - `bad-signature` (HMAC does not match the registered secret)
+  - `impersonation` (`from_node` != the identity the channel proved)
+  - `replay` (a nonce already accepted) / `stale` (a `sent_at` outside
+    the replay window)
+  - `overloaded` (more than `max_messages_per_minute` from one node)
+  - `incompatible-version`
+- **`IncidentSession`** runs the FULL round trip - `submit_incident` ->
+  `diagnosis` -> `deploy-verification` - not just the submit. A dropped
+  connection leaves the session in `pending-ack`; `reconcile()` re-sends
+  the SAME incident with a fresh nonce, and the peer de-dupes on the
+  stable `payload.incident_id` (re-ack, never re-process). A network
+  blip loses nothing and double-counts nothing.
+- **`cli.py`** - new `incident verify` subcommand.
+- **`configs/incident-transport.example.json`** (the policy only -
+  secrets are operator-held and never committed),
+  **`docs/INCIDENT_TRANSPORT.md`**, README x7 synced.
+- 17 new tests (`test_incident_transport.py` incl. the in-memory
+  round-trip and the dropped-connection reconcile, plus `incident`
+  cases in `test_cli.py`) - 190 total.
+
+DS08 (a first fully controlled repair cycle) does not exist yet.
+
 ## [0.0.6] - DS06: interchangeable AI provider (deterministic fake) behind a safety contract
 
 Sixth delivery of ten. Only the deterministic **fake** provider ships -

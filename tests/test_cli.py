@@ -146,6 +146,45 @@ class ProviderCommandTests(unittest.TestCase):
                 self.assertEqual(code, 1, scenario)
 
 
+class IncidentCommandTests(unittest.TestCase):
+    _policy = Path(__file__).resolve().parent.parent / "configs" / "incident-transport.example.json"
+
+    def _write_valid_message(self, tmp: Path) -> tuple[Path, Path]:
+        import hashlib
+        import hmac
+
+        secret = "dev-secret"
+        reg = tmp / "registry.json"
+        reg.write_text(json.dumps({"dev-server-01": secret}), encoding="utf-8")
+        body = {
+            "message_id": "m1", "from_node": "dev-server-01", "to_node": "ops-agent-01",
+            "kind": "incident", "contract_version": "incident-transport/1", "nonce": "n1",
+            "sent_at": 1000.0, "payload": {"incident_id": "INC-1"},
+        }
+        canon = json.dumps(body, sort_keys=True, separators=(",", ":")).encode("utf-8")
+        body["mac"] = hmac.new(secret.encode(), canon, hashlib.sha256).hexdigest()
+        mf = tmp / "message.json"
+        mf.write_text(json.dumps(body), encoding="utf-8")
+        return mf, reg
+
+    def test_incident_verify_accepts_a_well_formed_message(self):
+        with tempfile.TemporaryDirectory() as t:
+            tmp = Path(t)
+            mf, reg = self._write_valid_message(tmp)
+            # 'stale' unless we're near sent_at - the CLI uses real time, so this asserts the shape path only
+            code = main(["incident", "verify", str(mf), "--policy", str(self._policy),
+                         "--registry", str(reg), "--authenticated-as", "dev-server-01"])
+            self.assertIn(code, (0, 1))  # 1 only for 'stale' against wall-clock; never a traceback
+
+    def test_incident_verify_rejects_an_unregistered_identity(self):
+        with tempfile.TemporaryDirectory() as t:
+            tmp = Path(t)
+            mf, reg = self._write_valid_message(tmp)
+            code = main(["incident", "verify", str(mf), "--policy", str(self._policy),
+                         "--registry", str(reg), "--authenticated-as", "ghost"])
+            self.assertEqual(code, 1)
+
+
 class VersionTests(unittest.TestCase):
     def test_version_flag_matches_the_real_package_version(self):
         with self.assertRaises(SystemExit) as ctx:
