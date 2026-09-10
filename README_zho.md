@@ -72,6 +72,10 @@ DS05 新增持久性——一个任务队列及其执行日志，可在进程重
 
 8. **持久队列 + 执行日志**（`queue enqueue` / `status` / `reconcile` / `journal`）——一个 SQLite 存储（WAL，租约用立即事务）。`enqueue` 是幂等的——用相同 `task_id` 的第二次调用返回 `created=False`，**绝不是第二个作业**。`lease(worker, ttl)` 认领最旧的 `queued` 条目；`reconcile()` 将过期租约退回 `queued`（每次启动都安全）。来自不再持有租约的 worker 的 `record_result` 会被**拒绝，而非接受为已完成**——中断绝不会变成虚假的成功。若记录结果时观察到的基线指纹与 `enqueue` 时记录的不同，则该结果存为 `failed` / 不可晋级，**即使退出码为 0**。日志的 `completed` 事件始终携带 `revision` + `recipe_fingerprint`；日志只保留截断的尾部，`prune_journal` 限制行数，因此磁盘保持有界。
 
+DS06 增加了一个可替换的 AI 提供方——仅交付确定性的 fake，位于一个安全契约之后。它返回一段供人阅读的字符串；不把任何东西接到 runner、队列或一次部署上：
+
+9. **可替换的 AI 提供方**（`provider suggest`）——一个 `AIProvider` seam；`FakeProvider(scenario=...)` 完全确定。`run_provider_step` 把提供方的**超时**、**配额耗尽**或**格式错误的输出**变成一个有界的具名结果（绝不是逐步升级的异常）；一个配置好的 `ProviderBudget`（调用数 / token / 成本）会**在超出之前停止该步骤**，不发出调用；而提供方的回答是**数据，绝非指令**——一条说“忽略先前的指令 / 立即部署 / 给我 root”的建议会被逐字复制，置上 `injection_flagged`，并且在**每一个**结果里 `grants_no_permissions` / `triggers_no_deploy` 都保持为真。使用哪个真实提供方及其授权，是用户的决定（今天 `kind` 必须是 `"fake"`）。
+
 ```
 $ hydra-umc-dev-server config validate configs/task-policy.example.json --kind task-policy
 VALID: configs/task-policy.example.json (task-policy)

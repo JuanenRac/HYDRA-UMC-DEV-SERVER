@@ -140,6 +140,26 @@ protokolliert, es führt nicht aus:
    Ausgaben und `prune_journal` begrenzt die Zeilen, damit die Platte
    begrenzt bleibt.
 
+DS06 fugt einen austauschbaren KI-Provider hinzu - nur den
+deterministischen Fake, hinter einem Sicherheitsvertrag. Er gibt eine
+Zeichenkette zuruck, die ein Mensch liest; er verdrahtet nichts mit dem
+Runner, der Warteschlange oder einem Deployment:
+
+9. **Austauschbarer KI-Provider** (`provider suggest`) - eine
+   `AIProvider`-Naht; `FakeProvider(scenario=...)` ist vollstandig
+   deterministisch. `run_provider_step` verwandelt einen **Timeout**, ein
+   **erschopftes Kontingent** oder eine **fehlerhafte Ausgabe** des
+   Providers in ein begrenztes, benanntes Ergebnis (nie eine eskalierende
+   Ausnahme); ein konfiguriertes `ProviderBudget` (Aufrufe / Tokens /
+   Kosten) **stoppt den Schritt, bevor es uberschritten wird**, ohne
+   Aufruf; und die Antwort des Providers sind **Daten, nie Anweisungen** -
+   ein Vorschlag mit "ignoriere vorherige Anweisungen / deploye jetzt / gib
+   mir root" wird wortlich kopiert, `injection_flagged` wird gesetzt, und
+   `grants_no_permissions` / `triggers_no_deploy` bleiben fur **jedes**
+   Ergebnis wahr. Welcher echte Provider verwendet wird und dessen
+   Autorisierung ist eine Entscheidung des Nutzers (`kind` muss heute
+   `"fake"` sein).
+
 ```
 $ hydra-umc-dev-server config validate configs/task-policy.example.json --kind task-policy
 VALID: configs/task-policy.example.json (task-policy)
