@@ -58,6 +58,12 @@
   -> regression -> build-test -> approval -> isolated install -> verify
   cycle (with rollback on a failed post-install check and an I60/T07
   "apparent success" control) is exercised by `RepairCycle` in tests.
+- `ops health` / `ops verify-backup` - stable-operation checks over the
+  durable queue and disk (orphaned leases, journal over cap, low disk),
+  and a re-hash of every file in a state backup against its manifest
+  (operations.py, DS09). `restore_backup()` (tested) refuses a backup
+  taken for a different instance id or schema version, or one whose
+  files no longer match.
 
 `task run` is the only command that executes a subprocess, and only an
 allow-listed command, in an isolated workspace, with no inherited
@@ -88,6 +94,12 @@ from .incident_transport import (
     TransportPolicy,
     VerifierState,
     verify_message,
+)
+from .operations import (
+    BackupManifest,
+    SystemBackupFs,
+    check_operational_health,
+    verify_backup,
 )
 from .repair_cycle import RepairCandidate, check_candidate
 from .preflight import SystemHostInspector, run_preflight
@@ -340,10 +352,33 @@ def _cmd_repair_check_candidate(args: argparse.Namespace) -> int:
     return 0 if check.accepted else 1
 
 
+def _cmd_ops_health(args: argparse.Namespace) -> int:
+    with DurableQueue(args.db) as queue:
+        report = check_operational_health(
+            queue,
+            free_disk_gb=args.free_disk_gb,
+            min_free_disk_gb=args.min_free_gb,
+            journal_row_cap=args.journal_cap,
+        )
+    print(json.dumps(report.to_dict(), indent=2))
+    return 0 if report.ok else 1
+
+
+def _cmd_ops_verify_backup(args: argparse.Namespace) -> int:
+    try:
+        manifest = BackupManifest.from_dict(load_json_document(Path(args.manifest_file)))
+    except ConfigValidationError as exc:
+        print(f"INVALID: {args.manifest_file} (backup-manifest): {exc}", file=sys.stderr)
+        return 1
+    result = verify_backup(manifest, str(Path(args.backup_root)), SystemBackupFs())
+    print(json.dumps(result.to_dict(), indent=2))
+    return 0 if result.ok else 1
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="hydra-umc-dev-server",
-        description="Reproducible development host for the HYDRA-UMC/URTC ecosystem - DS01 (config schema, manifest inventory), DS02 (remote-station profile, host preflight, provisioning plan), DS03 (conservative-migration inventory and plan), DS04 (bounded task recipe + isolated workspace runner), DS05 (durable SQLite queue + execution journal), DS06 (interchangeable AI provider - deterministic fake only) DS07 (authenticated incident transport for the OPS-AGENT round trip) and DS08 (one fully controlled repair cycle - gated repro/patch/regression/build-test/approval/isolated-install/verify with rollback). Only 'task run' executes anything, and only an allow-listed command in an isolated workspace with no inherited secrets.",
+        description="Reproducible development host for the HYDRA-UMC/URTC ecosystem - DS01 (config schema, manifest inventory), DS02 (remote-station profile, host preflight, provisioning plan), DS03 (conservative-migration inventory and plan), DS04 (bounded task recipe + isolated workspace runner), DS05 (durable SQLite queue + execution journal), DS06 (interchangeable AI provider - deterministic fake only) DS07 (authenticated incident transport for the OPS-AGENT round trip) and DS08 (one fully controlled repair cycle with rollback) and DS09 (stable-operation health checks + verified state backup/restore). Only 'task run' executes anything, and only an allow-listed command in an isolated workspace with no inherited secrets.",
     )
     parser.add_argument("--version", action="version", version=__version__)
     subparsers = parser.add_subparsers(dest="command", required=True)
@@ -494,6 +529,27 @@ def build_parser() -> argparse.ArgumentParser:
     repair_check.add_argument("--base", required=True, help="The base fingerprint this cycle is pinned to.")
     repair_check.add_argument("--target", required=True, help="The target this cycle installs to.")
     repair_check.set_defaults(func=_cmd_repair_check_candidate)
+
+    ops = subparsers.add_parser("ops", help="Stable-operation and restore commands (DS09).")
+    ops_sub = ops.add_subparsers(dest="ops_command", required=True)
+
+    ops_health = ops_sub.add_parser(
+        "health",
+        help="Operational health over the durable queue and disk: orphaned leases, journal over cap, low disk. Exits 1 if not ok.",
+    )
+    ops_health.add_argument("--db", required=True, help="Path to the SQLite queue database.")
+    ops_health.add_argument("--min-free-gb", type=float, default=2.0, help="Free-disk floor (default 2.0).")
+    ops_health.add_argument("--free-disk-gb", type=float, default=None, help="Observed free disk (GiB); omit to skip the disk check.")
+    ops_health.add_argument("--journal-cap", type=int, default=10000, help="Journal row cap (default 10000).")
+    ops_health.set_defaults(func=_cmd_ops_health)
+
+    ops_verify = ops_sub.add_parser(
+        "verify-backup",
+        help="Re-hash every file in a backup against its manifest. Exits 1 on any mismatch or missing file.",
+    )
+    ops_verify.add_argument("manifest_file", help="Path to a backup-manifest JSON document.")
+    ops_verify.add_argument("--backup-root", required=True, help="Directory the backup files live under.")
+    ops_verify.set_defaults(func=_cmd_ops_verify_backup)
 
     return parser
 

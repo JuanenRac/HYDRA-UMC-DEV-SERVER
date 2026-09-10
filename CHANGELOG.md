@@ -5,6 +5,30 @@ version number follows this ecosystem's "odometer" scheme: PATCH +1 on
 every real build, rolling into MINOR past 9 (`0.0.9` -> `0.1.0`); MAJOR is
 bumped manually only. See `bump_version.py`.
 
+## [0.0.9] - DS09: stable operation + verified state backup/restore
+
+Ninth delivery of ten.
+
+- `operations.py`:
+  - `create_backup()` copies this host's named durable-state files into a
+    backup dir and records a sha256 for each, with a `backup_id`, an
+    `instance_id` and a `schema_version`. `verify_backup()` re-hashes
+    every file and reports `mismatches` / `missing`. `restore_backup()`
+    **refuses** a backup taken for a different `instance_id` or a
+    different `schema_version`, or one whose files no longer match the
+    manifest - otherwise it restores the exact bytes.
+  - `check_operational_health(queue, ...)` reports a not-ok `HealthReport`
+    with a named finding for: `orphaned-leases` (leased entries whose
+    lease has expired but were not reconciled), `journal-over-cap`, and
+    `low-disk` (free disk under the configured floor).
+  - all filesystem contact is behind the injectable `BackupFs` seam.
+- `cli.py` - new `ops health` and `ops verify-backup` subcommands.
+- `docs/OPERATIONS.md`, README x7 synced.
+- 14 new tests (`test_operations.py` incl. the backup round-trip and each
+  refusal, plus `ops` cases in `test_cli.py`) - 220 total.
+
+DS10 (delivery package + honest maturity evaluation) does not exist yet.
+
 ## [0.0.8] - DS08: one fully controlled repair cycle
 
 Eighth delivery of ten. `RepairCycle` chains the pieces already built

@@ -220,6 +220,35 @@ class RepairCommandTests(unittest.TestCase):
             self.assertEqual(code, 1)
 
 
+class OpsCommandTests(unittest.TestCase):
+    def test_ops_health_of_a_quiet_queue_exits_zero(self):
+        with tempfile.TemporaryDirectory() as t:
+            db = str(Path(t) / "q.sqlite3")
+            main(["queue", "status", "--db", db])  # create the db
+            self.assertEqual(main(["ops", "health", "--db", db, "--free-disk-gb", "50"]), 0)
+
+    def test_ops_health_flags_low_disk(self):
+        with tempfile.TemporaryDirectory() as t:
+            db = str(Path(t) / "q.sqlite3")
+            main(["queue", "status", "--db", db])
+            self.assertEqual(main(["ops", "health", "--db", db, "--free-disk-gb", "0.1", "--min-free-gb", "5"]), 1)
+
+    def test_ops_verify_backup_detects_a_mismatch(self):
+        import hashlib
+
+        with tempfile.TemporaryDirectory() as t:
+            tmp = Path(t)
+            (tmp / "backup").mkdir()
+            (tmp / "backup" / "file.bin").write_bytes(b"real bytes")
+            manifest = tmp / "manifest.json"
+            manifest.write_text(json.dumps({
+                "backup_id": "b1", "instance_id": "dev-server-01", "schema_version": "dev-server-state/1",
+                "files": {"file.bin": hashlib.sha256(b"DIFFERENT").hexdigest()},
+            }), encoding="utf-8")
+            code = main(["ops", "verify-backup", str(manifest), "--backup-root", str(tmp / "backup")])
+            self.assertEqual(code, 1)
+
+
 class VersionTests(unittest.TestCase):
     def test_version_flag_matches_the_real_package_version(self):
         with self.assertRaises(SystemExit) as ctx:
