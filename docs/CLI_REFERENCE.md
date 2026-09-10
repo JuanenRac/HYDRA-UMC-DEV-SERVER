@@ -4,7 +4,7 @@ Copyright (C) 2026 JuanenRac (Electro Hobby 3D) <electrohobby3d@gmail.com>
 GPL-3.0 - see LICENSE
 ============================================================================= -->
 
-# CLI reference (DS01 + DS02 + DS03 + DS04 + DS05 + DS06 + DS07 + DS08)
+# CLI reference (DS01 + DS02 + DS03 + DS04 + DS05 + DS06 + DS07 + DS08 + DS09)
 
 `hydra-umc-dev-server` (entry point installed by `pip install -e .`) or
 `python -m hydra_umc_dev_server.cli` - both run the exact same code.
@@ -40,7 +40,7 @@ $ hydra-umc-dev-server inventory scan --root ..
 {
   "root": "..",
   "projects": [
-    {"name": "HYDRA-UMC-DEV-SERVER", "version": "0.0.8", "maturity": "scaffolding", "manifest_path": "../HYDRA-UMC-DEV-SERVER/hydra-umc.project.json"},
+    {"name": "HYDRA-UMC-DEV-SERVER", "version": "0.0.9", "maturity": "scaffolding", "manifest_path": "../HYDRA-UMC-DEV-SERVER/hydra-umc.project.json"},
     ...
   ],
   "issues": []
@@ -182,6 +182,19 @@ operator-held, never committed) and that it is pinned to THIS incident,
 base fingerprint and target. Prints `{"accepted": bool, "reason":
 str|null}`; exits `1` (never a traceback) on a block - a tampered
 candidate, or one aimed at another incident / base / target.
+
+## `ops health --db PATH [--min-free-gb F --free-disk-gb G --journal-cap N]` (DS09)
+
+Operational health over the durable queue and disk. Prints a
+`HealthReport`; exit `1` (never a traceback) with a named finding for
+`orphaned-leases`, `journal-over-cap`, or `low-disk`. Safe on a timer.
+
+## `ops verify-backup <manifest_file> --backup-root DIR` (DS09)
+
+Re-hashes every file in a state backup against its manifest. Prints
+`{ ok, verified, mismatches, missing }`; exit `1` on any mismatch or
+missing file. `restore_backup()` (tested, no CLI yet) additionally
+refuses a backup for a different instance id or schema version.
 
 ## `--version`
 

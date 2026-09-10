@@ -12,10 +12,10 @@
   <img src="https://img.shields.io/badge/Licencia-GPL%203.0-blue.svg" alt="GPL 3.0">
   <img src="https://img.shields.io/badge/Language-Python%203.11%2B-blue.svg" alt="Python">
   <img src="https://img.shields.io/badge/Core-stdlib%20only-brightgreen.svg" alt="stdlib-only core">
-  <img src="https://img.shields.io/badge/Delivery-DS08%20of%2010-367BF5.svg" alt="DS08 of 10">
+  <img src="https://img.shields.io/badge/Delivery-DS09%20of%2010-367BF5.svg" alt="DS09 of 10">
 </p>
 
-> **Status: v0.0.8, scaffolding - DS08 of 10 (contracts, limits and a
+> **Status: v0.0.9, scaffolding - DS09 of 10 (contracts, limits and a
 > verifiable skeleton).** A tested configuration schema
 > (`config validate`), read-only manifest discovery (`inventory scan`),
 > a remote-station profile + host preflight + dry-run provisioning plan
@@ -45,7 +45,11 @@
 > incident → patch → regression → build-test → approval → **isolated**
 > install → verify, gated at every step - a tampered candidate, or one
 > aimed at another base/target, is **blocked**; a failed post-install
-> check **rolls back**. It still deploys nothing. See
+> check **rolls back**. **DS09 adds stable-operation health checks and a
+> verified state backup/restore** (`ops health` / `ops verify-backup`):
+> every backup file carries a sha256, and a restore is **refused** for a
+> backup taken for another instance or schema, or one whose files no
+> longer match. It still deploys nothing. See
 > [docs/CLI_REFERENCE.md](docs/CLI_REFERENCE.md) for the exact command
 > surface that exists today.
 
@@ -176,7 +180,7 @@ $ hydra-umc-dev-server inventory scan --root ..
 {
   "root": "..",
   "projects": [
-    {"name": "HYDRA-UMC-DEV-SERVER", "version": "0.0.8", "maturity": "scaffolding", "manifest_path": "../HYDRA-UMC-DEV-SERVER/hydra-umc.project.json"},
+    {"name": "HYDRA-UMC-DEV-SERVER", "version": "0.0.9", "maturity": "scaffolding", "manifest_path": "../HYDRA-UMC-DEV-SERVER/hydra-umc.project.json"},
     ...
   ],
   "issues": []
@@ -233,7 +237,8 @@ HYDRA-UMC-DEV-SERVER/
 │   ├── ai_provider.py     # Interchangeable AI provider seam + safety contract; deterministic fake only (DS06)
 │   ├── incident_transport.py  # HMAC-signed incident messages + verify + full round-trip session (DS07)
 │   ├── repair_cycle.py    # Gated repro→...→verify cycle with rollback + the candidate gate (DS08)
-│   └── cli.py             # config / inventory / station / migrate / task / queue / provider / incident / repair subcommand entry point
+│   ├── operations.py      # Verified state backup/restore + operational health check (DS09)
+│   └── cli.py             # config / inventory / station / migrate / task / queue / provider / incident / repair / ops subcommand entry point
 ├── configs/
 │   ├── host-profile.example.json
 │   ├── toolchains.example.json
@@ -255,6 +260,7 @@ HYDRA-UMC-DEV-SERVER/
 │   ├── AI_PROVIDER.md        # The DS06 provider seam and safety contract (fake only)
 │   ├── INCIDENT_TRANSPORT.md # The DS07 signed message, verify checks and round-trip session
 │   ├── REPAIR_CYCLE.md       # The DS08 gated repair cycle, its gates and rollback
+│   ├── OPERATIONS.md         # The DS09 verified backup/restore and operational health check
 │   ├── ARCHITECTURE.md       # Purpose, working modes, initial scope, disk layout
 │   └── OPS_INTEGRATION.md    # The 17-relationship map + state-ownership table
 ├── images/                # Media and app icons
@@ -300,7 +306,7 @@ local test suite.
 
 ## 🚀 ROADMAP
 
-This version ships DS01 through DS08. What remains, in delivery order:
+This version ships DS01 through DS09. What remains, in delivery order:
 
 - **DS02 - Reproducible remote station.** ✅ Shipped: a validated
   remote-station profile, a read-only host preflight, and a dry-run
@@ -336,10 +342,13 @@ This version ships DS01 through DS08. What remains, in delivery order:
   repro→incident→patch→regression→build-test→approval→isolated-install→verify
   state machine that blocks a tampered or misdirected candidate and
   rolls back on a failed post-install check (`repair check-candidate`).
-- **DS09-DS10** - stable operation/restoration, and a delivery package
-  with an honest maturity evaluation.
+- **DS09 - Stable operation/restoration.** ✅ Shipped: operational
+  health checks over the queue and disk, and a verified state
+  backup/restore that refuses a backup for another instance or a
+  corrupted one (`ops` subcommands).
+- **DS10** - a delivery package with an honest maturity evaluation.
 
-None of DS09-DS10 exists in this repository yet - see
+None of DS10 exists in this repository yet - see
 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for what each delivery is
 scoped to include and explicitly exclude.
 
