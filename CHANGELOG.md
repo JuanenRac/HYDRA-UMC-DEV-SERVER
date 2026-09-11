@@ -5,6 +5,19 @@ version number follows this ecosystem's "odometer" scheme: PATCH +1 on
 every real build, rolling into MINOR past 9 (`0.0.9` -> `0.1.0`); MAJOR is
 bumped manually only. See `bump_version.py`.
 
+## [0.1.1] - Honesty check section in every README
+
+Added a "Honesty check" paragraph right after the intro badges in
+`README.md` and all 6 translated READMEs, naming all sixteen real
+`src/hydra_umc_dev_server/*.py` modules and the real test count (228
+passing across `tests/test_*.py`). States plainly what none of that
+real, tested code has ever touched: the target Raspberry Pi 5/CM5
+hardware, a real remote host via `station preflight`/`station plan`,
+a real AI provider behind `provider suggest` (only the deterministic
+fake ships), or a running worker loop wiring the pieces together.
+Documents the real, current state of what's implemented vs. planned;
+no behavior changed.
+
 ## [0.1.0] - DS10: delivery package + honest maturity evaluation
 
 Tenth and last delivery of ten. The plan closes the way it opened - by
