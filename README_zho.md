@@ -15,7 +15,7 @@
   <img src="https://img.shields.io/badge/交付-DS01--DS10%20已完成%20(脚手架)-brightgreen.svg" alt="DS01-DS10 已完成，脚手架">
 </p>
 
-> **状态：v0.1.0，脚手架阶段 - 十次交付已全部完成，仍为脚手架（契约、边界与可验证的骨架）。**
+> **状态：v0.1.1，脚手架阶段 - 十次交付已全部完成，仍为脚手架（契约、边界与可验证的骨架）。**
 > 一套真实、经过测试的配置模式(`config validate`)，其默认策略**不向任何任务授予部署权限**；
 > 以及只读的清单发现功能(`inventory scan`)，可找到本生态系统自身的
 > `hydra-umc.project.json` 文件——包括本仓库自己的那份。
@@ -24,6 +24,10 @@
 > 以及一份**空跑**的置备计划(`station plan`，从不执行任何步骤)。DS03 新增**保守迁移**（`migrate inventory` / `migrate plan`）：它对源 checkout 中的每个文件计算哈希并分类，并将每一类——干净、本地已修改、未跟踪、私有——规划到它**各自独立的目标**，若某个私有文件会落到任何可共享的位置则拒绝。它不复制任何内容，也从不触碰源。以上都只读取与描述。**DS04 新增受限执行器**（`task validate` / `task run`）：它在**按任务隔离的工作区**中运行**一个**白名单命令（`..`、绝对路径或指向工作区之外的 symlink 都会被拒绝；两个任务永不共享同一个），使用**已清理的环境**（不继承 `*_TOKEN` / `*_KEY` / `*_SECRET`），并在有界超时后**杀死整个进程组**。**DS05 新增一个持久的 SQLite 队列 + 执行日志**（`queue …`），可在重启后存活：重复的 `enqueue` 绝不是第二个作业；崩溃 worker 的租约会过期，`reconcile` 将任务退回 `queued`；来自不再持有租约的 worker 的结果会被**拒绝，而非标记为已完成**；自入队以来发生变化的基线**即使退出码为 0 也会阻止晋级**。它仍然不部署任何内容。
 > DS06 新增位于安全契约之后的确定性假 AI 提供方；真实提供方由用户决定。
 > 完整、真实的命令界面见 [docs/CLI_REFERENCE.md](docs/CLI_REFERENCE.md)。
+
+---
+
+**诚实核查 - 今天真正能运行的部分：** 下面列出的十六个模块(`config.py`、`inventory.py`、`remote_station.py`、`preflight.py`、`provision.py`、`migration.py`、`workspace.py`、`recipe.py`、`runner.py`、`durable_queue.py`、`ai_provider.py`、`incident_transport.py`、`repair_cycle.py`、`operations.py`、`delivery.py`、`cli.py`)都是真实代码，而非占位符，并且由真实的测试套件覆盖(228 个测试在 `tests/test_*.py` 中全部通过)。这些真实代码具体做到了什么：验证 JSON 文档、在磁盘上规划迁移、在一个真实隔离工作区内以真实的净化环境运行一个真实的受限子进程、让一个真实的 SQLite 队列/日志在重启后依然持久、并执行了一次真实的 HMAC 签名事件往返 - 所有这些都只是针对本地检出或可注入的测试替身进行的，从未针对该项目真正面向的目标硬件 Raspberry Pi 5/CM5 运行过。`provider suggest` 始终只调用确定性的 `FakeProvider`；接入真实的 AI 提供方仍是一个明确尚未做出的用户决定。`station preflight`/`station plan` 通过可注入的检查器描述远程主机，从未针对真实的远程机器运行过。本仓库中没有任何东西真正部署过主机、执行过部署，或把这些部件接入一个真正运行中的工作循环 - `deliver evaluate` 自身硬编码的 `overall_maturity: "scaffolding"` 就是代码本身给出的明确说明。具体每一项交付的内容请见 `CHANGELOG.md`。
 
 ---
 

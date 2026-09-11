@@ -15,7 +15,7 @@
   <img src="https://img.shields.io/badge/Lieferung-DS01--DS10%20komplett%20(Scaffolding)-brightgreen.svg" alt="DS01-DS10 komplett, Scaffolding">
 </p>
 
-> **Status: v0.1.0, Scaffolding - alle zehn von zehn geliefert,
+> **Status: v0.1.1, Scaffolding - alle zehn von zehn geliefert,
 > weiterhin Scaffolding (Verträge, Grenzen und ein
 > überprüfbares Gerüst).** Ein reales, getestetes Konfigurationsschema
 > (`config validate`), dessen Standardrichtlinie **keiner Aufgabe eine
@@ -32,6 +32,10 @@
 > Lieferungen. Siehe
 > [docs/CLI_REFERENCE.md](docs/CLI_REFERENCE.md) für die exakte
 > Kommandooberfläche, die heute existiert.
+
+---
+
+**Ehrlichkeitscheck - was heute wirklich läuft:** alle sechzehn unten genannten Module (`config.py`, `inventory.py`, `remote_station.py`, `preflight.py`, `provision.py`, `migration.py`, `workspace.py`, `recipe.py`, `runner.py`, `durable_queue.py`, `ai_provider.py`, `incident_transport.py`, `repair_cycle.py`, `operations.py`, `delivery.py`, `cli.py`) sind echter Code, keine Stubs, und werden von einer echten Testsuite abgedeckt (228 bestandene Tests in `tests/test_*.py`). Was dieser echte Code tatsächlich getan hat, konkret: JSON-Dokumente validiert, Migrationen auf der Festplatte geplant, einen echten, begrenzten Subprozess in einem echten isolierten Arbeitsbereich mit einer echten bereinigten Umgebung ausgeführt, eine echte SQLite-Warteschlange/-Journal über Neustarts hinweg persistiert und einen echten HMAC-signierten Incident-Roundtrip durchgeführt - alles gegen dieses lokale Checkout oder einen injizierbaren Test-Seam, niemals gegen die echte Ziel-Hardware Raspberry Pi 5/CM5, für die dieses Projekt gebaut wird. `provider suggest` ruft ausschließlich den deterministischen `FakeProvider` auf; die Anbindung eines echten KI-Anbieters bleibt eine explizite, noch nicht getroffene Nutzerentscheidung. `station preflight`/`station plan` beschreiben einen entfernten Host über einen injizierbaren Inspector und liefen noch nie gegen eine echte entfernte Maschine. Nichts in diesem Repository hat einen Host provisioniert, ein Deployment ausgeführt oder diese Teile in eine echte laufende Worker-Schleife verdrahtet - das fest codierte `overall_maturity: "scaffolding"` von `deliver evaluate` sagt das klar aus dem Code selbst heraus. Siehe `CHANGELOG.md` für das, was genau geliefert wurde, Delivery für Delivery.
 
 ---
 

@@ -15,7 +15,7 @@
   <img src="https://img.shields.io/badge/Entrega-DS01--DS10%20completo%20(scaffolding)-brightgreen.svg" alt="DS01-DS10 completo, scaffolding">
 </p>
 
-> **Estado: v0.1.0, scaffolding - las diez de diez entregadas, sigue
+> **Estado: v0.1.1, scaffolding - las diez de diez entregadas, sigue
 > siendo scaffolding (contratos, límites y un
 > esqueleto verificable).** Un esquema de configuración real y probado
 > (`config validate`) cuya política por defecto **no concede permiso de
@@ -31,6 +31,10 @@
 > proveedor de IA - eso es DS04, DS05 y DS06, entregas futuras. Ver
 > [docs/CLI_REFERENCE.md](docs/CLI_REFERENCE.md) para la superficie de
 > comandos exacta que existe hoy.
+
+---
+
+**Comprobación de honestidad - qué funciona realmente hoy:** los dieciséis módulos listados a continuación (`config.py`, `inventory.py`, `remote_station.py`, `preflight.py`, `provision.py`, `migration.py`, `workspace.py`, `recipe.py`, `runner.py`, `durable_queue.py`, `ai_provider.py`, `incident_transport.py`, `repair_cycle.py`, `operations.py`, `delivery.py`, `cli.py`) son código real, no stubs, y están cubiertos por una suite de tests real (228 tests pasando en `tests/test_*.py`). Lo que ese código real ha hecho de verdad, en concreto: validar documentos JSON, planificar migraciones en disco, ejecutar un subproceso real acotado en un workspace aislado real con un entorno real depurado, persistir una cola/journal SQLite real a través de reinicios, y ejercitar un round-trip real de incidentes firmado con HMAC - todo contra este checkout local o un seam de test inyectable, nunca contra el hardware real de destino Raspberry Pi 5/CM5 para el que está construido este proyecto. `provider suggest` solo llama nunca al `FakeProvider` determinista; cablear un proveedor de IA real es una decisión de usuario explícita y sin hacer. `station preflight`/`station plan` describen un host remoto a través de un inspector inyectable y nunca se han ejecutado contra una máquina remota real. Nada en este repositorio ha aprovisionado un host, ejecutado un despliegue, ni cableado estas piezas en un bucle de trabajo real en marcha - el propio `overall_maturity: "scaffolding"` hardcodeado de `deliver evaluate` lo dice claramente desde dentro del propio código. Ver `CHANGELOG.md` para lo que se ha entregado exactamente, entrega por entrega.
 
 ---
 
