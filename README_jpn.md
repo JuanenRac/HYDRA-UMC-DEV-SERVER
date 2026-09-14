@@ -314,6 +314,7 @@ CHANGELOGには一切触れない - これ自体はテストスイートを実�
 - **[HYDRA-UMC-VOICE-UI](https://github.com/JuanenRac/HYDRA-UMC-VOICE-UI)** — 境界付きで確認が必要なWatchリレーを備えた、実際の音声フロントエンド（VAD＋意図解析器）。
 - **[HYDRA-UMC-SEMANTIC-PLANNER](https://github.com/JuanenRac/HYDRA-UMC-SEMANTIC-PLANNER)** — MCUエラーコードに対する、実際のルールベースのタスク分解と意味的エラー回復。
 - **[HYDRA-UMC-DOCS-QA](https://github.com/JuanenRac/HYDRA-UMC-DOCS-QA)** — このエコシステム自身のMarkdownドキュメントに対する、stdlibのみによる実際のTF-IDF文書検索。
+- **[HYDRA-UMC-LOCAL-TECHNICIAN](https://github.com/JuanenRac/HYDRA-UMC-LOCAL-TECHNICIAN)** — エコシステム自身のための、ローカルでポリシーゲート付きのAIメンテナンス技術者 — 観察、診断し、修正を提案する;最上位の2つのリスクレベルは意図的にまだ実装されていない。
 
 *オーケストレーションと群制御*
 - **[HYDRA-UMC-ORCHESTRATOR](https://github.com/JuanenRac/HYDRA-UMC-ORCHESTRATOR)** — 実際のgRPC/Protobufヘルスレポート契約とミッションステートマシンを備えた統合ハブ。
