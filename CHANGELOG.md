@@ -99,7 +99,7 @@ into a single gated sequence:
   for another base/target is blocked.
 - `install_isolated()` goes through an injectable `IsolatedInstaller`
   seam (never the real target). `verify()` rolls back and ends the
-  cycle `recovered` on a failed post-install check; the I60/T07
+  cycle `recovered` on a failed post-install check; the
   "apparent success" control also voids the result (and rolls back) if
   the base fingerprint moved mid-cycle or the evidence is for a
   different repro case.
