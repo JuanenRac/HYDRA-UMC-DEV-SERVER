@@ -56,7 +56,7 @@
   not verify, or that is pinned to a different incident / base
   fingerprint / target, is blocked. The full repro -> incident -> patch
   -> regression -> build-test -> approval -> isolated install -> verify
-  cycle (with rollback on a failed post-install check and an I60/T07
+  cycle (with rollback on a failed post-install check and an /T07
   "apparent success" control) is exercised by `RepairCycle` in tests.
 - `ops health` / `ops verify-backup` - stable-operation checks over the
   durable queue and disk (orphaned leases, journal over cap, low disk),
