@@ -15,7 +15,7 @@
   <img src="https://img.shields.io/badge/Delivery-DS01--DS10%20complete%20(scaffolding)-brightgreen.svg" alt="DS01-DS10 complete, scaffolding">
 </p>
 
-> **Status: v0.1.2, scaffolding - all ten of ten shipped, still
+> **Status: v0.1.3, scaffolding - all ten of ten shipped, still
 > scaffolding (contracts, limits and a verifiable skeleton).** A tested
 > configuration schema
 > (`config validate`), read-only manifest discovery (`inventory scan`),

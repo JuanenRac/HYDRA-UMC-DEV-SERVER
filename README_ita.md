@@ -15,7 +15,7 @@
   <img src="https://img.shields.io/badge/Consegna-DS01--DS10%20completo%20(scaffolding)-brightgreen.svg" alt="DS01-DS10 completo, scaffolding">
 </p>
 
-> **Stato: v0.1.2, scaffolding - tutte e dieci su dieci consegnate,
+> **Stato: v0.1.3, scaffolding - tutte e dieci su dieci consegnate,
 > ancora scaffolding (contratti, limiti e uno
 > scheletro verificabile).** Uno schema di configurazione reale e
 > testato (`config validate`) la cui politica predefinita **non

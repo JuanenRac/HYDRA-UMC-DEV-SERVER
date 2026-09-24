@@ -211,7 +211,19 @@ class RealChildOfAChildIsReapedTests(unittest.TestCase):
             })
             policy = _policy([sys.executable])
             token = CancelToken()
-            threading.Timer(2.0, token.cancel).start()
+
+            # Cancel only once both processes have really started and written
+            # their pid (a fixed delay is too short on a slow or loaded host).
+            def cancel_when_both_are_running():
+                deadline = time.monotonic() + 60
+                while time.monotonic() < deadline:
+                    if (Path(tmp) / "child.pid").is_file() and (Path(tmp) / "grandchild.pid").is_file():
+                        time.sleep(0.3)  # let both pid writes finish
+                        break
+                    time.sleep(0.1)
+                token.cancel()
+
+            threading.Thread(target=cancel_when_both_are_running, daemon=True).start()
 
             result = run_task(recipe, policy, ws, SubprocessLauncher(), cancel_token=token, poll_interval=0.1)
 
