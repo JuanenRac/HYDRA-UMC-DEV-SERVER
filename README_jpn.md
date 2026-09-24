@@ -118,6 +118,8 @@ $ hydra-umc-dev-server inventory scan --root ..
 提供物にはGUIもない - 完全で実際のコマンド面については
 [docs/CLI_REFERENCE.md](docs/CLI_REFERENCE.md) を参照。
 
+さらに 2 つのコマンド `plugin list` と `serve` が、プラグインのライフサイクルと認証付きローカル HTTP API（ループバックのみ、Bearer トークン）を扱います。プラグインは、ファイルの承認済み SHA-256 で有効化されるまで動作せず、名前付きチェックを追加することしかできません。API はタスクを実行せず、何もデプロイしません。詳しくは [docs/CLI_REFERENCE.md](docs/CLI_REFERENCE.md) を参照してください。
+
 ## 2. 🧱 アーキテクチャと設計判断
 
 - **デフォルトでデプロイ権限を持つタスクは一つもない。** これはDS01の

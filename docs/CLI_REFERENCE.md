@@ -227,6 +227,41 @@ $ hydra-umc-dev-server deliver evaluate
 }
 ```
 
+## `plugin list --plugins-root DIR`
+
+Discovers plugins (each immediate subdirectory holding a `plugin.json`) and
+prints their state as JSON. Nothing is imported. Exits `1` if any plugin
+directory is broken; the good ones are still listed.
+
+A plugin is `plugin.json` (`name`, `version`, `api_version` = 1, `entry`)
+plus one Python module defining `register(registry)`, which may only call
+`registry.add_check(name, function)`. It stays `discovered` until enabled
+against the SHA-256 of its manifest and module together (shown by this
+command); a plugin whose files changed since that digest was approved is
+refused. States: `discovered`, `enabled`, `disabled`, `failed`. A check
+returns a JSON dict, is cut off after 10 s, and an error is reported as an
+error, never as a result.
+
+## `serve --workspace-root DIR --plugins-root DIR [--host 127.0.0.1] [--port 8790] [--token-file FILE]`
+
+Runs the local HTTP API. It binds only to a loopback address, and the bearer
+token (at least 24 characters) comes from `--token-file` or the
+`HYDRA_UMC_DEV_SERVER_TOKEN` environment variable, never from the command
+line. Every route except `GET /v1/health` needs `Authorization: Bearer
+<token>`; bodies are capped at 4096 bytes.
+
+| Route | Purpose |
+|---|---|
+| `GET /v1/health` | version and plugin count (no token) |
+| `GET /v1/inventory` | manifests found under the workspace |
+| `GET /v1/plugins` | every plugin, its state, digest and checks |
+| `POST /v1/plugins/rescan` | discover again from disk |
+| `POST /v1/plugins/<name>/enable` | body `{"sha256": "..."}`; `409` if refused |
+| `POST /v1/plugins/<name>/disable` | disable |
+| `POST /v1/plugins/<name>/checks/<check>` | run one check |
+
+The API runs no task and deploys nothing.
+
 ## `--version`
 
 Prints the installed package version (mirrors `pyproject.toml`'s own

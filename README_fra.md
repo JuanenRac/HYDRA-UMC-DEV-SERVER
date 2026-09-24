@@ -186,6 +186,8 @@ Il n'y a pas d'invocation par défaut au-delà de la démo exécutée par
 [docs/CLI_REFERENCE.md](docs/CLI_REFERENCE.md) pour la surface de
 commandes réelle et complète.
 
+Deux autres commandes, `plugin list` et `serve`, couvrent le cycle de vie des plugins et une API HTTP locale authentifiée (loopback uniquement, jeton bearer). Un plugin reste inerte tant qu'il n'est pas activé avec le SHA-256 approuvé de ses fichiers et ne peut ajouter que des vérifications nommées ; l'API n'exécute aucune tâche et ne déploie rien. Voir [docs/CLI_REFERENCE.md](docs/CLI_REFERENCE.md).
+
 ## 2. 🧱 ARCHITECTURE ET DÉCISIONS DE CONCEPTION
 
 - **Aucune tâche n'a de permission de déploiement par défaut.** C'est le
