@@ -5,6 +5,10 @@ version number follows this ecosystem's "odometer" scheme: PATCH +1 on
 every real build, rolling into MINOR past 9 (`0.0.9` -> `0.1.0`); MAJOR is
 bumped manually only. See `bump_version.py`.
 
+## [0.1.3] - Stable cancel test
+
+- The cancel test now cancels only once both the child and the grandchild have written their pid, instead of after a fixed two seconds that was too short on a slow host.
+
 ## [0.1.2] - Local API and plugin lifecycle
 
 - Added a plugin lifecycle: plugins are discovered without being imported, stay inert until enabled against the approved SHA-256 of their manifest and module, can only add named checks, and run under a timeout; a plugin that changed since approval, raises or overruns is reported, never loaded or trusted.

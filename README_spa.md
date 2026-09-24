@@ -15,7 +15,7 @@
   <img src="https://img.shields.io/badge/Entrega-DS01--DS10%20completo%20(scaffolding)-brightgreen.svg" alt="DS01-DS10 completo, scaffolding">
 </p>
 
-> **Estado: v0.1.2, scaffolding - las diez de diez entregadas, sigue
+> **Estado: v0.1.3, scaffolding - las diez de diez entregadas, sigue
 > siendo scaffolding (contratos, límites y un
 > esqueleto verificable).** Un esquema de configuración real y probado
 > (`config validate`) cuya política por defecto **no concede permiso de
