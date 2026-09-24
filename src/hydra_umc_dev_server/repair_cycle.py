@@ -24,7 +24,7 @@ Every step is gated, each defended by test:
   * install goes to an isolated location through an injectable seam, not
     the real target; a failed post-install verification triggers
     `rollback()` and the cycle ends `recovered`, never `verified`.
-  * the I60/T07 "apparent success" control: verification is only trusted
+  * the /T07 "apparent success" control: verification is only trusted
     if the base fingerprint is STILL the one the candidate was built
     for, and if the evidence references the SAME repro case.
 
@@ -229,7 +229,7 @@ class RepairCycle:
     def verify(self, evidence: dict[str, Any], installer: IsolatedInstaller, *, observed_base_fingerprint: str) -> StepOutcome:
         if self.state != STATE_INSTALLED:
             return self._block(f"cannot verify from state {self.state!r}")
-        # I60/T07 control: a base that moved mid-cycle voids the result.
+        # /T07 control: a base that moved mid-cycle voids the result.
         if observed_base_fingerprint != self.base_fingerprint:
             installer.rollback()
             return self._block("base fingerprint changed during the cycle - the result is not trusted")
