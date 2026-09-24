@@ -15,7 +15,7 @@
   <img src="https://img.shields.io/badge/Consegna-DS01--DS10%20completo%20(scaffolding)-brightgreen.svg" alt="DS01-DS10 completo, scaffolding">
 </p>
 
-> **Stato: v0.1.1, scaffolding - tutte e dieci su dieci consegnate,
+> **Stato: v0.1.2, scaffolding - tutte e dieci su dieci consegnate,
 > ancora scaffolding (contratti, limiti e uno
 > scheletro verificabile).** Uno schema di configurazione reale e
 > testato (`config validate`) la cui politica predefinita **non
@@ -185,6 +185,8 @@ Non c'è un'invocazione predefinita oltre alla demo eseguita da
 `run.sh`, e questa consegna non ha interfaccia grafica - vedi
 [docs/CLI_REFERENCE.md](docs/CLI_REFERENCE.md) per la superficie di
 comandi reale e completa.
+
+Altri due comandi, `plugin list` e `serve`, coprono il ciclo di vita dei plugin e un'API HTTP locale autenticata (solo loopback, token bearer). Un plugin resta inerte finché non viene abilitato con lo SHA-256 approvato dei suoi file e può solo aggiungere controlli con nome; l'API non esegue alcuna attività e non distribuisce nulla. Vedi [docs/CLI_REFERENCE.md](docs/CLI_REFERENCE.md).
 
 ## 2. 🧱 ARCHITETTURA E DECISIONI DI PROGETTAZIONE
 

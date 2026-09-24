@@ -15,7 +15,7 @@
   <img src="https://img.shields.io/badge/Delivery-DS01--DS10%20complete%20(scaffolding)-brightgreen.svg" alt="DS01-DS10 complete, scaffolding">
 </p>
 
-> **Status: v0.1.1, scaffolding - all ten of ten shipped, still
+> **Status: v0.1.2, scaffolding - all ten of ten shipped, still
 > scaffolding (contracts, limits and a verifiable skeleton).** A tested
 > configuration schema
 > (`config validate`), read-only manifest discovery (`inventory scan`),
@@ -202,6 +202,8 @@ There is no default/bare invocation beyond the demo `run.sh` performs,
 and no GUI in this delivery - see
 [docs/CLI_REFERENCE.md](docs/CLI_REFERENCE.md) for the full, real command
 surface.
+
+Two more commands, `plugin list` and `serve`, cover the plugin lifecycle and an authenticated local HTTP API (loopback only, bearer token). A plugin stays inert until it is enabled against the approved SHA-256 of its files and can only add named checks; the API runs no task and deploys nothing. See [docs/CLI_REFERENCE.md](docs/CLI_REFERENCE.md).
 
 ## 2. 🧱 ARCHITECTURE & DESIGN DECISIONS
 

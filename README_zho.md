@@ -15,7 +15,7 @@
   <img src="https://img.shields.io/badge/交付-DS01--DS10%20已完成%20(脚手架)-brightgreen.svg" alt="DS01-DS10 已完成，脚手架">
 </p>
 
-> **状态：v0.1.1，脚手架阶段 - 十次交付已全部完成，仍为脚手架（契约、边界与可验证的骨架）。**
+> **状态：v0.1.2，脚手架阶段 - 十次交付已全部完成，仍为脚手架（契约、边界与可验证的骨架）。**
 > 一套真实、经过测试的配置模式(`config validate`)，其默认策略**不向任何任务授予部署权限**；
 > 以及只读的清单发现功能(`inventory scan`)，可找到本生态系统自身的
 > `hydra-umc.project.json` 文件——包括本仓库自己的那份。
@@ -102,6 +102,8 @@ $ hydra-umc-dev-server inventory scan --root ..
 
 除了 `run.sh` 运行的演示外，本交付没有无参数的默认调用，也没有图形界面 -
 完整、真实的命令界面见 [docs/CLI_REFERENCE.md](docs/CLI_REFERENCE.md)。
+
+另外两个命令 `plugin list` 和 `serve` 负责插件生命周期以及带认证的本地 HTTP API（仅限回环地址，Bearer 令牌）。插件在以其文件已批准的 SHA-256 启用之前保持惰性，并且只能添加具名检查；该 API 不运行任何任务，也不部署任何内容。详见 [docs/CLI_REFERENCE.md](docs/CLI_REFERENCE.md)。
 
 ## 2. 🧱 架构与设计决策
 

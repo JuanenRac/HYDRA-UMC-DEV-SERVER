@@ -70,6 +70,10 @@
   deliveries against real evidence, lists the known limitations, and
   never returns anything higher than `scaffolding` (delivery.py, DS10).
 
+- `plugin list` / `serve` - the plugin lifecycle (plugins.py) and the
+  authenticated loopback HTTP API that drives it (api.py). Plugins are
+  inert until enabled against an approved SHA-256 and only add named checks.
+
 `task run` is the only command that executes a subprocess, and only an
 allow-listed command, in an isolated workspace, with no inherited
 secrets; it still deploys nothing.
@@ -78,6 +82,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 from pathlib import Path
 
@@ -91,6 +96,8 @@ from .migration import (
     build_migration_plan,
     build_repo_inventory,
 )
+from .api import ApiConfigError, DevServer
+from .plugins import PluginRegistry
 from .ai_provider import FakeProvider, ProviderConfig, run_provider_step
 from .durable_queue import DurableQueue
 from .incident_transport import (
@@ -394,6 +401,41 @@ def _cmd_deliver_evaluate(args: argparse.Namespace) -> int:
     return 0 if evaluation.overall_maturity == "scaffolding" else 1
 
 
+def _cmd_plugin_list(args: argparse.Namespace) -> int:
+    registry = PluginRegistry()
+    registry.discover(Path(args.plugins_root))
+    print(json.dumps({"plugins": registry.list(), "problems": registry.problems}, indent=2))
+    return 1 if registry.problems else 0
+
+
+def _read_api_token(args: argparse.Namespace) -> str:
+    """The API token comes from a file or the environment, never from argv."""
+    if args.token_file:
+        return Path(args.token_file).read_text(encoding="utf-8").strip()
+    return os.environ.get("HYDRA_UMC_DEV_SERVER_TOKEN", "").strip()
+
+
+def _cmd_serve(args: argparse.Namespace) -> int:
+    try:
+        server = DevServer(
+            (args.host, args.port),
+            token=_read_api_token(args),
+            workspace_root=Path(args.workspace_root),
+            plugins_root=Path(args.plugins_root),
+        )
+    except (ApiConfigError, OSError) as exc:
+        print(f"cannot start the API: {exc}", file=sys.stderr)
+        return 1
+    print(f"HYDRA-UMC-DEV-SERVER API on http://{args.host}:{server.server_address[1]} (loopback only)")
+    try:
+        server.serve_forever()
+    except KeyboardInterrupt:
+        pass
+    finally:
+        server.server_close()
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="hydra-umc-dev-server",
@@ -578,6 +620,20 @@ def build_parser() -> argparse.ArgumentParser:
     deliver_evaluate = deliver_sub.add_parser("evaluate", help="Print the honest maturity evaluation: each delivery vs evidence, known limitations, overall maturity (always 'scaffolding').")
     deliver_evaluate.add_argument("--repo-root", type=Path, default=None, help="Repository root (default: this checkout).")
     deliver_evaluate.set_defaults(func=_cmd_deliver_evaluate)
+
+    plugin = subparsers.add_parser("plugin", help="Plugin lifecycle commands.")
+    plugin_sub = plugin.add_subparsers(dest="plugin_command", required=True)
+    plugin_list = plugin_sub.add_parser("list", help="Discover plugins under a directory and print their state (nothing is imported). Exits 1 if any plugin is broken.")
+    plugin_list.add_argument("--plugins-root", required=True, help="Directory whose subdirectories are plugins.")
+    plugin_list.set_defaults(func=_cmd_plugin_list)
+
+    serve = subparsers.add_parser("serve", help="Run the authenticated local HTTP API (loopback only).")
+    serve.add_argument("--host", default="127.0.0.1", help="Loopback address to bind (default 127.0.0.1).")
+    serve.add_argument("--port", type=int, default=8790, help="Port (default 8790; 0 picks a free one).")
+    serve.add_argument("--workspace-root", required=True, help="Workspace whose manifests /v1/inventory reports.")
+    serve.add_argument("--plugins-root", required=True, help="Directory whose subdirectories are plugins.")
+    serve.add_argument("--token-file", default=None, help="File holding the API bearer token (at least 24 characters); otherwise HYDRA_UMC_DEV_SERVER_TOKEN.")
+    serve.set_defaults(func=_cmd_serve)
 
     return parser
 

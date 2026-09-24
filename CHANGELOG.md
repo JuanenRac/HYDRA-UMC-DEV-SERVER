@@ -5,6 +5,11 @@ version number follows this ecosystem's "odometer" scheme: PATCH +1 on
 every real build, rolling into MINOR past 9 (`0.0.9` -> `0.1.0`); MAJOR is
 bumped manually only. See `bump_version.py`.
 
+## [0.1.2] - Local API and plugin lifecycle
+
+- Added a plugin lifecycle: plugins are discovered without being imported, stay inert until enabled against the approved SHA-256 of their manifest and module, can only add named checks, and run under a timeout; a plugin that changed since approval, raises or overruns is reported, never loaded or trusted.
+- Added serve, an HTTP API bound to loopback only with a bearer token (from a file or the environment, at least 24 characters, compared in constant time), capped request bodies, an inventory route and the plugin routes; it runs no task and deploys nothing.
+
 ## [0.1.1] - Honesty check section in every README
 
 Added a "Honesty check" paragraph right after the intro badges in
