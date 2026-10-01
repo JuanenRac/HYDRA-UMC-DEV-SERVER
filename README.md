@@ -9,7 +9,7 @@
 ### 🏗️ Reproducible Development Host for the Whole Ecosystem
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Licencia-GPL%203.0-blue.svg" alt="GPL 3.0">
+  <img src="https://img.shields.io/badge/License-GPL%203.0-blue.svg" alt="GPL 3.0">
   <img src="https://img.shields.io/badge/Language-Python%203.11%2B-blue.svg" alt="Python">
   <img src="https://img.shields.io/badge/Core-stdlib%20only-brightgreen.svg" alt="stdlib-only core">
   <img src="https://img.shields.io/badge/Delivery-DS01--DS10%20complete%20(scaffolding)-brightgreen.svg" alt="DS01-DS10 complete, scaffolding">
