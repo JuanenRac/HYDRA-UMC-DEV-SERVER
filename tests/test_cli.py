@@ -267,10 +267,10 @@ class DeliverCommandTests(unittest.TestCase):
         self.assertIn("src/hydra_umc_dev_server/delivery.py", payload["files"])
         self.assertGreaterEqual(payload["test_files"], 10)
 
-    def test_deliver_evaluate_lists_ten_deliveries_and_never_exceeds_scaffolding(self):
+    def test_deliver_evaluate_lists_ten_deliveries_and_never_exceeds_functional(self):
         code, payload = self._run_json(["deliver", "evaluate"])
         self.assertEqual(code, 0)
-        self.assertEqual(payload["overall_maturity"], "scaffolding")
+        self.assertEqual(payload["overall_maturity"], "functional")
         self.assertEqual(len(payload["deliveries"]), 10)
         self.assertTrue(all(d["module_present"] for d in payload["deliveries"]))
         self.assertTrue(len(payload["known_limitations"]) >= 5)

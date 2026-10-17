@@ -52,8 +52,8 @@ class MaturityEvaluationTests(unittest.TestCase):
         ds06 = next(d for d in self.evaluation.deliveries if d.delivery_id == "DS06")
         self.assertEqual(ds06.status, "partial")
 
-    def test_the_evaluation_never_claims_more_than_scaffolding(self):
-        self.assertEqual(self.evaluation.overall_maturity, "scaffolding")
+    def test_the_evaluation_never_claims_more_than_functional(self):
+        self.assertEqual(self.evaluation.overall_maturity, "functional")
         self.assertNotIn("established", self.evaluation.honest_summary.lower())
 
     def test_it_states_the_known_limitations_plainly(self):

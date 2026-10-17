@@ -5,6 +5,13 @@ version number follows this ecosystem's "odometer" scheme: PATCH +1 on
 every real build, rolling into MINOR past 9 (`0.0.9` -> `0.1.0`); MAJOR is
 bumped manually only. See `bump_version.py`.
 
+## [0.1.5] - Maturity moves to functional
+
+- The project maturity moves from `scaffolding` to `functional`: the development API (with its 401 behaviour for unauthenticated requests), the plugin lifecycle over HTTP and the manifest version check are all covered by tests, and the exit criteria in `docs/MATURITY_CRITERIA.md` are ticked.
+- `deliver evaluate` now reports `overall_maturity` as the literal `"functional"` (still no branch that can return anything higher) and exits `1` if the value is ever different; the honest summary and the known limitations still state that nothing has been verified on real hardware or services and that only the deterministic fake AI provider ships.
+- Updated the delivery, architecture and CLI reference documents and the tests to match.
+- Updated the badge, status block, manifest example and maturity paragraph in every README (English, Spanish, German, French, Italian, Japanese, Chinese and Portuguese).
+
 ## [0.1.4] - Runner output handling and idle connections
 
 - Fixed the bounded task runner deadlocking on a child that prints more than a pipe holds (64 KiB on Linux): the child's stdout and stderr were read only after it exited, so such a task blocked on its own write until the timeout killed it and its output was lost. Both streams are now read continuously by background readers and only the last 8 KiB of each is kept, so a verbose build or test run completes normally and memory stays bounded; invalid UTF-8 is replaced instead of failing.

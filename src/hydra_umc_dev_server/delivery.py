@@ -137,7 +137,7 @@ class DeliveryStatus:
 class MaturityEvaluation:
     project: str
     version: str
-    overall_maturity: str          # always "scaffolding" from this code
+    overall_maturity: str          # always "functional" from this code
     deliveries: tuple[DeliveryStatus, ...]
     known_limitations: tuple[str, ...]
     honest_summary: str
@@ -169,15 +169,15 @@ def evaluate_maturity(repo_root: str | Path) -> MaturityEvaluation:
     partial = sum(1 for s in statuses if s.status == "partial")
     summary = (
         f"All ten deliveries are in the repository ({shipped} shipped, {partial} partial - "
-        f"DS06 ships only the deterministic fake provider). The maturity stays "
-        f"'scaffolding': this is contracts, limits and a verifiable skeleton, not a "
-        f"running system. Nothing here provisions a host, executes a deploy, or has "
-        f"touched target hardware. See known_limitations."
+        f"DS06 ships only the deterministic fake provider). The maturity is "
+        f"'functional': the software is built and covered by tests, but it has not "
+        f"been verified on real hardware or services. Nothing here provisions a host, "
+        f"executes a deploy, or has touched target hardware. See known_limitations."
     )
     return MaturityEvaluation(
         project="HYDRA-UMC-DEV-SERVER",
         version=__version__,
-        overall_maturity="scaffolding",   # deliberately not derivable to anything higher
+        overall_maturity="functional",   # deliberately not derivable to anything higher
         deliveries=tuple(statuses),
         known_limitations=_KNOWN_LIMITATIONS,
         honest_summary=summary,

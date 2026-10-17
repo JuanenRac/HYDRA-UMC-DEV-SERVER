@@ -40,7 +40,7 @@ that carries it actually present in `src/hydra_umc_dev_server/`:
 | `deliveries[]` | one entry per DS: `delivery_id`, `scope`, `module`, `status`, `module_present` |
 | `status` | `shipped` / `partial` / `not-started` (forced to `not-started` if the module is missing) |
 | `known_limitations` | seven plain-language statements of what is **not** here |
-| `overall_maturity` | hard-coded `"scaffolding"` |
+| `overall_maturity` | hard-coded `"functional"` |
 | `honest_summary` | one paragraph, repeats the limitation |
 
 DS06 is reported **`partial`** on purpose: only the deterministic fake
@@ -49,10 +49,10 @@ decision.
 
 ### The honesty guard
 
-`overall_maturity` is a literal `"scaffolding"` in the source. There is
+`overall_maturity` is a literal `"functional"` in the source. There is
 no branch, threshold or count that can return `"established"` or
 anything higher. `deliver evaluate` exits non-zero if the value it reads
-back is ever not `"scaffolding"`, and `test_delivery.py` asserts the
+back is ever not `"functional"`, and `test_delivery.py` asserts the
 same. The evaluation is built so that it *cannot* over-claim.
 
 ## Known limitations (verbatim from `_KNOWN_LIMITATIONS`)

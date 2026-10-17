@@ -12,10 +12,10 @@
   <img src="https://img.shields.io/badge/许可证-GPL%203.0-blue.svg" alt="GPL 3.0">
   <img src="https://img.shields.io/badge/语言-Python%203.11%2B-blue.svg" alt="Python">
   <img src="https://img.shields.io/badge/核心-仅标准库-brightgreen.svg" alt="仅标准库核心">
-  <img src="https://img.shields.io/badge/交付-DS01--DS10%20已完成%20(脚手架)-brightgreen.svg" alt="DS01-DS10 已完成，脚手架">
+  <img src="https://img.shields.io/badge/交付-DS01--DS10%20已完成%20(功能阶段)-brightgreen.svg" alt="DS01-DS10 已完成，功能阶段">
 </p>
 
-> **状态：v0.1.4，脚手架阶段 - 十次交付已全部完成，仍为脚手架（契约、边界与可验证的骨架）。**
+> **状态：v0.1.5，功能阶段（functional）- 十次交付已全部完成（已构建并由测试覆盖；尚未在真实硬件或服务上验证）。**
 > 一套真实、经过测试的配置模式(`config validate`)，其默认策略**不向任何任务授予部署权限**；
 > 以及只读的清单发现功能(`inventory scan`)，可找到本生态系统自身的
 > `hydra-umc.project.json` 文件——包括本仓库自己的那份。
@@ -27,7 +27,7 @@
 
 ---
 
-**诚实核查 - 今天真正能运行的部分：** 下面列出的十六个模块(`config.py`、`inventory.py`、`remote_station.py`、`preflight.py`、`provision.py`、`migration.py`、`workspace.py`、`recipe.py`、`runner.py`、`durable_queue.py`、`ai_provider.py`、`incident_transport.py`、`repair_cycle.py`、`operations.py`、`delivery.py`、`cli.py`)都是真实代码，而非占位符，并且由真实的测试套件覆盖(252 个测试在 `tests/test_*.py` 中全部通过)。这些真实代码具体做到了什么：验证 JSON 文档、在磁盘上规划迁移、在一个真实隔离工作区内以真实的净化环境运行一个真实的受限子进程、让一个真实的 SQLite 队列/日志在重启后依然持久、并执行了一次真实的 HMAC 签名事件往返 - 所有这些都只是针对本地检出或可注入的测试替身进行的，从未针对该项目真正面向的目标硬件 Raspberry Pi 5/CM5 运行过。`provider suggest` 始终只调用确定性的 `FakeProvider`；接入真实的 AI 提供方仍是一个明确尚未做出的用户决定。`station preflight`/`station plan` 通过可注入的检查器描述远程主机，从未针对真实的远程机器运行过。本仓库中没有任何东西真正部署过主机、执行过部署，或把这些部件接入一个真正运行中的工作循环 - `deliver evaluate` 自身硬编码的 `overall_maturity: "scaffolding"` 就是代码本身给出的明确说明。具体每一项交付的内容请见 `CHANGELOG.md`。
+**诚实核查 - 今天真正能运行的部分：** 下面列出的十六个模块(`config.py`、`inventory.py`、`remote_station.py`、`preflight.py`、`provision.py`、`migration.py`、`workspace.py`、`recipe.py`、`runner.py`、`durable_queue.py`、`ai_provider.py`、`incident_transport.py`、`repair_cycle.py`、`operations.py`、`delivery.py`、`cli.py`)都是真实代码，而非占位符，并且由真实的测试套件覆盖(252 个测试在 `tests/test_*.py` 中全部通过)。这些真实代码具体做到了什么：验证 JSON 文档、在磁盘上规划迁移、在一个真实隔离工作区内以真实的净化环境运行一个真实的受限子进程、让一个真实的 SQLite 队列/日志在重启后依然持久、并执行了一次真实的 HMAC 签名事件往返 - 所有这些都只是针对本地检出或可注入的测试替身进行的，从未针对该项目真正面向的目标硬件 Raspberry Pi 5/CM5 运行过。`provider suggest` 始终只调用确定性的 `FakeProvider`；接入真实的 AI 提供方仍是一个明确尚未做出的用户决定。`station preflight`/`station plan` 通过可注入的检查器描述远程主机，从未针对真实的远程机器运行过。本仓库中没有任何东西真正部署过主机、执行过部署，或把这些部件接入一个真正运行中的工作循环 - `deliver evaluate` 自身硬编码的 `overall_maturity: "functional"` 就是代码本身给出的明确说明。具体每一项交付的内容请见 `CHANGELOG.md`。
 
 ---
 
@@ -93,7 +93,7 @@ $ hydra-umc-dev-server inventory scan --root ..
 {
   "root": "..",
   "projects": [
-    {"name": "HYDRA-UMC-DEV-SERVER", "version": "0.1.1", "maturity": "scaffolding", "manifest_path": "../HYDRA-UMC-DEV-SERVER/hydra-umc.project.json"},
+    {"name": "HYDRA-UMC-DEV-SERVER", "version": "0.1.5", "maturity": "functional", "manifest_path": "../HYDRA-UMC-DEV-SERVER/hydra-umc.project.json"},
     ...
   ],
   "issues": []
@@ -224,11 +224,10 @@ chmod +x build.sh   # 一次性
 - **DS10 - 交付包与诚实的成熟度评估。** ✅ 已交付：`deliver manifest`
   为每个已交付文件记录一个 sha256，并回读真实的 CLI 命令面、版本与测试数量；
   `deliver evaluate` 对照真实证据报告十次交付中的每一次（DS06 为 `partial`——
-  只交付了 fake），清晰列出七条限制，并报告一个在代码中固定为 `scaffolding`
+  只交付了 fake），清晰列出七条限制，并报告一个在代码中固定为 `functional`
   的 `overall_maturity`。
 
-**成熟度。** 计划已完成；成熟度有意保持为 `scaffolding`。本仓库中的内容是
-契约、边界与一个可验证的骨架。这里没有任何东西会置备主机、执行部署、把各部分
+**成熟度。** 计划已完成；成熟度为 `functional`：软件已构建并由测试覆盖，但尚未在真实硬件或服务上验证，那是单独的、后续的步骤。本仓库中的内容是契约与边界的可运行、经过测试的实现。这里没有任何东西会置备主机、执行部署、把各部分
 接成一个工作循环，或触碰过真实硬件。`deliver evaluate` 正是这样说的，其
 `known_limitations` 列表就是诚实的待办事项。每次交付明确包含与排除的内容，
 见 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)。

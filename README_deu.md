@@ -12,12 +12,10 @@
   <img src="https://img.shields.io/badge/Lizenz-GPL%203.0-blue.svg" alt="GPL 3.0">
   <img src="https://img.shields.io/badge/Sprache-Python%203.11%2B-blue.svg" alt="Python">
   <img src="https://img.shields.io/badge/Kern-nur%20stdlib-brightgreen.svg" alt="Nur-stdlib-Kern">
-  <img src="https://img.shields.io/badge/Lieferung-DS01--DS10%20komplett%20(Scaffolding)-brightgreen.svg" alt="DS01-DS10 komplett, Scaffolding">
+  <img src="https://img.shields.io/badge/Lieferung-DS01--DS10%20komplett%20(funktionsfähig)-brightgreen.svg" alt="DS01-DS10 komplett, funktionsfähig">
 </p>
 
-> **Status: v0.1.4, Scaffolding - alle zehn von zehn geliefert,
-> weiterhin Scaffolding (Verträge, Grenzen und ein
-> überprüfbares Gerüst).** Ein reales, getestetes Konfigurationsschema
+> **Status: v0.1.5, funktionsfähig - alle zehn von zehn geliefert (gebaut und durch Tests abgedeckt; noch nicht auf realer Hardware oder realen Diensten verifiziert).** Ein reales, getestetes Konfigurationsschema
 > (`config validate`), dessen Standardrichtlinie **keiner Aufgabe eine
 > Deployment-Berechtigung erteilt**, sowie eine schreibgeschützte
 > Manifest-Erkennung (`inventory scan`), die die eigenen
@@ -35,7 +33,7 @@
 
 ---
 
-**Ehrlichkeitscheck - was heute wirklich läuft:** alle sechzehn unten genannten Module (`config.py`, `inventory.py`, `remote_station.py`, `preflight.py`, `provision.py`, `migration.py`, `workspace.py`, `recipe.py`, `runner.py`, `durable_queue.py`, `ai_provider.py`, `incident_transport.py`, `repair_cycle.py`, `operations.py`, `delivery.py`, `cli.py`) sind echter Code, keine Stubs, und werden von einer echten Testsuite abgedeckt (252 bestandene Tests in `tests/test_*.py`). Was dieser echte Code tatsächlich getan hat, konkret: JSON-Dokumente validiert, Migrationen auf der Festplatte geplant, einen echten, begrenzten Subprozess in einem echten isolierten Arbeitsbereich mit einer echten bereinigten Umgebung ausgeführt, eine echte SQLite-Warteschlange/-Journal über Neustarts hinweg persistiert und einen echten HMAC-signierten Incident-Roundtrip durchgeführt - alles gegen dieses lokale Checkout oder einen injizierbaren Test-Seam, niemals gegen die echte Ziel-Hardware Raspberry Pi 5/CM5, für die dieses Projekt gebaut wird. `provider suggest` ruft ausschließlich den deterministischen `FakeProvider` auf; die Anbindung eines echten KI-Anbieters bleibt eine explizite, noch nicht getroffene Nutzerentscheidung. `station preflight`/`station plan` beschreiben einen entfernten Host über einen injizierbaren Inspector und liefen noch nie gegen eine echte entfernte Maschine. Nichts in diesem Repository hat einen Host provisioniert, ein Deployment ausgeführt oder diese Teile in eine echte laufende Worker-Schleife verdrahtet - das fest codierte `overall_maturity: "scaffolding"` von `deliver evaluate` sagt das klar aus dem Code selbst heraus. Siehe `CHANGELOG.md` für das, was genau geliefert wurde, Delivery für Delivery.
+**Ehrlichkeitscheck - was heute wirklich läuft:** alle sechzehn unten genannten Module (`config.py`, `inventory.py`, `remote_station.py`, `preflight.py`, `provision.py`, `migration.py`, `workspace.py`, `recipe.py`, `runner.py`, `durable_queue.py`, `ai_provider.py`, `incident_transport.py`, `repair_cycle.py`, `operations.py`, `delivery.py`, `cli.py`) sind echter Code, keine Stubs, und werden von einer echten Testsuite abgedeckt (252 bestandene Tests in `tests/test_*.py`). Was dieser echte Code tatsächlich getan hat, konkret: JSON-Dokumente validiert, Migrationen auf der Festplatte geplant, einen echten, begrenzten Subprozess in einem echten isolierten Arbeitsbereich mit einer echten bereinigten Umgebung ausgeführt, eine echte SQLite-Warteschlange/-Journal über Neustarts hinweg persistiert und einen echten HMAC-signierten Incident-Roundtrip durchgeführt - alles gegen dieses lokale Checkout oder einen injizierbaren Test-Seam, niemals gegen die echte Ziel-Hardware Raspberry Pi 5/CM5, für die dieses Projekt gebaut wird. `provider suggest` ruft ausschließlich den deterministischen `FakeProvider` auf; die Anbindung eines echten KI-Anbieters bleibt eine explizite, noch nicht getroffene Nutzerentscheidung. `station preflight`/`station plan` beschreiben einen entfernten Host über einen injizierbaren Inspector und liefen noch nie gegen eine echte entfernte Maschine. Nichts in diesem Repository hat einen Host provisioniert, ein Deployment ausgeführt oder diese Teile in eine echte laufende Worker-Schleife verdrahtet - das fest codierte `overall_maturity: "functional"` von `deliver evaluate` sagt das klar aus dem Code selbst heraus. Siehe `CHANGELOG.md` für das, was genau geliefert wurde, Delivery für Delivery.
 
 ---
 
@@ -177,7 +175,7 @@ $ hydra-umc-dev-server inventory scan --root ..
 {
   "root": "..",
   "projects": [
-    {"name": "HYDRA-UMC-DEV-SERVER", "version": "0.1.1", "maturity": "scaffolding", "manifest_path": "../HYDRA-UMC-DEV-SERVER/hydra-umc.project.json"},
+    {"name": "HYDRA-UMC-DEV-SERVER", "version": "0.1.5", "maturity": "functional", "manifest_path": "../HYDRA-UMC-DEV-SERVER/hydra-umc.project.json"},
     ...
   ],
   "issues": []
@@ -363,11 +361,9 @@ komplett. Jede Lieferung, in Reihenfolge:
   `deliver evaluate` meldet jede der zehn Lieferungen gegen reale
   Evidenz (DS06 ist `partial` - nur der Fake wird geliefert), listet
   sieben Grenzen klar auf und meldet ein `overall_maturity`, das im Code
-  fest auf `scaffolding` steht.
+  fest auf `functional` steht.
 
-**Reifegrad.** Der Plan ist komplett; der Reifegrad bleibt bewusst
-`scaffolding`. In diesem Repository stehen Verträge, Grenzen und ein
-überprüfbares Gerüst. Nichts hier provisioniert einen Host, führt ein
+**Reifegrad.** Der Plan ist komplett; der Reifegrad ist `functional`: Die Software ist gebaut und durch Tests abgedeckt, aber nicht auf realer Hardware oder realen Diensten verifiziert - das ist ein eigener, späterer Schritt. In diesem Repository steht eine lauffähige, getestete Umsetzung von Verträgen und Grenzen. Nichts hier provisioniert einen Host, führt ein
 Deployment aus, verbindet die Teile zu einer Worker-Schleife oder hat
 reale Hardware berührt. `deliver evaluate` sagt genau das, und seine
 `known_limitations`-Liste ist die ehrliche To-do-Liste. Siehe

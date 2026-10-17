@@ -12,11 +12,10 @@
   <img src="https://img.shields.io/badge/License-GPL%203.0-blue.svg" alt="GPL 3.0">
   <img src="https://img.shields.io/badge/Language-Python%203.11%2B-blue.svg" alt="Python">
   <img src="https://img.shields.io/badge/Core-stdlib%20only-brightgreen.svg" alt="stdlib-only core">
-  <img src="https://img.shields.io/badge/Delivery-DS01--DS10%20complete%20(scaffolding)-brightgreen.svg" alt="DS01-DS10 complete, scaffolding">
+  <img src="https://img.shields.io/badge/Delivery-DS01--DS10%20complete%20(functional)-brightgreen.svg" alt="DS01-DS10 complete, functional">
 </p>
 
-> **Status: v0.1.4, scaffolding - all ten of ten shipped, still
-> scaffolding (contracts, limits and a verifiable skeleton).** A tested
+> **Status: v0.1.5, functional - all ten of ten shipped (built and covered by tests; not yet verified on real hardware or services).** A tested
 > configuration schema
 > (`config validate`), read-only manifest discovery (`inventory scan`),
 > a remote-station profile + host preflight + dry-run provisioning plan
@@ -54,15 +53,14 @@
 > honest maturity evaluation** (`deliver manifest` / `deliver
 > evaluate`): a sha256 for every shipped file, each of the ten
 > deliveries reported against real evidence, seven plainly-stated
-> limitations, and an `overall_maturity` that is **hard-coded
-> `scaffolding`** - the code has no branch that can claim more. It still
+> limitations, and an `overall_maturity` that is **hard-coded `functional`** - the code has no branch that can claim more. It still
 > deploys nothing. See
 > [docs/CLI_REFERENCE.md](docs/CLI_REFERENCE.md) for the exact command
 > surface that exists today.
 
 ---
 
-**Honesty check - what actually runs today:** all sixteen modules named below (`config.py`, `inventory.py`, `remote_station.py`, `preflight.py`, `provision.py`, `migration.py`, `workspace.py`, `recipe.py`, `runner.py`, `durable_queue.py`, `ai_provider.py`, `incident_transport.py`, `repair_cycle.py`, `operations.py`, `delivery.py`, `cli.py`) are real code, not stubs, and are covered by a real test suite (252 tests passing across `tests/test_*.py`). What that real code has actually done, concretely: validated JSON documents, planned migrations on-disk, run a real bounded subprocess in a real isolated workspace with a real scrubbed environment, persisted a real SQLite queue/journal across restarts, and exercised a real HMAC-signed incident round trip - all against this local checkout or an injectable test seam, never against the target Raspberry Pi 5/CM5 hardware this project is built for. `provider suggest` only ever calls the deterministic `FakeProvider`; wiring in a real AI provider is an explicit, undone user decision. `station preflight`/`station plan` describe a remote host through an injectable inspector and have never run against a real remote machine. Nothing in this repository has provisioned a host, executed a deploy, or wired these pieces into a running worker loop - `deliver evaluate`'s own hard-coded `overall_maturity: "scaffolding"` says this plainly from inside the code itself. See `CHANGELOG.md` for exactly what has shipped, delivery by delivery.
+**Honesty check - what actually runs today:** all sixteen modules named below (`config.py`, `inventory.py`, `remote_station.py`, `preflight.py`, `provision.py`, `migration.py`, `workspace.py`, `recipe.py`, `runner.py`, `durable_queue.py`, `ai_provider.py`, `incident_transport.py`, `repair_cycle.py`, `operations.py`, `delivery.py`, `cli.py`) are real code, not stubs, and are covered by a real test suite (252 tests passing across `tests/test_*.py`). What that real code has actually done, concretely: validated JSON documents, planned migrations on-disk, run a real bounded subprocess in a real isolated workspace with a real scrubbed environment, persisted a real SQLite queue/journal across restarts, and exercised a real HMAC-signed incident round trip - all against this local checkout or an injectable test seam, never against the target Raspberry Pi 5/CM5 hardware this project is built for. `provider suggest` only ever calls the deterministic `FakeProvider`; wiring in a real AI provider is an explicit, undone user decision. `station preflight`/`station plan` describe a remote host through an injectable inspector and have never run against a real remote machine. Nothing in this repository has provisioned a host, executed a deploy, or wired these pieces into a running worker loop - `deliver evaluate`'s own hard-coded `overall_maturity: "functional"` says this plainly from inside the code itself. See `CHANGELOG.md` for exactly what has shipped, delivery by delivery.
 
 ---
 
@@ -191,7 +189,7 @@ $ hydra-umc-dev-server inventory scan --root ..
 {
   "root": "..",
   "projects": [
-    {"name": "HYDRA-UMC-DEV-SERVER", "version": "0.1.1", "maturity": "scaffolding", "manifest_path": "../HYDRA-UMC-DEV-SERVER/hydra-umc.project.json"},
+    {"name": "HYDRA-UMC-DEV-SERVER", "version": "0.1.5", "maturity": "functional", "manifest_path": "../HYDRA-UMC-DEV-SERVER/hydra-umc.project.json"},
     ...
   ],
   "issues": []
@@ -367,12 +365,9 @@ complete. Each delivery, in order:
   and reads back the real CLI surface, version and test count; `deliver
   evaluate` reports each of the ten deliveries against real evidence
   (DS06 is `partial` - only the fake ships), lists seven limitations
-  plainly, and reports an `overall_maturity` that is hard-coded
-  `scaffolding`.
+  plainly, and reports an `overall_maturity` that is hard-coded `functional`.
 
-**Maturity.** The plan is complete; the maturity stays `scaffolding` on
-purpose. What is in this repository is contracts, limits and a
-verifiable skeleton - a configuration schema, validated profiles,
+**Maturity.** The plan is complete; the maturity is `functional`: the software is built and covered by tests, but it has not been verified on real hardware or services, which is a separate, later step. What is in this repository is a working, tested implementation of - a configuration schema, validated profiles,
 dry-run plans, one bounded runner, a durable queue, a fake provider, a
 signed transport, a gated repair cycle, verified backups, and an
 evaluation that refuses to over-claim. Nothing here provisions a host,

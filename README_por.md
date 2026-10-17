@@ -12,12 +12,10 @@
   <img src="https://img.shields.io/badge/License-GPL%203.0-blue.svg" alt="GPL 3.0">
   <img src="https://img.shields.io/badge/Language-Python%203.11%2B-blue.svg" alt="Python">
   <img src="https://img.shields.io/badge/Core-stdlib%20only-brightgreen.svg" alt="stdlib-only core">
-  <img src="https://img.shields.io/badge/Delivery-DS01--DS10%20complete%20(scaffolding)-brightgreen.svg" alt="DS01-DS10 complete, scaffolding">
+  <img src="https://img.shields.io/badge/Entrega-DS01--DS10%20conclu%C3%ADda%20(funcional)-brightgreen.svg" alt="DS01-DS10 concluída, funcional">
 </p>
 
-> **Estado: v0.1.4, estrutura base (scaffolding) - as dez entregas de dez
-> concluídas, continua a ser estrutura base (contratos, limites e um esqueleto
-> verificável).** Um esquema de configuração testado
+> **Estado: v0.1.5, funcional - as dez entregas de dez concluídas (construído e coberto por testes; ainda não verificado em hardware nem em serviços reais).** Um esquema de configuração testado
 > (`config validate`), descoberta de manifestos só de leitura (`inventory scan`),
 > um perfil de estação remota + verificação prévia do anfitrião + plano de aprovisionamento simulado
 > (`station …`), **migração conservadora** (`migrate …`) que planeia
@@ -52,15 +50,14 @@
 > avaliação honesta de maturidade** (`deliver manifest` / `deliver
 > evaluate`): um sha256 para cada ficheiro entregue, cada uma das dez
 > entregas reportada contra prova real, sete limitações enunciadas
-> com clareza e uma `overall_maturity` que está **fixada no código como
-> `scaffolding`** - o código não tem nenhum ramo que possa afirmar mais. Continua a
+> com clareza e uma `overall_maturity` que está **fixada no código como `functional`** - o código não tem nenhum ramo que possa afirmar mais. Continua a
 > não implementar nada. Veja
 > [docs/CLI_REFERENCE.md](docs/CLI_REFERENCE.md) para a superfície exata de comandos
 > que existe hoje.
 
 ---
 
-**Verificação de honestidade - o que realmente funciona hoje:** todos os dezasseis módulos nomeados abaixo (`config.py`, `inventory.py`, `remote_station.py`, `preflight.py`, `provision.py`, `migration.py`, `workspace.py`, `recipe.py`, `runner.py`, `durable_queue.py`, `ai_provider.py`, `incident_transport.py`, `repair_cycle.py`, `operations.py`, `delivery.py`, `cli.py`) são código real, não esboços, e estão cobertos por uma suite de testes real (252 testes a passar em `tests/test_*.py`). O que esse código real fez de facto, em concreto: validou documentos JSON, planeou migrações em disco, executou um subprocesso real e limitado num espaço de trabalho isolado real com um ambiente depurado real, persistiu uma fila/diário SQLite real entre reinícios e exercitou uma ida e volta de incidentes real assinada com HMAC - tudo contra esta cópia local ou uma costura de teste injetável, nunca contra o hardware Raspberry Pi 5/CM5 de destino para que este projeto é construído. O `provider suggest` só chama o `FakeProvider` determinístico; ligar um fornecedor de IA real é uma decisão explícita do utilizador, ainda por tomar. O `station preflight`/`station plan` descrevem um anfitrião remoto através de um inspetor injetável e nunca correram contra uma máquina remota real. Nada neste repositório aprovisionou um anfitrião, executou uma implementação nem ligou estas peças num ciclo de trabalhador em execução - o `overall_maturity: "scaffolding"` fixado no código do `deliver evaluate` di-lo com clareza a partir de dentro do próprio código. Veja o `CHANGELOG.md` para saber exatamente o que foi entregue, entrega a entrega.
+**Verificação de honestidade - o que realmente funciona hoje:** todos os dezasseis módulos nomeados abaixo (`config.py`, `inventory.py`, `remote_station.py`, `preflight.py`, `provision.py`, `migration.py`, `workspace.py`, `recipe.py`, `runner.py`, `durable_queue.py`, `ai_provider.py`, `incident_transport.py`, `repair_cycle.py`, `operations.py`, `delivery.py`, `cli.py`) são código real, não esboços, e estão cobertos por uma suite de testes real (252 testes a passar em `tests/test_*.py`). O que esse código real fez de facto, em concreto: validou documentos JSON, planeou migrações em disco, executou um subprocesso real e limitado num espaço de trabalho isolado real com um ambiente depurado real, persistiu uma fila/diário SQLite real entre reinícios e exercitou uma ida e volta de incidentes real assinada com HMAC - tudo contra esta cópia local ou uma costura de teste injetável, nunca contra o hardware Raspberry Pi 5/CM5 de destino para que este projeto é construído. O `provider suggest` só chama o `FakeProvider` determinístico; ligar um fornecedor de IA real é uma decisão explícita do utilizador, ainda por tomar. O `station preflight`/`station plan` descrevem um anfitrião remoto através de um inspetor injetável e nunca correram contra uma máquina remota real. Nada neste repositório aprovisionou um anfitrião, executou uma implementação nem ligou estas peças num ciclo de trabalhador em execução - o `overall_maturity: "functional"` fixado no código do `deliver evaluate` di-lo com clareza a partir de dentro do próprio código. Veja o `CHANGELOG.md` para saber exatamente o que foi entregue, entrega a entrega.
 
 ---
 
@@ -188,7 +185,7 @@ $ hydra-umc-dev-server inventory scan --root ..
 {
   "root": "..",
   "projects": [
-    {"name": "HYDRA-UMC-DEV-SERVER", "version": "0.1.1", "maturity": "scaffolding", "manifest_path": "../HYDRA-UMC-DEV-SERVER/hydra-umc.project.json"},
+    {"name": "HYDRA-UMC-DEV-SERVER", "version": "0.1.5", "maturity": "functional", "manifest_path": "../HYDRA-UMC-DEV-SERVER/hydra-umc.project.json"},
     ...
   ],
   "issues": []
@@ -360,12 +357,9 @@ concluído. Cada entrega, por ordem:
   e lê de volta a superfície real da CLI, a versão e o número de testes; o `deliver
   evaluate` reporta cada uma das dez entregas contra prova real
   (a DS06 é `partial` - só o simulado é entregue), lista sete limitações
-  com clareza e reporta uma `overall_maturity` fixada no código como
-  `scaffolding`.
+  com clareza e reporta uma `overall_maturity` fixada no código como `functional`.
 
-**Maturidade.** O plano está concluído; a maturidade continua a ser `scaffolding`
-de propósito. O que há neste repositório são contratos, limites e um
-esqueleto verificável - um esquema de configuração, perfis validados,
+**Maturidade.** O plano está concluído; a maturidade é `functional`: o software está construído e coberto por testes, mas não foi verificado em hardware nem em serviços reais, o que é um passo separado e posterior. O que há neste repositório é uma implementação funcional e testada de - um esquema de configuração, perfis validados,
 planos simulados, um executor limitado, uma fila durável, um fornecedor simulado, um
 transporte assinado, um ciclo de reparação com portas, cópias de segurança verificadas e uma
 avaliação que se recusa a afirmar de mais. Nada aqui aprovisiona um anfitrião,

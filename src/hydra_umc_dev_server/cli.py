@@ -68,7 +68,7 @@
   inventory (a sha256 per shipped file, the CLI surface, the test
   count) and an HONEST maturity evaluation that reports each of the ten
   deliveries against real evidence, lists the known limitations, and
-  never returns anything higher than `scaffolding` (delivery.py, DS10).
+  never returns anything higher than `functional` (delivery.py, DS10).
 
 - `plugin list` / `serve` - the plugin lifecycle (plugins.py) and the
   authenticated loopback HTTP API that drives it (api.py). Plugins are
@@ -398,7 +398,7 @@ def _cmd_deliver_evaluate(args: argparse.Namespace) -> int:
     root = args.repo_root or Path(__file__).resolve().parent.parent.parent
     evaluation = evaluate_maturity(root)
     print(json.dumps(evaluation.to_dict(), indent=2))
-    return 0 if evaluation.overall_maturity == "scaffolding" else 1
+    return 0 if evaluation.overall_maturity == "functional" else 1
 
 
 def _cmd_plugin_list(args: argparse.Namespace) -> int:
@@ -617,7 +617,7 @@ def build_parser() -> argparse.ArgumentParser:
     deliver_manifest = deliver_sub.add_parser("manifest", help="Print the delivery manifest for this repository (sha256 per shipped file, CLI surface, test count).")
     deliver_manifest.add_argument("--repo-root", type=Path, default=None, help="Repository root (default: this checkout).")
     deliver_manifest.set_defaults(func=_cmd_deliver_manifest)
-    deliver_evaluate = deliver_sub.add_parser("evaluate", help="Print the honest maturity evaluation: each delivery vs evidence, known limitations, overall maturity (always 'scaffolding').")
+    deliver_evaluate = deliver_sub.add_parser("evaluate", help="Print the honest maturity evaluation: each delivery vs evidence, known limitations, overall maturity (always 'functional').")
     deliver_evaluate.add_argument("--repo-root", type=Path, default=None, help="Repository root (default: this checkout).")
     deliver_evaluate.set_defaults(func=_cmd_deliver_evaluate)
 

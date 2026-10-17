@@ -40,7 +40,7 @@ $ hydra-umc-dev-server inventory scan --root ..
 {
   "root": "..",
   "projects": [
-    {"name": "HYDRA-UMC-DEV-SERVER", "version": "0.1.0", "maturity": "scaffolding", "manifest_path": "../HYDRA-UMC-DEV-SERVER/hydra-umc.project.json"},
+    {"name": "HYDRA-UMC-DEV-SERVER", "version": "0.1.5", "maturity": "functional", "manifest_path": "../HYDRA-UMC-DEV-SERVER/hydra-umc.project.json"},
     ...
   ],
   "issues": []
@@ -212,15 +212,15 @@ of the ten deliveries as `shipped` / `partial` / `not-started` against
 whether its module is actually in the tree (DS06 is `partial` on purpose
 - only the deterministic fake ships), seven plain-language
 `known_limitations`, and `overall_maturity`, which is hard-coded
-`"scaffolding"`. Exits `1` if the maturity it reads back is ever not
-`"scaffolding"` - the guard is that the evaluation cannot over-claim.
+`"functional"`. Exits `1` if the maturity it reads back is ever not
+`"functional"` - the guard is that the evaluation cannot over-claim.
 
 ```
 $ hydra-umc-dev-server deliver evaluate
 {
   "project": "HYDRA-UMC-DEV-SERVER",
   "version": "0.1.0",
-  "overall_maturity": "scaffolding",
+  "overall_maturity": "functional",
   "deliveries": [ ... ten entries ... ],
   "known_limitations": [ ... seven statements ... ],
   "honest_summary": "All ten deliveries are in the repository ..."
@@ -269,7 +269,7 @@ Prints the installed package version (mirrors `pyproject.toml`'s own
 
 ## Not yet implemented
 
-The ten-delivery plan is complete, but it is scaffolding by design -
+The ten-delivery plan is complete, but it is only `functional` (not verified on real hardware) -
 `deliver evaluate` reports exactly this. There is still no worker loop
 that feeds a queued task's context to `provider suggest` and then runs
 the result through `task run` and the DS08 repair cycle; each piece is

@@ -25,14 +25,15 @@ plus a verified state backup/restore (`ops` - see `OPERATIONS.md`); and
 DS10's delivery package plus an honest maturity evaluation (`deliver` -
 see `DELIVERY.md`), which enumerates what the repository ships with a
 sha256 per file and reports each delivery against real evidence without
-ever claiming more than `scaffolding`. DS01-DS03, DS05, DS06 and DS10
+ever claiming more than `functional`. DS01-DS03, DS05, DS06 and DS10
 only read, describe and record. DS04 is the
 only delivery that executes a subprocess - and only an allow-listed command, in a per-task
 isolated workspace, with a scrubbed environment, under a bounded timeout
 that kills the whole process group; it still deploys nothing.
 Everything else on this page is a documented target, not a claim about
 what runs today. The ten-delivery plan is now complete; the maturity
-stays `scaffolding` - contracts, limits and a verifiable skeleton.
+is `functional` - built and covered by tests, not yet verified on real
+hardware or services.
 
 ## Purpose and status
 
