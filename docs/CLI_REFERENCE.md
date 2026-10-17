@@ -248,7 +248,7 @@ Runs the local HTTP API. It binds only to a loopback address, and the bearer
 token (at least 24 characters) comes from `--token-file` or the
 `HYDRA_UMC_DEV_SERVER_TOKEN` environment variable, never from the command
 line. Every route except `GET /v1/health` needs `Authorization: Bearer
-<token>`; bodies are capped at 4096 bytes.
+<token>`; bodies are capped at 4096 bytes, and a connection that goes quiet for 15 seconds is closed.
 
 | Route | Purpose |
 |---|---|

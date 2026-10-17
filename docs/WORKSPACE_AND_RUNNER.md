@@ -70,6 +70,13 @@ read/write out of it.
    `cancelled` / `rejected`), `exit_code`, bounded stdout/stderr tails,
    `duration_seconds`, `killed_process_group`.
 
+The child's stdout and stderr are read continuously while it runs, and only the
+last 8 KiB of each is kept (invalid UTF-8 is replaced, not fatal). They used to be
+read only after the child exited, so a task that printed more than a pipe holds
+(64 KiB on Linux) blocked on its own write until the timeout killed it and lost its
+output; now a verbose build or test run completes normally and the memory used is
+bounded however much it prints.
+
 `task run` exits `0` only on `completed` with exit code `0`.
 
 ## What DS04 still does not do

@@ -4,7 +4,7 @@
 
 # 🖥️ HYDRA-UMC-DEV-SERVER
 
-<p align="center"><a href="README.md">🇺🇸 English</a> | <a href="README_spa.md">🇪🇸 Español</a> | <a href="README_fra.md">🇫🇷 Français</a> | <a href="README_ita.md">🇮🇹 Italiano</a> | <a href="README_deu.md">🇩🇪 Deutsch</a> | 🇨🇳 <b>简体中文</b> | <a href="README_jpn.md">🇯🇵 日本語</a></p>
+<p align="center"><a href="README.md">🇺🇸 English</a> | <a href="README_spa.md">🇪🇸 Español</a> | <a href="README_fra.md">🇫🇷 Français</a> | <a href="README_ita.md">🇮🇹 Italiano</a> | <a href="README_deu.md">🇩🇪 Deutsch</a> | 🇨🇳 <b>简体中文</b> | <a href="README_jpn.md">🇯🇵 日本語</a> | <a href="README_por.md">🇵🇹 Português</a></p>
 
 ### 🏗️ 面向整个生态系统的可复现开发服务器
 
@@ -15,7 +15,7 @@
   <img src="https://img.shields.io/badge/交付-DS01--DS10%20已完成%20(脚手架)-brightgreen.svg" alt="DS01-DS10 已完成，脚手架">
 </p>
 
-> **状态：v0.1.3，脚手架阶段 - 十次交付已全部完成，仍为脚手架（契约、边界与可验证的骨架）。**
+> **状态：v0.1.4，脚手架阶段 - 十次交付已全部完成，仍为脚手架（契约、边界与可验证的骨架）。**
 > 一套真实、经过测试的配置模式(`config validate`)，其默认策略**不向任何任务授予部署权限**；
 > 以及只读的清单发现功能(`inventory scan`)，可找到本生态系统自身的
 > `hydra-umc.project.json` 文件——包括本仓库自己的那份。
@@ -27,7 +27,7 @@
 
 ---
 
-**诚实核查 - 今天真正能运行的部分：** 下面列出的十六个模块(`config.py`、`inventory.py`、`remote_station.py`、`preflight.py`、`provision.py`、`migration.py`、`workspace.py`、`recipe.py`、`runner.py`、`durable_queue.py`、`ai_provider.py`、`incident_transport.py`、`repair_cycle.py`、`operations.py`、`delivery.py`、`cli.py`)都是真实代码，而非占位符，并且由真实的测试套件覆盖(247 个测试在 `tests/test_*.py` 中全部通过)。这些真实代码具体做到了什么：验证 JSON 文档、在磁盘上规划迁移、在一个真实隔离工作区内以真实的净化环境运行一个真实的受限子进程、让一个真实的 SQLite 队列/日志在重启后依然持久、并执行了一次真实的 HMAC 签名事件往返 - 所有这些都只是针对本地检出或可注入的测试替身进行的，从未针对该项目真正面向的目标硬件 Raspberry Pi 5/CM5 运行过。`provider suggest` 始终只调用确定性的 `FakeProvider`；接入真实的 AI 提供方仍是一个明确尚未做出的用户决定。`station preflight`/`station plan` 通过可注入的检查器描述远程主机，从未针对真实的远程机器运行过。本仓库中没有任何东西真正部署过主机、执行过部署，或把这些部件接入一个真正运行中的工作循环 - `deliver evaluate` 自身硬编码的 `overall_maturity: "scaffolding"` 就是代码本身给出的明确说明。具体每一项交付的内容请见 `CHANGELOG.md`。
+**诚实核查 - 今天真正能运行的部分：** 下面列出的十六个模块(`config.py`、`inventory.py`、`remote_station.py`、`preflight.py`、`provision.py`、`migration.py`、`workspace.py`、`recipe.py`、`runner.py`、`durable_queue.py`、`ai_provider.py`、`incident_transport.py`、`repair_cycle.py`、`operations.py`、`delivery.py`、`cli.py`)都是真实代码，而非占位符，并且由真实的测试套件覆盖(252 个测试在 `tests/test_*.py` 中全部通过)。这些真实代码具体做到了什么：验证 JSON 文档、在磁盘上规划迁移、在一个真实隔离工作区内以真实的净化环境运行一个真实的受限子进程、让一个真实的 SQLite 队列/日志在重启后依然持久、并执行了一次真实的 HMAC 签名事件往返 - 所有这些都只是针对本地检出或可注入的测试替身进行的，从未针对该项目真正面向的目标硬件 Raspberry Pi 5/CM5 运行过。`provider suggest` 始终只调用确定性的 `FakeProvider`；接入真实的 AI 提供方仍是一个明确尚未做出的用户决定。`station preflight`/`station plan` 通过可注入的检查器描述远程主机，从未针对真实的远程机器运行过。本仓库中没有任何东西真正部署过主机、执行过部署，或把这些部件接入一个真正运行中的工作循环 - `deliver evaluate` 自身硬编码的 `overall_maturity: "scaffolding"` 就是代码本身给出的明确说明。具体每一项交付的内容请见 `CHANGELOG.md`。
 
 ---
 
@@ -70,7 +70,7 @@ DS03 新增保守迁移，同样遵循"只读取与描述，绝不执行"——�
 
 DS04 是第一个执行子进程的交付——并且仍然受到严格约束：
 
-7. **任务配方 + 工作区执行器**（`task validate` / `task run`）——`TaskRecipe` 固定一个 `revision`（分支名会被拒绝）和一个白名单 `command`（`argv[0]` 必须在策略的 `allowed_commands` 中，否则该次运行为 `rejected` 且不启动任何东西）。`task run` 创建 `<base>/<task_id>/`——若已存在则拒绝，因此**两个任务永不共享一个工作区**——在其中以**已清理的环境**运行该命令（只有 `PATH` / `HOME` / `LANG` / `TZ`；绝不继承 `GITHUB_TOKEN`、`AWS_SECRET_ACCESS_KEY`、`ANTHROPIC_API_KEY`、`SSH_AUTH_SOCK`），受 `timeout_seconds` 约束，超时或取消时**杀死整个进程组**——由一个启动孙进程并确认两者都消失的真实测试证明。`input_paths` 中的 `..`、绝对路径或指向工作区之外的 symlink 都会被拒绝。它不部署任何内容。
+7. **任务配方 + 工作区执行器**（`task validate` / `task run`）——`TaskRecipe` 固定一个 `revision`（分支名会被拒绝）和一个白名单 `command`（`argv[0]` 必须在策略的 `allowed_commands` 中，否则该次运行为 `rejected` 且不启动任何东西）。`task run` 创建 `<base>/<task_id>/`——若已存在则拒绝，因此**两个任务永不共享一个工作区**——在其中以**已清理的环境**运行该命令（只有 `PATH` / `HOME` / `LANG` / `TZ`；绝不继承 `GITHUB_TOKEN`、`AWS_SECRET_ACCESS_KEY`、`ANTHROPIC_API_KEY`、`SSH_AUTH_SOCK`），受 `timeout_seconds` 约束，超时或取消时**杀死整个进程组**——由一个启动孙进程并确认两者都消失的真实测试证明。`input_paths` 中的 `..`、绝对路径或指向工作区之外的 symlink 都会被拒绝。它不部署任何内容。 子进程的输出在其运行期间被持续读取，每个流只保留最后 8 KiB，因此输出很多的构建或测试运行既不会堵在已满的管道上，也不会让主机内存不断增长。
 
 DS05 新增持久性——一个任务队列及其执行日志，可在进程重启后存活。它记录，不执行：
 

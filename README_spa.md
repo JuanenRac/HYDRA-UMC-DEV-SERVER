@@ -4,7 +4,7 @@
 
 # 🖥️ HYDRA-UMC-DEV-SERVER
 
-<p align="center"><a href="README.md">🇺🇸 English</a> | 🇪🇸 <b>Español</b> | <a href="README_fra.md">🇫🇷 Français</a> | <a href="README_ita.md">🇮🇹 Italiano</a> | <a href="README_deu.md">🇩🇪 Deutsch</a> | <a href="README_zho.md">🇨🇳 简体中文</a> | <a href="README_jpn.md">🇯🇵 日本語</a></p>
+<p align="center"><a href="README.md">🇺🇸 English</a> | 🇪🇸 <b>Español</b> | <a href="README_fra.md">🇫🇷 Français</a> | <a href="README_ita.md">🇮🇹 Italiano</a> | <a href="README_deu.md">🇩🇪 Deutsch</a> | <a href="README_zho.md">🇨🇳 简体中文</a> | <a href="README_jpn.md">🇯🇵 日本語</a> | <a href="README_por.md">🇵🇹 Português</a></p>
 
 ### 🏗️ Servidor de Desarrollo Reproducible para Todo el Ecosistema
 
@@ -15,7 +15,7 @@
   <img src="https://img.shields.io/badge/Entrega-DS01--DS10%20completo%20(scaffolding)-brightgreen.svg" alt="DS01-DS10 completo, scaffolding">
 </p>
 
-> **Estado: v0.1.3, scaffolding - las diez de diez entregadas, sigue
+> **Estado: v0.1.4, scaffolding - las diez de diez entregadas, sigue
 > siendo scaffolding (contratos, límites y un
 > esqueleto verificable).** Un esquema de configuración real y probado
 > (`config validate`) cuya política por defecto **no concede permiso de
@@ -34,7 +34,7 @@
 
 ---
 
-**Comprobación de honestidad - qué funciona realmente hoy:** los dieciséis módulos listados a continuación (`config.py`, `inventory.py`, `remote_station.py`, `preflight.py`, `provision.py`, `migration.py`, `workspace.py`, `recipe.py`, `runner.py`, `durable_queue.py`, `ai_provider.py`, `incident_transport.py`, `repair_cycle.py`, `operations.py`, `delivery.py`, `cli.py`) son código real, no stubs, y están cubiertos por una suite de tests real (247 tests pasando en `tests/test_*.py`). Lo que ese código real ha hecho de verdad, en concreto: validar documentos JSON, planificar migraciones en disco, ejecutar un subproceso real acotado en un workspace aislado real con un entorno real depurado, persistir una cola/journal SQLite real a través de reinicios, y ejercitar un round-trip real de incidentes firmado con HMAC - todo contra este checkout local o un seam de test inyectable, nunca contra el hardware real de destino Raspberry Pi 5/CM5 para el que está construido este proyecto. `provider suggest` solo llama nunca al `FakeProvider` determinista; cablear un proveedor de IA real es una decisión de usuario explícita y sin hacer. `station preflight`/`station plan` describen un host remoto a través de un inspector inyectable y nunca se han ejecutado contra una máquina remota real. Nada en este repositorio ha aprovisionado un host, ejecutado un despliegue, ni cableado estas piezas en un bucle de trabajo real en marcha - el propio `overall_maturity: "scaffolding"` hardcodeado de `deliver evaluate` lo dice claramente desde dentro del propio código. Ver `CHANGELOG.md` para lo que se ha entregado exactamente, entrega por entrega.
+**Comprobación de honestidad - qué funciona realmente hoy:** los dieciséis módulos listados a continuación (`config.py`, `inventory.py`, `remote_station.py`, `preflight.py`, `provision.py`, `migration.py`, `workspace.py`, `recipe.py`, `runner.py`, `durable_queue.py`, `ai_provider.py`, `incident_transport.py`, `repair_cycle.py`, `operations.py`, `delivery.py`, `cli.py`) son código real, no stubs, y están cubiertos por una suite de tests real (252 tests pasando en `tests/test_*.py`). Lo que ese código real ha hecho de verdad, en concreto: validar documentos JSON, planificar migraciones en disco, ejecutar un subproceso real acotado en un workspace aislado real con un entorno real depurado, persistir una cola/journal SQLite real a través de reinicios, y ejercitar un round-trip real de incidentes firmado con HMAC - todo contra este checkout local o un seam de test inyectable, nunca contra el hardware real de destino Raspberry Pi 5/CM5 para el que está construido este proyecto. `provider suggest` solo llama nunca al `FakeProvider` determinista; cablear un proveedor de IA real es una decisión de usuario explícita y sin hacer. `station preflight`/`station plan` describen un host remoto a través de un inspector inyectable y nunca se han ejecutado contra una máquina remota real. Nada en este repositorio ha aprovisionado un host, ejecutado un despliegue, ni cableado estas piezas en un bucle de trabajo real en marcha - el propio `overall_maturity: "scaffolding"` hardcodeado de `deliver evaluate` lo dice claramente desde dentro del propio código. Ver `CHANGELOG.md` para lo que se ha entregado exactamente, entrega por entrega.
 
 ---
 
@@ -117,7 +117,7 @@ acotada:
    `timeout_seconds`, y al agotarse o al cancelar **mata todo el grupo
    de procesos** - probado por un test real que lanza un nieto y
    confirma que ambos mueren. Un `..`, una ruta absoluta o un symlink
-   fuera del workspace en `input_paths` se rechaza. No despliega nada.
+   fuera del workspace en `input_paths` se rechaza. No despliega nada. La salida del hijo se lee de forma continua mientras corre y solo se conservan los últimos 8 KiB de cada flujo, de modo que una compilación o ejecución de pruebas muy verbosa no puede bloquearse en un pipe lleno ni hacer crecer la memoria del anfitrión.
 
 DS05 añade durabilidad - una cola de tareas y su diario de ejecución que
 sobreviven a un reinicio del proceso. Registra, no ejecuta:

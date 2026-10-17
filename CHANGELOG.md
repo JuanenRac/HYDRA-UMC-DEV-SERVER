@@ -5,6 +5,14 @@ version number follows this ecosystem's "odometer" scheme: PATCH +1 on
 every real build, rolling into MINOR past 9 (`0.0.9` -> `0.1.0`); MAJOR is
 bumped manually only. See `bump_version.py`.
 
+## [0.1.4] - Runner output handling and idle connections
+
+- Fixed the bounded task runner deadlocking on a child that prints more than a pipe holds (64 KiB on Linux): the child's stdout and stderr were read only after it exited, so such a task blocked on its own write until the timeout killed it and its output was lost. Both streams are now read continuously by background readers and only the last 8 KiB of each is kept, so a verbose build or test run completes normally and memory stays bounded; invalid UTF-8 is replaced instead of failing.
+- The local API handler now drops a connection that stays idle for 15 seconds instead of holding a thread forever, with a test that stalls a connection and checks the server keeps answering.
+- Added tests for the runner with large output and for the idle connection (252 tests in total).
+- Documented the output handling in the workspace and runner guide and the idle timeout in the CLI reference.
+- Added the Portuguese README (README_por.md) and corrected the item 7 description and the test count in every README.
+
 ## [0.1.3] - Stable cancel test
 
 - The cancel test now cancels only once both the child and the grandchild have written their pid, instead of after a fixed two seconds that was too short on a slow host.

@@ -26,7 +26,9 @@ real child-of-a-child is actually gone after a cancel.
 """
 from __future__ import annotations
 
+import threading
 import time
+from collections import deque
 from dataclasses import dataclass
 from typing import Any, Protocol, runtime_checkable
 
@@ -179,11 +181,50 @@ def run_task(
 # ---------------------------------------------------------------------------
 # The one real launcher
 # ---------------------------------------------------------------------------
+class _TailReader(threading.Thread):
+    """Drains one of the child's output pipes while it runs and keeps only the last
+    `limit` characters.
+
+    The pipes used to be read only after the child had exited. A child that writes more
+    than a pipe holds (64 KiB on Linux) then blocks on its own write for ever - every
+    build or test run with a verbose log - so it was killed as "timed-out" with its output
+    lost. Reading continuously avoids that, and keeping only a tail keeps the memory bounded
+    however much the child prints."""
+
+    def __init__(self, stream: Any, limit: int) -> None:
+        super().__init__(daemon=True)
+        self._stream = stream
+        self._limit = limit
+        self._chunks: deque[str] = deque()
+        self._size = 0
+        self._lock = threading.Lock()
+
+    def run(self) -> None:
+        try:
+            while True:
+                chunk = self._stream.read(4096)
+                if not chunk:
+                    break
+                with self._lock:
+                    self._chunks.append(chunk)
+                    self._size += len(chunk)
+                    while self._chunks and self._size - len(self._chunks[0]) >= self._limit:
+                        self._size -= len(self._chunks.popleft())
+        except (ValueError, OSError):  # the pipe was closed under us
+            pass
+
+    def text(self) -> str:
+        with self._lock:
+            return "".join(self._chunks)[-self._limit:]
+
+
 class _SubprocessHandle:
     def __init__(self, proc: Any) -> None:
         self._proc = proc
-        self._out = ""
-        self._err = ""
+        self._out = _TailReader(proc.stdout, _TAIL_BYTES)
+        self._err = _TailReader(proc.stderr, _TAIL_BYTES)
+        self._out.start()
+        self._err.start()
         self._reaped = False
 
     def poll(self) -> int | None:
@@ -193,12 +234,10 @@ class _SubprocessHandle:
         return code
 
     def _drain(self) -> None:
-        try:
-            out, err = self._proc.communicate(timeout=5)
-        except Exception:  # noqa: BLE001 - best-effort tail capture only
-            out, err = "", ""
-        self._out = (out or "")[-_TAIL_BYTES:]
-        self._err = (err or "")[-_TAIL_BYTES:]
+        # once the child is gone both pipes reach end-of-file and the readers finish; a
+        # grandchild that kept a pipe open would hold them, so the wait is bounded
+        for reader in (self._out, self._err):
+            reader.join(timeout=5)
         self._reaped = True
 
     def kill_tree(self) -> None:
@@ -229,10 +268,10 @@ class _SubprocessHandle:
             time.sleep(0.05)
 
     def stdout_tail(self) -> str:
-        return self._out
+        return self._out.text()
 
     def stderr_tail(self) -> str:
-        return self._err
+        return self._err.text()
 
 
 class SubprocessLauncher:
@@ -255,6 +294,8 @@ class SubprocessLauncher:
             stdout=sp.PIPE,
             stderr=sp.PIPE,
             text=True,
+            encoding="utf-8",
+            errors="replace",
             **kwargs,
         )
         return _SubprocessHandle(proc)

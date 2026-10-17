@@ -73,6 +73,8 @@ class DevServer(ThreadingHTTPServer):
 
 class _Handler(BaseHTTPRequestHandler):
     server: DevServer  # type: ignore[assignment]
+    # A client that connects and then goes quiet must not hold a thread forever.
+    timeout = 15.0
 
     def log_message(self, format: str, *args: object) -> None:  # noqa: A002
         return  # request lines can carry paths; keep the server quiet

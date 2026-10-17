@@ -4,7 +4,7 @@
 
 # 🖥️ HYDRA-UMC-DEV-SERVER
 
-<p align="center"><a href="README.md">🇺🇸 English</a> | <a href="README_spa.md">🇪🇸 Español</a> | <a href="README_fra.md">🇫🇷 Français</a> | <a href="README_ita.md">🇮🇹 Italiano</a> | <a href="README_deu.md">🇩🇪 Deutsch</a> | <a href="README_zho.md">🇨🇳 简体中文</a> | 🇯🇵 <b>日本語</b></p>
+<p align="center"><a href="README.md">🇺🇸 English</a> | <a href="README_spa.md">🇪🇸 Español</a> | <a href="README_fra.md">🇫🇷 Français</a> | <a href="README_ita.md">🇮🇹 Italiano</a> | <a href="README_deu.md">🇩🇪 Deutsch</a> | <a href="README_zho.md">🇨🇳 简体中文</a> | 🇯🇵 <b>日本語</b> | <a href="README_por.md">🇵🇹 Português</a></p>
 
 ### 🏗️ エコシステム全体のための再現可能な開発サーバー
 
@@ -31,7 +31,7 @@
 
 ---
 
-**正直な現状確認 - 今日実際に動くもの:** 以下に挙げる 16 個のモジュール(`config.py`、`inventory.py`、`remote_station.py`、`preflight.py`、`provision.py`、`migration.py`、`workspace.py`、`recipe.py`、`runner.py`、`durable_queue.py`、`ai_provider.py`、`incident_transport.py`、`repair_cycle.py`、`operations.py`、`delivery.py`、`cli.py`)はすべてスタブではなく本物のコードであり、本物のテストスイート(`tests/test_*.py` 全体で 247 件のテストが成功)によってカバーされている。この本物のコードが実際に行ったこと: JSON ドキュメントの検証、ディスク上でのマイグレーション計画、実際の隔離ワークスペース内で実際に浄化された環境を使った本物の制限付きサブプロセスの実行、再起動をまたいだ本物の SQLite キュー/ジャーナルの永続化、本物の HMAC 署名インシデントの往復のテスト - これらすべてはこのローカルチェックアウトまたは注入可能なテスト用シームに対してのみ行われており、このプロジェクトが実際に対象とする Raspberry Pi 5/CM5 の実機に対しては一度も実行されていない。`provider suggest` は決定論的な `FakeProvider` のみを常に呼び出す。本物の AI プロバイダーを組み込むことは、まだ行われていない明示的なユーザー判断のままである。`station preflight`/`station plan` は注入可能なインスペクターを通じてリモートホストを記述するだけで、実際のリモートマシンに対して実行されたことは一度もない。このリポジトリの中で、ホストをプロビジョニングしたり、デプロイを実行したり、これらの部品を実際に稼働するワーカーループに配線したりしたものは何もない - `deliver evaluate` 自身がハードコードしている `overall_maturity: "scaffolding"` が、コード自体からそれを率直に物語っている。これまでに何が納品されたかは `CHANGELOG.md` を参照。
+**正直な現状確認 - 今日実際に動くもの:** 以下に挙げる 16 個のモジュール(`config.py`、`inventory.py`、`remote_station.py`、`preflight.py`、`provision.py`、`migration.py`、`workspace.py`、`recipe.py`、`runner.py`、`durable_queue.py`、`ai_provider.py`、`incident_transport.py`、`repair_cycle.py`、`operations.py`、`delivery.py`、`cli.py`)はすべてスタブではなく本物のコードであり、本物のテストスイート(`tests/test_*.py` 全体で 252 件のテストが成功)によってカバーされている。この本物のコードが実際に行ったこと: JSON ドキュメントの検証、ディスク上でのマイグレーション計画、実際の隔離ワークスペース内で実際に浄化された環境を使った本物の制限付きサブプロセスの実行、再起動をまたいだ本物の SQLite キュー/ジャーナルの永続化、本物の HMAC 署名インシデントの往復のテスト - これらすべてはこのローカルチェックアウトまたは注入可能なテスト用シームに対してのみ行われており、このプロジェクトが実際に対象とする Raspberry Pi 5/CM5 の実機に対しては一度も実行されていない。`provider suggest` は決定論的な `FakeProvider` のみを常に呼び出す。本物の AI プロバイダーを組み込むことは、まだ行われていない明示的なユーザー判断のままである。`station preflight`/`station plan` は注入可能なインスペクターを通じてリモートホストを記述するだけで、実際のリモートマシンに対して実行されたことは一度もない。このリポジトリの中で、ホストをプロビジョニングしたり、デプロイを実行したり、これらの部品を実際に稼働するワーカーループに配線したりしたものは何もない - `deliver evaluate` 自身がハードコードしている `overall_maturity: "scaffolding"` が、コード自体からそれを率直に物語っている。これまでに何が納品されたかは `CHANGELOG.md` を参照。
 
 ---
 
@@ -84,7 +84,7 @@ DS03は保守的な移行を追加する。同じく「読み取り記述する�
 
 DS04はサブプロセスを実行する最初の提供物であり、依然として厳しく境界付けられている:
 
-7. **タスクレシピ + ワークスペースランナー** (`task validate` / `task run`) - `TaskRecipe` は `revision` を固定し(ブランチ名は拒否される)、許可リストの `command` を持つ(`argv[0]` はポリシーの `allowed_commands` に含まれていなければならず、さもなければ実行は `rejected` となり何も起動されない)。`task run` は `<base>/<task_id>/` を作成し - 既に存在するものは拒否するので**2つのタスクがワークスペースを共有することはない** - そこで**サニタイズされた環境**でコマンドを実行する(`PATH` / `HOME` / `LANG` / `TZ` のみ。継承された `GITHUB_TOKEN`、`AWS_SECRET_ACCESS_KEY`、`ANTHROPIC_API_KEY`、`SSH_AUTH_SOCK` は決してない)。`timeout_seconds` で境界付けられ、期限切れまたはキャンセル時に**プロセスグループ全体をkill**する - 孫プロセスを起動して両方が消えることを確認する実際のテストで証明済み。`input_paths` 内の `..`、絶対パス、ワークスペース外へのsymlinkは拒否される。何もデプロイしない。
+7. **タスクレシピ + ワークスペースランナー** (`task validate` / `task run`) - `TaskRecipe` は `revision` を固定し(ブランチ名は拒否される)、許可リストの `command` を持つ(`argv[0]` はポリシーの `allowed_commands` に含まれていなければならず、さもなければ実行は `rejected` となり何も起動されない)。`task run` は `<base>/<task_id>/` を作成し - 既に存在するものは拒否するので**2つのタスクがワークスペースを共有することはない** - そこで**サニタイズされた環境**でコマンドを実行する(`PATH` / `HOME` / `LANG` / `TZ` のみ。継承された `GITHUB_TOKEN`、`AWS_SECRET_ACCESS_KEY`、`ANTHROPIC_API_KEY`、`SSH_AUTH_SOCK` は決してない)。`timeout_seconds` で境界付けられ、期限切れまたはキャンセル時に**プロセスグループ全体をkill**する - 孫プロセスを起動して両方が消えることを確認する実際のテストで証明済み。`input_paths` 内の `..`、絶対パス、ワークスペース外へのsymlinkは拒否される。何もデプロイしない。 子プロセスの出力は実行中に継続的に読み取られ、各ストリームの最後の 8 KiB だけが保持されるため、出力の多いビルドやテスト実行が満杯のパイプで止まることも、ホストのメモリを増大させることもありません。
 
 DS05は永続性を追加する - タスクキューとその実行ジャーナルがプロセス再起動を生き延びる。実行せず、記録する:
 

@@ -239,5 +239,49 @@ class RealChildOfAChildIsReapedTests(unittest.TestCase):
             self.assertFalse(_pid_alive(grandchild_pid), "the grandchild process survived the cancel")
 
 
+class RealChildWithLargeOutputTests(unittest.TestCase):
+    """A real child that prints far more than a pipe holds. The pipes used to be read only after
+    the child had exited, so such a child blocked on its own write and was killed as timed-out
+    with its output lost - every verbose build or test run."""
+
+    def _run(self, script: str, *, timeout_seconds: int = 60):
+        import tempfile
+
+        with tempfile.TemporaryDirectory() as tmp:
+            ws = Workspace(task_id="real-output", root=str(Path(tmp)))
+            recipe = TaskRecipe.from_dict({
+                "task_id": "real-output", "repo": "x", "revision": "0.0.4",
+                "command": [sys.executable, "-c", script], "timeout_seconds": timeout_seconds, "input_paths": [],
+            })
+            return run_task(recipe, _policy([sys.executable]), ws, SubprocessLauncher(), poll_interval=0.05)
+
+    def test_a_child_that_prints_megabytes_completes_instead_of_deadlocking(self):
+        started = time.monotonic()
+        result = self._run("import sys; sys.stdout.write('o' * 2_000_000 + 'END-OUT'); sys.stderr.write('e' * 2_000_000 + 'END-ERR')")
+        self.assertEqual(result.outcome, OUTCOME_COMPLETED)
+        self.assertEqual(result.exit_code, 0)
+        self.assertLess(time.monotonic() - started, 30)  # it used to hang until the 60 s timeout
+        self.assertTrue(result.stdout_tail.endswith("END-OUT"))
+        self.assertTrue(result.stderr_tail.endswith("END-ERR"))
+
+    def test_the_tails_are_bounded_however_much_the_child_prints(self):
+        result = self._run("import sys; sys.stdout.write('x' * 3_000_000); sys.stderr.write('y' * 3_000_000)")
+        self.assertEqual(result.outcome, OUTCOME_COMPLETED)
+        self.assertLessEqual(len(result.stdout_tail), 8 * 1024)
+        self.assertLessEqual(len(result.stderr_tail), 8 * 1024)
+        self.assertGreater(len(result.stdout_tail), 0)
+
+    def test_output_that_is_not_valid_utf8_does_not_break_the_run(self):
+        result = self._run("import sys; sys.stdout.buffer.write(bytes([98, 101, 102, 111, 114, 101, 32, 255, 254, 32, 97, 102, 116, 101, 114])); sys.stdout.flush()")
+        self.assertEqual(result.outcome, OUTCOME_COMPLETED)
+        self.assertIn("before", result.stdout_tail)
+        self.assertIn("after", result.stdout_tail)
+
+    def test_a_child_that_floods_its_output_and_then_hangs_is_still_killed_on_timeout_with_its_tail(self):
+        result = self._run("import sys, time; sys.stdout.write('z' * 500_000 + 'LAST-LINE'); sys.stdout.flush(); time.sleep(120)", timeout_seconds=2)
+        self.assertEqual(result.outcome, OUTCOME_TIMED_OUT)
+        self.assertTrue(result.stdout_tail.endswith("LAST-LINE"))
+
+
 if __name__ == "__main__":
     unittest.main()

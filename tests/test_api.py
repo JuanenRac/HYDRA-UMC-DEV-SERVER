@@ -4,6 +4,7 @@
 # GPL-3.0 - see LICENSE
 # =============================================================================
 import json
+import socket
 import tempfile
 import threading
 import unittest
@@ -11,6 +12,7 @@ import urllib.error
 import urllib.request
 from pathlib import Path
 
+from hydra_umc_dev_server import api as api_module
 from hydra_umc_dev_server.api import ApiConfigError, DevServer, MAX_BODY_BYTES, validate_bind
 
 TOKEN = "t" * 32
@@ -114,6 +116,18 @@ class ApiTests(unittest.TestCase):
         status, body = self._call("POST", "/v1/plugins/rescan")
         self.assertEqual(status, 200)
         self.assertEqual([p["name"] for p in body["plugins"]], ["demo", "second"])
+
+    def test_an_idle_connection_is_dropped_and_the_server_keeps_serving(self):
+        self.assertGreater(api_module._Handler.timeout, 0)
+        original = api_module._Handler.timeout
+        api_module._Handler.timeout = 0.3
+        self.addCleanup(setattr, api_module._Handler, "timeout", original)
+        idle = socket.create_connection(self.server.server_address, timeout=5)
+        self.addCleanup(idle.close)
+        idle.sendall(b"POST /v1/plugins/rescan HTTP/1.1\r\nHost: x\r\nContent-Length: 10\r\n")  # headers never finish
+        idle.settimeout(5)
+        self.assertEqual(idle.recv(1024), b"")  # the server closed it instead of waiting forever
+        self.assertEqual(self._call("GET", "/v1/health", token=None)[0], 200)
 
 
 if __name__ == "__main__":
