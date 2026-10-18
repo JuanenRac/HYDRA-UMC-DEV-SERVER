@@ -37,6 +37,17 @@
 
 ---
 
+## 📋 Auf einen Blick
+
+| | |
+|---|---|
+| Version | `0.1.8` |
+| Reifegrad | Funktionsfähig |
+| Tests | 306 |
+| Technik | Python 3.11+ / JSON Schema / systemd (host role, Linux only) / SQLite (durable task/state journal, from DS05 onward) |
+| Ziel | Ein Entwicklungsserver |
+| Auf echter Hardware | Noch nicht: für diese Version ist kein Lauf auf echter Hardware vermerkt |
+
 ## 1. 🛠️ TECHNISCHER ÜBERBLICK
 
 HYDRA-UMC-DEV-SERVER ist Entwicklungsinfrastruktur für das

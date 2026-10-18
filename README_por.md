@@ -61,6 +61,17 @@
 
 ---
 
+## 📋 Num relance
+
+| | |
+|---|---|
+| Versão | `0.1.8` |
+| Maturidade | Funcional |
+| Testes | 306 |
+| Tecnologia | Python 3.11+ / JSON Schema / systemd (host role, Linux only) / SQLite (durable task/state journal, from DS05 onward) |
+| Destino | Um servidor de desenvolvimento |
+| Em hardware real | Ainda não: não há registo de execução em hardware real para esta versão |
+
 ## 1. 🛠️ VISÃO TÉCNICA GERAL
 
 O HYDRA-UMC-DEV-SERVER é infraestrutura de desenvolvimento para o ecossistema HYDRA-UMC/URTC:

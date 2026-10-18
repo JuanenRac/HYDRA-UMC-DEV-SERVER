@@ -35,6 +35,17 @@
 
 ---
 
+## 📋 ひと目で
+
+| | |
+|---|---|
+| バージョン | `0.1.8` |
+| 成熟度 | 機能する |
+| テスト | 306 |
+| 技術 | Python 3.11+ / JSON Schema / systemd (host role, Linux only) / SQLite (durable task/state journal, from DS05 onward) |
+| 対象 | 開発用サーバー |
+| 実機での確認 | まだです：このバージョンについて実機での動作記録はありません |
+
 ## 1. 🛠️ 技術概要
 
 HYDRA-UMC-DEV-SERVERはHYDRA-UMC/URTCエコシステムのための開発インフラである。
