@@ -29,6 +29,8 @@ from __future__ import annotations
 import hashlib
 import hmac
 import json
+import secrets
+import math
 import time
 from dataclasses import dataclass, field
 from typing import Any, Protocol, runtime_checkable
@@ -186,6 +188,9 @@ class VerifierState:
     message timestamps for rate limiting. A test owns one of these."""
 
     seen_nonces: set[str] = field(default_factory=set)
+    # when each nonce was accepted, so nonces older than the replay window can be
+    # forgotten (a message that old is refused as stale anyway)
+    nonce_times: dict[str, float] = field(default_factory=dict)
     rate_log: dict[str, list[float]] = field(default_factory=dict)
 
 
@@ -197,6 +202,7 @@ def verify_message(
     *,
     authenticated_as: str,
     now: float | None = None,
+    expected_to_node: str | None = None,
 ) -> VerifyResult:
     """`authenticated_as` is the identity the channel proved (e.g. the TLS
     client cert CN, or the connection's login). Every other property of
@@ -210,6 +216,11 @@ def verify_message(
             False, "impersonation",
             f"message claims from_node {message.from_node!r} but the channel is authenticated as {authenticated_as!r}",
         )
+    if expected_to_node is not None and message.to_node != expected_to_node:
+        return VerifyResult(
+            False, "wrong-recipient",
+            f"message is addressed to {message.to_node!r}, not to {expected_to_node!r}",
+        )
     if not _compatible(message.contract_version):
         return VerifyResult(False, "incompatible-version",
                             f"{message.contract_version!r} is not compatible with {policy.contract_version!r}")
@@ -219,6 +230,8 @@ def verify_message(
     if not message.mac or not hmac.compare_digest(message.mac, expected):
         return VerifyResult(False, "bad-signature", "HMAC does not match the registered secret")
 
+    if not math.isfinite(message.sent_at):
+        return VerifyResult(False, "stale", "sent_at is not a finite number")
     if abs(at - message.sent_at) > policy.replay_window_seconds:
         return VerifyResult(False, "stale",
                             f"sent_at is {abs(at - message.sent_at):.0f}s from now, outside the "
@@ -233,7 +246,12 @@ def verify_message(
                             f"{authenticated_as!r} sent {len(window)} messages in the last minute "
                             f"(limit {policy.max_messages_per_minute})")
 
+    for old_nonce, seen_at in list(state.nonce_times.items()):
+        if at - seen_at > policy.replay_window_seconds:
+            state.nonce_times.pop(old_nonce, None)
+            state.seen_nonces.discard(old_nonce)
     state.seen_nonces.add(message.nonce)
+    state.nonce_times[message.nonce] = at
     window.append(at)
     return VerifyResult(True)
 
@@ -264,23 +282,34 @@ class IncidentSession:
     peer_node: str
     secret: str
     channel: Channel
+    # The peer's own secret: what its messages are signed with. Without it no
+    # inbound message can be verified, so none is accepted.
+    peer_secret: str = ""
+    policy: TransportPolicy = field(default_factory=TransportPolicy)
     state: str = STATE_SUBMITTED
     incident_id: str = ""
     last_sent: IncidentMessage | None = None
     diagnosis: dict[str, Any] | None = None
     deploy_verification: dict[str, Any] | None = None
+    # inbound messages refused by pump(), with the reason (for logs and tests)
+    rejected: list[str] = field(default_factory=list)
     _seq: int = 0
+    _verifier: VerifierState = field(default_factory=VerifierState)
 
     def _next_id(self, prefix: str) -> str:
         self._seq += 1
         return f"{prefix}-{self.self_node}-{self._seq:04d}"
+
+    def _new_nonce(self) -> str:
+        # unpredictable and unique across restarts (a counter starts again at 1)
+        return f"n-{secrets.token_hex(12)}"
 
     def submit_incident(self, incident_id: str, payload: dict[str, Any], *, now: float | None = None) -> IncidentMessage:
         at = time.time() if now is None else now
         self.incident_id = incident_id
         msg = IncidentMessage(
             message_id=self._next_id("inc"), from_node=self.self_node, to_node=self.peer_node,
-            kind=KIND_INCIDENT, contract_version=CONTRACT_VERSION, nonce=self._next_id("n"),
+            kind=KIND_INCIDENT, contract_version=CONTRACT_VERSION, nonce=self._new_nonce(),
             sent_at=at, payload={"incident_id": incident_id, **payload},
         ).signed(self.secret)
         self.channel.send(msg)
@@ -288,12 +317,30 @@ class IncidentSession:
         self.state = STATE_PENDING_ACK
         return msg
 
-    def pump(self) -> None:
-        """Consume every inbound message and advance the state machine."""
+    def pump(self, *, now: float | None = None) -> None:
+        """Consume every inbound message and advance the state machine. Each
+        message must pass verify_message() as coming from the peer (signature,
+        recipient, version, freshness, nonce, rate), carry this incident's id, and
+        the state only moves forward: a late or forged message can neither confirm a
+        deployment nor undo a verified one."""
+        registry = NodeRegistry(secrets={self.peer_node: self.peer_secret} if self.peer_secret else {})
         while True:
             msg = self.channel.poll()
             if msg is None:
                 return
+            result = verify_message(
+                msg, registry, self.policy, self._verifier,
+                authenticated_as=self.peer_node, now=now, expected_to_node=self.self_node,
+            )
+            if not result.ok:
+                self.rejected.append(f"{result.code}: {result.reason}")
+                continue
+            if msg.payload.get("incident_id") != self.incident_id:
+                self.rejected.append("wrong-incident: the message is about another incident")
+                continue
+            if self.state in (STATE_DEPLOY_VERIFIED, STATE_FAILED):
+                self.rejected.append(f"closed: the session already ended as {self.state!r}")
+                continue
             if msg.kind == KIND_ACK:
                 if self.state == STATE_PENDING_ACK:
                     self.state = STATE_SUBMITTED
@@ -302,7 +349,7 @@ class IncidentSession:
                 self.state = STATE_DIAGNOSED
             elif msg.kind == KIND_DEPLOY_VERIFICATION:
                 self.deploy_verification = dict(msg.payload)
-                verified = bool(msg.payload.get("verified"))
+                verified = msg.payload.get("verified") is True
                 self.state = STATE_DEPLOY_VERIFIED if verified else STATE_FAILED
 
     def reconcile(self, *, now: float | None = None) -> bool:
@@ -316,7 +363,7 @@ class IncidentSession:
         at = time.time() if now is None else now
         resend = IncidentMessage(
             message_id=self._next_id("inc"), from_node=self.self_node, to_node=self.peer_node,
-            kind=self.last_sent.kind, contract_version=CONTRACT_VERSION, nonce=self._next_id("n"),
+            kind=self.last_sent.kind, contract_version=CONTRACT_VERSION, nonce=self._new_nonce(),
             sent_at=at, payload=dict(self.last_sent.payload),
         ).signed(self.secret)
         self.channel.send(resend)

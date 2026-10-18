@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "hydra-umc-dev-server"
-version = "0.1.5"
-description = "Reproducible development host for the HYDRA-UMC/URTC ecosystem: hosts this ecosystem's own source code and a bounded, policy-gated task runner for isolated programming/build/test work, coordinating (not replacing) HYDRA-UMC-OPS-AGENT's own incident lifecycle. DS01 only: contracts, ownership map and a real, tested configuration schema whose default policy grants no task deployment permission."
+version = "0.1.6"
+description = "Reproducible development host for the HYDRA-UMC/URTC ecosystem: hosts this ecosystem's own source code and a bounded, policy-gated task runner for isolated programming/build/test work, coordinating (not replacing) HYDRA-UMC-OPS-AGENT's own incident lifecycle. Ten deliveries: contracts and configuration schema, remote-station profile and preflight, conservative migration, task runner, durable queue, AI provider contract, authenticated incident transport, controlled repair cycle, verified backup and restore, maturity evaluation, and a local API with plugins. The default policy grants no task deployment permission."
 readme = "README.md"
 requires-python = ">=3.11"
 license = { file = "LICENSE.md" }

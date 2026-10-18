@@ -167,8 +167,14 @@ def evaluate_maturity(repo_root: str | Path) -> MaturityEvaluation:
 
     shipped = sum(1 for s in statuses if s.status == "shipped")
     partial = sum(1 for s in statuses if s.status == "partial")
+    absent = [s.delivery_id for s in statuses if s.status == "not-started"]
+    headline = (
+        "All ten deliveries are in the repository"
+        if not absent
+        else f"{len(absent)} of the deliveries are NOT in the repository ({', '.join(absent)})"
+    )
     summary = (
-        f"All ten deliveries are in the repository ({shipped} shipped, {partial} partial - "
+        f"{headline} ({shipped} shipped, {partial} partial - "
         f"DS06 ships only the deterministic fake provider). The maturity is "
         f"'functional': the software is built and covered by tests, but it has not "
         f"been verified on real hardware or services. Nothing here provisions a host, "

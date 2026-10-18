@@ -162,14 +162,14 @@ class InventoryTests(unittest.TestCase):
         self.assertEqual(len(self.inv.unpushed_commits), 2)
         self.assertIn("not pushed", self.inv.unpushed_commits[0])
 
-    def test_a_non_git_source_reports_no_git_and_classifies_everything_clean_or_private(self):
+    def test_a_non_git_source_reports_no_git_and_classifies_everything_untracked_or_private(self):
         inspector = FakeSourceInspector()
         inspector.is_repo = lambda root: False  # type: ignore[assignment]
         inv = build_repo_inventory("/pc/x", inspector)
         self.assertFalse(inv.has_git)
         self.assertEqual(inv.unpushed_commits, ())
         classes = {e.classification for e in inv.entries}
-        self.assertTrue(classes <= {CLASS_TRACKED_CLEAN, CLASS_PRIVATE})
+        self.assertTrue(classes <= {CLASS_UNTRACKED, CLASS_PRIVATE})
 
 
 class PlanTests(unittest.TestCase):

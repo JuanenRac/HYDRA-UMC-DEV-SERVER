@@ -15,7 +15,7 @@
   <img src="https://img.shields.io/badge/Consegna-DS01--DS10%20completo%20(funzionale)-brightgreen.svg" alt="DS01-DS10 completo, funzionale">
 </p>
 
-> **Stato: v0.1.5, funzionale - tutte e dieci su dieci consegnate (costruito e coperto da test; non ancora verificato su hardware o servizi reali).** Uno schema di configurazione reale e
+> **Stato: v0.1.6, funzionale - tutte e dieci su dieci consegnate (costruito e coperto da test; non ancora verificato su hardware o servizi reali).** Uno schema di configurazione reale e
 > testato (`config validate`) la cui politica predefinita **non
 > concede alcun permesso di deploy a nessun task**, e una scoperta di
 > manifest in sola lettura (`inventory scan`) che trova i propri file
@@ -33,7 +33,7 @@
 
 ---
 
-**Controllo di onestà - cosa funziona davvero oggi:** i sedici moduli elencati di seguito (`config.py`, `inventory.py`, `remote_station.py`, `preflight.py`, `provision.py`, `migration.py`, `workspace.py`, `recipe.py`, `runner.py`, `durable_queue.py`, `ai_provider.py`, `incident_transport.py`, `repair_cycle.py`, `operations.py`, `delivery.py`, `cli.py`) sono codice reale, non stub, e sono coperti da una vera suite di test (252 test superati in `tests/test_*.py`). Ciò che questo codice reale ha effettivamente fatto, in concreto: validare documenti JSON, pianificare migrazioni su disco, eseguire un vero sottoprocesso limitato in un vero workspace isolato con un ambiente realmente ripulito, persistere una vera coda/journal SQLite attraverso i riavvii, ed esercitare un vero round-trip di incidenti firmato HMAC - tutto contro questo checkout locale o un seam di test iniettabile, mai contro il vero hardware di destinazione Raspberry Pi 5/CM5 per cui questo progetto è costruito. `provider suggest` chiama sempre e solo il `FakeProvider` deterministico; collegare un vero provider AI resta una decisione utente esplicita e non ancora presa. `station preflight`/`station plan` descrivono un host remoto tramite un inspector iniettabile e non sono mai stati eseguiti contro una vera macchina remota. Nulla in questo repository ha provisionato un host, eseguito un deploy, o collegato questi pezzi in un vero ciclo di lavoro in esecuzione - l'`overall_maturity: "functional"` hardcoded di `deliver evaluate` lo dichiara chiaramente dal codice stesso. Vedi `CHANGELOG.md` per ciò che è stato consegnato esattamente, delivery per delivery.
+**Controllo di onestà - cosa funziona davvero oggi:** i sedici moduli elencati di seguito (`config.py`, `inventory.py`, `remote_station.py`, `preflight.py`, `provision.py`, `migration.py`, `workspace.py`, `recipe.py`, `runner.py`, `durable_queue.py`, `ai_provider.py`, `incident_transport.py`, `repair_cycle.py`, `operations.py`, `delivery.py`, `cli.py`) sono codice reale, non stub, e sono coperti da una vera suite di test (276 test superati in `tests/test_*.py`). Ciò che questo codice reale ha effettivamente fatto, in concreto: validare documenti JSON, pianificare migrazioni su disco, eseguire un vero sottoprocesso limitato in un vero workspace isolato con un ambiente realmente ripulito, persistere una vera coda/journal SQLite attraverso i riavvii, ed esercitare un vero round-trip di incidenti firmato HMAC - tutto contro questo checkout locale o un seam di test iniettabile, mai contro il vero hardware di destinazione Raspberry Pi 5/CM5 per cui questo progetto è costruito. `provider suggest` chiama sempre e solo il `FakeProvider` deterministico; collegare un vero provider AI resta una decisione utente esplicita e non ancora presa. `station preflight`/`station plan` descrivono un host remoto tramite un inspector iniettabile e non sono mai stati eseguiti contro una vera macchina remota. Nulla in questo repository ha provisionato un host, eseguito un deploy, o collegato questi pezzi in un vero ciclo di lavoro in esecuzione - l'`overall_maturity: "functional"` hardcoded di `deliver evaluate` lo dichiara chiaramente dal codice stesso. Vedi `CHANGELOG.md` per ciò che è stato consegnato esattamente, delivery per delivery.
 
 ---
 
@@ -172,7 +172,7 @@ $ hydra-umc-dev-server inventory scan --root ..
 {
   "root": "..",
   "projects": [
-    {"name": "HYDRA-UMC-DEV-SERVER", "version": "0.1.5", "maturity": "functional", "manifest_path": "../HYDRA-UMC-DEV-SERVER/hydra-umc.project.json"},
+    {"name": "HYDRA-UMC-DEV-SERVER", "version": "0.1.6", "maturity": "functional", "manifest_path": "../HYDRA-UMC-DEV-SERVER/hydra-umc.project.json"},
     ...
   ],
   "issues": []

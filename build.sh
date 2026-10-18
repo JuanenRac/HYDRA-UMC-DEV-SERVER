@@ -82,7 +82,7 @@ echo "      Done."
 echo
 
 echo "[4/5] Verifying the package compiles/imports without errors..."
-python -m py_compile src/hydra_umc_dev_server/__init__.py src/hydra_umc_dev_server/config.py src/hydra_umc_dev_server/inventory.py src/hydra_umc_dev_server/cli.py
+python -m compileall -q src
 python -c "import hydra_umc_dev_server; print('import OK - version', hydra_umc_dev_server.__version__)"
 echo "      Done."
 echo

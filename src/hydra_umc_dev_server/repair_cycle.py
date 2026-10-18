@@ -41,6 +41,7 @@ from typing import Any, Protocol, runtime_checkable
 
 from .config import ConfigValidationError, _require_str
 
+STATE_NOT_STARTED = "not-started"
 STATE_BLOCKED = "blocked"
 STATE_REPRO_CONFIRMED = "repro-confirmed"
 STATE_INCIDENT_RAISED = "incident-raised"
@@ -143,20 +144,23 @@ class StepOutcome:
 
 
 class RepairCycle:
-    """One incident's controlled repair, driven step by step. Any gate
-    failure sets `state = "blocked"` with a reason and every later step
-    is a no-op."""
+    """One incident's controlled repair, driven step by step. A new cycle is
+    "not-started"; any gate failure sets `state = "blocked"` with a reason,
+    and a blocked cycle is final: every later step answers "blocked" and
+    changes nothing."""
 
     def __init__(self, incident_id: str, base_fingerprint: str, target: str, repro_case_id: str) -> None:
         self.incident_id = incident_id
         self.base_fingerprint = base_fingerprint
         self.target = target
         self.repro_case_id = repro_case_id
-        self.state = STATE_BLOCKED
+        self.state = STATE_NOT_STARTED
         self.reason: str | None = "not started"
         self.candidate: RepairCandidate | None = None
 
     def _block(self, reason: str) -> StepOutcome:
+        if self.state == STATE_BLOCKED:  # already final: keep the reason that blocked it
+            return StepOutcome(False, self.state, self.reason)
         self.state, self.reason = STATE_BLOCKED, reason
         return StepOutcome(False, self.state, reason)
 
@@ -165,7 +169,9 @@ class RepairCycle:
         return StepOutcome(True, state)
 
     def confirm_repro(self, evidence: dict[str, Any]) -> StepOutcome:
-        if not evidence.get("reproduced") or evidence.get("repro_case_id") != self.repro_case_id:
+        if self.state != STATE_NOT_STARTED:
+            return self._block(f"cannot confirm the reproduction from state {self.state!r}")
+        if evidence.get("reproduced") is not True or evidence.get("repro_case_id") != self.repro_case_id:
             return self._block("the failure was not reproduced for this repro case")
         return self._advance(STATE_REPRO_CONFIRMED)
 
@@ -209,7 +215,8 @@ class RepairCycle:
             return self._block(f"approver {approval.approved_by!r} is not registered")
         if not approval.signature_ok(approver_secret):
             return self._block("approval signature does not verify")
-        assert self.candidate is not None
+        if self.candidate is None:
+            return self._block("no candidate was received")
         if approval.candidate_id != self.candidate.candidate_id:
             return self._block("approval is for a different candidate")
         if approval.approved_for_base != self.base_fingerprint:
@@ -221,7 +228,8 @@ class RepairCycle:
     def install_isolated(self, installer: IsolatedInstaller) -> StepOutcome:
         if self.state != STATE_APPROVED:
             return self._block(f"cannot install from state {self.state!r}")
-        assert self.candidate is not None
+        if self.candidate is None:
+            return self._block("no candidate was received")
         if not installer.install(self.candidate):
             return self._block("isolated install failed")
         return self._advance(STATE_INSTALLED)
@@ -236,7 +244,7 @@ class RepairCycle:
         if evidence.get("repro_case_id") != self.repro_case_id:
             installer.rollback()
             return self._block("verification evidence is for a different repro case")
-        if not evidence.get("verified"):
+        if evidence.get("verified") is not True:
             installer.rollback()
             self.state, self.reason = STATE_RECOVERED, "post-install verification failed - rolled back"
             return StepOutcome(False, self.state, self.reason)

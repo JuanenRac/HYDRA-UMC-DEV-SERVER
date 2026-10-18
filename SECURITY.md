@@ -34,21 +34,39 @@ repository's own tracked files. If you discover a vulnerability affecting:
   vulnerability report showing a path that does would be taken very
   seriously).
 
-**Not yet applicable** - DS02 (remote host provisioning), DS04 (workspace/
-task runner), DS05 (durable queue), DS06 (AI provider) and DS07-DS10 do
-not exist yet in this delivery. There is no remote access, no task
-execution, no AI-provider network call, and no durable queue anywhere in
-this repository yet, so there is nothing there to have a vulnerability in.
+Also in scope, because they exist and run:
+
+- **The task runner** (`runner.py`, `workspace.py`, `recipe.py`) - a way to
+  run a command outside the allow-listed ones, to read or write outside the
+  task workspace, to inherit a secret from the service user's environment,
+  or to leave a process alive after a task ends or is cancelled. The runner
+  is NOT a sandbox: a task has the file-system reach of the service user, so
+  run it as a dedicated account.
+- **The durable queue** (`durable_queue.py`) - a result accepted from a
+  worker that no longer holds the lease, a task leased twice, or a lost journal
+  entry.
+- **The local API and plugins** (`api.py`, `plugins.py`) - the API listens on
+  loopback only and needs a bearer token for everything except the health
+  check; a plugin is trusted code that runs in the API's own process once an
+  operator approves its SHA-256. Report any way to reach a route without the
+  token, to bind beyond loopback, or to load a plugin that was not approved.
+- **The remote-station plan and the migration** (`remote_station.py`,
+  `provision.py`, `migration.py`) - text that reaches a generated systemd unit,
+  an address that opens an editor to the whole network, or a private file
+  classified as publishable.
+- **The incident transport and the repair cycle** (`incident_transport.py`,
+  `repair_cycle.py`) - a forged, replayed or misaddressed message accepted as
+  genuine, or a repair step that can be skipped or replayed.
+- **Backup and restore** (`operations.py`) - a path in a manifest that writes
+  outside the restore root.
 
 Please report responsibly:
 
 1. **Email**: Send a detailed report to `electrohobby3d@gmail.com`.
 2. **Impact**: Describe the attack surface affected and a realistic
-   scenario (this delivery has no network-facing service and no task
-   runner of its own - the CLI only runs when explicitly invoked, so a
-   realistic scenario today involves what a maliciously crafted
-   configuration document could make `config validate`/`inventory scan`
-   do, not a remote attacker directly reaching this tool).
+   scenario (the only network-facing part is the local API on loopback
+   with a bearer token, and a plugin runs in its process; most other attack
+   surface is a crafted configuration, recipe, manifest or plugin).
 3. **Response**: Initial acknowledgment within 48 hours.
 
 We follow a coordinated disclosure policy.

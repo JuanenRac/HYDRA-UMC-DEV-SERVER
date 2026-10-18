@@ -59,7 +59,8 @@ def build_task_env(source_env: dict[str, str] | None = None) -> dict[str, str]:
     import os
 
     src = os.environ if source_env is None else source_env
-    return {key: src[key] for key in _SAFE_ENV_KEYS if key in src and src[key]}
+    keys = _SAFE_ENV_KEYS + (_SAFE_ENV_KEYS_WINDOWS if os.name == "nt" else ())
+    return {key: src[key] for key in keys if key in src and src[key]}
 
 
 class CancelToken:
@@ -128,13 +129,14 @@ def run_task(
     cancel_token: CancelToken | None = None,
     poll_interval: float = 0.05,
     clock: Any = time,
+    fs: Any = None,
 ) -> RunResult:
     """Execute `recipe` inside `workspace`, bounded by `recipe.timeout_seconds`
     and `cancel_token`. Returns a `RunResult`; raises nothing for a normal
     rejection or a non-zero exit."""
     try:
         recipe.validate_against(policy)
-        resolved = recipe.resolved_input_paths(workspace)  # raises WorkspaceEscapeError on escape
+        resolved = recipe.resolved_input_paths(workspace, fs)  # raises WorkspaceEscapeError on escape (and on a symlink out, when fs is given)
     except ConfigValidationError as exc:
         return RunResult(
             task_id=recipe.task_id,
@@ -146,8 +148,20 @@ def run_task(
     del resolved  # DS04 only proves they resolve; DS05's runner stages them
 
     env = build_task_env()
+    # the task's HOME is its own workspace, never the real home of the service user
+    # (which holds ssh keys, git credentials and the like)
+    env["HOME"] = workspace.root
     started = clock.monotonic()
-    handle = launcher.spawn(tuple(recipe.command), cwd=workspace.root, env=env)
+    try:
+        handle = launcher.spawn(tuple(recipe.command), cwd=workspace.root, env=env)
+    except OSError as exc:  # the command does not exist in PATH, is not executable, ...
+        return RunResult(
+            task_id=recipe.task_id,
+            outcome=OUTCOME_REJECTED,
+            exit_code=None,
+            duration_seconds=0.0,
+            rejection_reason=f"the command could not be started: {exc}",
+        )
 
     outcome = OUTCOME_COMPLETED
     exit_code: int | None = None
@@ -233,11 +247,37 @@ class _SubprocessHandle:
             self._drain()
         return code
 
+    def _kill_group(self, sig: int) -> None:
+        # start_new_session makes the child the leader of its own group, so its
+        # pid IS the group id; this works even after the child itself was reaped
+        import os
+
+        try:
+            os.killpg(self._proc.pid, sig)
+        except (ProcessLookupError, PermissionError):
+            pass
+
     def _drain(self) -> None:
+        import os
+        import signal
+
+        # a task that exits normally may still leave background processes behind
+        # (test servers, watchers): they must not outlive the task
+        if os.name == "posix":
+            self._kill_group(signal.SIGKILL)
         # once the child is gone both pipes reach end-of-file and the readers finish; a
         # grandchild that kept a pipe open would hold them, so the wait is bounded
         for reader in (self._out, self._err):
             reader.join(timeout=5)
+        for pipe in (self._proc.stdout, self._proc.stderr):
+            try:
+                pipe.close()
+            except (OSError, ValueError):
+                pass
+        try:
+            self._proc.wait(timeout=5)
+        except Exception:  # noqa: BLE001 - nothing more can be done for a child that will not exit
+            pass
         self._reaped = True
 
     def kill_tree(self) -> None:
@@ -247,12 +287,12 @@ class _SubprocessHandle:
 
         pid = self._proc.pid
         if os.name == "posix":
-            try:
-                os.killpg(os.getpgid(pid), signal.SIGTERM)
-                self._wait_briefly()
-                os.killpg(os.getpgid(pid), signal.SIGKILL)
-            except (ProcessLookupError, PermissionError):
-                pass
+            # SIGTERM first, a short grace period, then SIGKILL to the whole group
+            # regardless: a grandchild that ignores SIGTERM must not survive just
+            # because the direct child died and was reaped in between
+            self._kill_group(signal.SIGTERM)
+            self._wait_briefly()
+            self._kill_group(signal.SIGKILL)
         else:  # Windows: taskkill reaps the whole tree
             sp.run(
                 ("taskkill", "/F", "/T", "/PID", str(pid)),

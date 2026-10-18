@@ -29,10 +29,12 @@ records what happened, durably.
 """
 from __future__ import annotations
 
+import contextlib
 import hashlib
 import json
 import sqlite3
 import time
+from collections.abc import Iterator
 from dataclasses import dataclass
 from typing import Any
 
@@ -46,6 +48,9 @@ STATE_LEASED = "leased"
 STATE_SUCCEEDED = "succeeded"
 STATE_FAILED = "failed"
 STATE_CANCELLED = "cancelled"
+# a task that kept losing its worker is parked here instead of being retried forever
+STATE_DEAD_LETTER = "dead-letter"
+DEFAULT_MAX_ATTEMPTS = 5
 
 _SCHEMA = """
 CREATE TABLE IF NOT EXISTS entries (
@@ -113,6 +118,9 @@ class QueueEntry:
 class EnqueueOutcome:
     created: bool
     entry: QueueEntry
+    # True when a task with this id already exists but with a DIFFERENT recipe:
+    # the existing one is kept, and the caller must not assume its recipe runs
+    conflict: bool = False
 
 
 @dataclass(frozen=True)
@@ -157,10 +165,13 @@ def _row_to_entry(row: sqlite3.Row) -> QueueEntry:
 class DurableQueue:
     """A SQLite-backed durable queue. `path=":memory:"` for a test; a real
     file for a real host. One instance per process; safe for several
-    processes over the same file (WAL + immediate transactions for the
-    lease)."""
+    processes over the same file: every read-then-write (enqueue, lease,
+    record_result, reconcile, cancel) runs in one immediate transaction, and
+    the UPDATE that records a result only matches the entry still leased to
+    that worker."""
 
-    def __init__(self, path: str) -> None:
+    def __init__(self, path: str, *, max_attempts: int = DEFAULT_MAX_ATTEMPTS) -> None:
+        self._max_attempts = max_attempts
         self._conn = sqlite3.connect(path, timeout=30, isolation_level=None)
         self._conn.row_factory = sqlite3.Row
         self._conn.execute("PRAGMA journal_mode=WAL")
@@ -176,6 +187,19 @@ class DurableQueue:
     def __exit__(self, *exc: object) -> None:
         self.close()
 
+    @contextlib.contextmanager
+    def _transaction(self) -> Iterator[None]:
+        """One IMMEDIATE transaction: every read-then-write of the queue happens
+        inside it, so a second process cannot slip a lease between the two, and a
+        state change and its journal row are saved together or not at all."""
+        self._conn.execute("BEGIN IMMEDIATE")
+        try:
+            yield
+        except BaseException:
+            self._conn.execute("ROLLBACK")
+            raise
+        self._conn.execute("COMMIT")
+
     # -- write path -----------------------------------------------------
     def _journal(self, task_id: str, attempt: int, event: str, at: float, detail: dict[str, Any]) -> None:
         self._conn.execute(
@@ -190,24 +214,26 @@ class DurableQueue:
         no-op (returns `created=False`) - never a second job."""
         at = time.time() if now is None else now
         fp = recipe_fingerprint(recipe)
-        cur = self._conn.execute(
-            """
-            INSERT INTO entries(task_id, recipe_json, recipe_fingerprint, revision,
-                                base_fingerprint, state, attempt, enqueued_at, updated_at)
-            VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?)
-            ON CONFLICT(task_id) DO NOTHING
-            """,
-            (
-                recipe.task_id, json.dumps(recipe.to_dict()), fp, recipe.revision,
-                base_fingerprint, STATE_QUEUED, at, at,
-            ),
-        )
-        created = cur.rowcount == 1
-        if created:
-            self._journal(recipe.task_id, 0, "enqueued", at, {"revision": recipe.revision, "recipe_fingerprint": fp})
-        entry = self.entry(recipe.task_id)
-        assert entry is not None
-        return EnqueueOutcome(created=created, entry=entry)
+        with self._transaction():
+            cur = self._conn.execute(
+                """
+                INSERT INTO entries(task_id, recipe_json, recipe_fingerprint, revision,
+                                    base_fingerprint, state, attempt, enqueued_at, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?)
+                ON CONFLICT(task_id) DO NOTHING
+                """,
+                (
+                    recipe.task_id, json.dumps(recipe.to_dict()), fp, recipe.revision,
+                    base_fingerprint, STATE_QUEUED, at, at,
+                ),
+            )
+            created = cur.rowcount == 1
+            if created:
+                self._journal(recipe.task_id, 0, "enqueued", at, {"revision": recipe.revision, "recipe_fingerprint": fp})
+            entry = self.entry(recipe.task_id)
+        if entry is None:
+            raise DurableQueueError(f"task {recipe.task_id!r} vanished while it was being enqueued")
+        return EnqueueOutcome(created=created, entry=entry, conflict=(not created and entry.recipe_fingerprint != fp))
 
     def lease(self, worker_id: str, ttl_seconds: float, *, now: float | None = None) -> LeaseGrant | None:
         """Atomically claim the oldest `queued` entry for `worker_id` for
@@ -262,16 +288,23 @@ class DurableQueue:
         becomes a false success. If the base moved since enqueue, the
         result is stored `failed` / not promotable even on exit code 0."""
         at = time.time() if now is None else now
+        with self._transaction():
+            return self._record_result_locked(task_id, worker_id, run_result, observed_base_fingerprint, at)
+
+    def _record_result_locked(
+        self, task_id: str, worker_id: str, run_result: Any, observed_base_fingerprint: str, at: float
+    ) -> RecordOutcome:
         entry = self.entry(task_id)
         if entry is None:
             raise DurableQueueError(f"no such task {task_id!r}")
-        if entry.state != STATE_LEASED or entry.leased_by != worker_id:
+        lease_expired = entry.lease_expires_at is not None and entry.lease_expires_at < at
+        if entry.state != STATE_LEASED or entry.leased_by != worker_id or lease_expired:
+            reason = "worker does not hold a valid lease" if not lease_expired else "the worker's lease expired"
             self._journal(task_id, entry.attempt, "result-rejected", at, {
-                "reason": "worker does not hold a valid lease",
+                "reason": reason,
                 "worker_id": worker_id, "entry_state": entry.state,
             })
-            return RecordOutcome(accepted=False, final_state=entry.state, promotable=False,
-                                 reason="worker does not hold a valid lease")
+            return RecordOutcome(accepted=False, final_state=entry.state, promotable=False, reason=reason)
 
         outcome = getattr(run_result, "outcome", "unknown")
         exit_code = getattr(run_result, "exit_code", None)
@@ -287,8 +320,9 @@ class DurableQueue:
             reason = f"run outcome {outcome!r} exit_code {exit_code!r}"
 
         self._conn.execute(
-            "UPDATE entries SET state=?, leased_by=NULL, lease_expires_at=NULL, updated_at=? WHERE task_id=?",
-            (final_state, at, task_id),
+            "UPDATE entries SET state=?, leased_by=NULL, lease_expires_at=NULL, updated_at=? "
+            "WHERE task_id=? AND state=? AND leased_by=?",
+            (final_state, at, task_id, STATE_LEASED, worker_id),
         )
         self._journal(task_id, entry.attempt, "completed", at, {
             "final_state": final_state,
@@ -306,29 +340,39 @@ class DurableQueue:
 
     def cancel(self, task_id: str, *, now: float | None = None) -> bool:
         at = time.time() if now is None else now
-        cur = self._conn.execute(
-            f"UPDATE entries SET state=?, leased_by=NULL, lease_expires_at=NULL, updated_at=? "
-            f"WHERE task_id=? AND state IN ('{STATE_QUEUED}', '{STATE_LEASED}')",
-            (STATE_CANCELLED, at, task_id),
-        )
-        if cur.rowcount == 1:
-            self._journal(task_id, self.entry(task_id).attempt, "cancelled", at, {})  # type: ignore[union-attr]
+        with self._transaction():
+            cur = self._conn.execute(
+                f"UPDATE entries SET state=?, leased_by=NULL, lease_expires_at=NULL, updated_at=? "
+                f"WHERE task_id=? AND state IN ('{STATE_QUEUED}', '{STATE_LEASED}')",
+                (STATE_CANCELLED, at, task_id),
+            )
+            if cur.rowcount == 1:
+                current = self.entry(task_id)
+                self._journal(task_id, current.attempt if current is not None else 0, "cancelled", at, {})
         return cur.rowcount == 1
 
     def reconcile(self, *, now: float | None = None) -> int:
         """Return every entry whose lease has expired to `queued`. Safe to
         call on every startup and any time; idempotent."""
         at = time.time() if now is None else now
-        rows = self._conn.execute(
-            f"SELECT task_id, attempt FROM entries WHERE state='{STATE_LEASED}' AND lease_expires_at < ?",
-            (at,),
-        ).fetchall()
-        for row in rows:
-            self._conn.execute(
-                "UPDATE entries SET state=?, leased_by=NULL, lease_expires_at=NULL, updated_at=? WHERE task_id=?",
-                (STATE_QUEUED, at, row["task_id"]),
-            )
-            self._journal(row["task_id"], row["attempt"], "lease-expired", at, {"note": "returned to queued by reconcile"})
+        with self._transaction():
+            rows = self._conn.execute(
+                f"SELECT task_id, attempt FROM entries WHERE state='{STATE_LEASED}' AND lease_expires_at < ?",
+                (at,),
+            ).fetchall()
+            for row in rows:
+                parked = self._max_attempts > 0 and row["attempt"] >= self._max_attempts
+                self._conn.execute(
+                    "UPDATE entries SET state=?, leased_by=NULL, lease_expires_at=NULL, updated_at=? "
+                    "WHERE task_id=? AND state=? AND lease_expires_at < ?",
+                    (STATE_DEAD_LETTER if parked else STATE_QUEUED, at, row["task_id"], STATE_LEASED, at),
+                )
+                self._journal(
+                    row["task_id"], row["attempt"],
+                    "dead-lettered" if parked else "lease-expired",
+                    at,
+                    {"note": "attempt limit reached" if parked else "returned to queued by reconcile"},
+                )
         return len(rows)
 
     def prune_journal(self, *, keep_last_n_per_task: int = _DEFAULT_KEEP_PER_TASK) -> int:

@@ -15,7 +15,7 @@
   <img src="https://img.shields.io/badge/Livraison-DS01--DS10%20terminé%20(fonctionnel)-brightgreen.svg" alt="DS01-DS10 terminé, fonctionnel">
 </p>
 
-> **Statut : v0.1.5, fonctionnel - les dix sur dix livrées (construit et couvert par des tests ; pas encore vérifié sur du matériel ou des services réels).** Un schéma de configuration réel et testé
+> **Statut : v0.1.6, fonctionnel - les dix sur dix livrées (construit et couvert par des tests ; pas encore vérifié sur du matériel ou des services réels).** Un schéma de configuration réel et testé
 > (`config validate`) dont la politique par défaut **n'accorde aucune
 > permission de déploiement à aucune tâche**, et une découverte de
 > manifestes en lecture seule (`inventory scan`) qui trouve les propres
@@ -33,7 +33,7 @@
 
 ---
 
-**Vérification d'honnêteté - ce qui fonctionne réellement aujourd'hui :** les seize modules listés ci-dessous (`config.py`, `inventory.py`, `remote_station.py`, `preflight.py`, `provision.py`, `migration.py`, `workspace.py`, `recipe.py`, `runner.py`, `durable_queue.py`, `ai_provider.py`, `incident_transport.py`, `repair_cycle.py`, `operations.py`, `delivery.py`, `cli.py`) sont du code réel, pas des stubs, et sont couverts par une suite de tests réelle (252 tests passants dans `tests/test_*.py`). Ce que ce code réel a effectivement fait, concrètement : valider des documents JSON, planifier des migrations sur disque, exécuter un vrai sous-processus borné dans un espace de travail isolé réel avec un environnement réellement nettoyé, persister une vraie file/journal SQLite à travers des redémarrages, et exercer un vrai aller-retour d'incident signé HMAC - le tout contre ce checkout local ou un seam de test injectable, jamais contre le matériel cible réel Raspberry Pi 5/CM5 pour lequel ce projet est construit. `provider suggest` n'appelle jamais que le `FakeProvider` déterministe ; câbler un vrai fournisseur d'IA reste une décision utilisateur explicite non encore prise. `station preflight`/`station plan` décrivent un hôte distant via un inspecteur injectable et n'ont jamais tourné contre une vraie machine distante. Rien dans ce dépôt n'a provisionné un hôte, exécuté un déploiement, ni câblé ces pièces dans une vraie boucle de travail en fonctionnement - le `overall_maturity: "functional"` codé en dur de `deliver evaluate` le dit clairement depuis le code lui-même. Voir `CHANGELOG.md` pour ce qui a été livré exactement, livraison par livraison.
+**Vérification d'honnêteté - ce qui fonctionne réellement aujourd'hui :** les seize modules listés ci-dessous (`config.py`, `inventory.py`, `remote_station.py`, `preflight.py`, `provision.py`, `migration.py`, `workspace.py`, `recipe.py`, `runner.py`, `durable_queue.py`, `ai_provider.py`, `incident_transport.py`, `repair_cycle.py`, `operations.py`, `delivery.py`, `cli.py`) sont du code réel, pas des stubs, et sont couverts par une suite de tests réelle (276 tests passants dans `tests/test_*.py`). Ce que ce code réel a effectivement fait, concrètement : valider des documents JSON, planifier des migrations sur disque, exécuter un vrai sous-processus borné dans un espace de travail isolé réel avec un environnement réellement nettoyé, persister une vraie file/journal SQLite à travers des redémarrages, et exercer un vrai aller-retour d'incident signé HMAC - le tout contre ce checkout local ou un seam de test injectable, jamais contre le matériel cible réel Raspberry Pi 5/CM5 pour lequel ce projet est construit. `provider suggest` n'appelle jamais que le `FakeProvider` déterministe ; câbler un vrai fournisseur d'IA reste une décision utilisateur explicite non encore prise. `station preflight`/`station plan` décrivent un hôte distant via un inspecteur injectable et n'ont jamais tourné contre une vraie machine distante. Rien dans ce dépôt n'a provisionné un hôte, exécuté un déploiement, ni câblé ces pièces dans une vraie boucle de travail en fonctionnement - le `overall_maturity: "functional"` codé en dur de `deliver evaluate` le dit clairement depuis le code lui-même. Voir `CHANGELOG.md` pour ce qui a été livré exactement, livraison par livraison.
 
 ---
 
@@ -172,7 +172,7 @@ $ hydra-umc-dev-server inventory scan --root ..
 {
   "root": "..",
   "projects": [
-    {"name": "HYDRA-UMC-DEV-SERVER", "version": "0.1.5", "maturity": "functional", "manifest_path": "../HYDRA-UMC-DEV-SERVER/hydra-umc.project.json"},
+    {"name": "HYDRA-UMC-DEV-SERVER", "version": "0.1.6", "maturity": "functional", "manifest_path": "../HYDRA-UMC-DEV-SERVER/hydra-umc.project.json"},
     ...
   ],
   "issues": []

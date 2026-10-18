@@ -100,6 +100,9 @@ class _Handler(BaseHTTPRequestHandler):
         except ValueError:
             self._send(400, {"error": "Content-Length must be a number"})
             return None
+        if length < 0:
+            self._send(400, {"error": "Content-Length must not be negative"})
+            return None
         if length > MAX_BODY_BYTES:
             self._send(413, {"error": f"the body may be at most {MAX_BODY_BYTES} bytes"})
             return None

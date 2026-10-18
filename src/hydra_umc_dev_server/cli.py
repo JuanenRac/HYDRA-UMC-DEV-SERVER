@@ -154,7 +154,11 @@ def _cmd_inventory_scan(args: argparse.Namespace) -> int:
     }
     text = json.dumps(payload, indent=2)
     if args.out:
-        Path(args.out).write_text(text, encoding="utf-8")
+        try:
+            Path(args.out).write_text(text, encoding="utf-8")
+        except OSError as exc:
+            print(f"INVALID: cannot write {args.out}: {exc}", file=sys.stderr)
+            return 1
         print(f"Wrote inventory to {args.out} ({len(result.projects)} project(s), {len(result.issues)} issue(s)).")
     else:
         print(text)
@@ -277,7 +281,7 @@ def _cmd_task_run(args: argparse.Namespace) -> int:
     except ConfigValidationError as exc:
         print(f"REFUSED: {exc}", file=sys.stderr)
         return 1
-    result = run_task(recipe, policy, workspace, SubprocessLauncher())
+    result = run_task(recipe, policy, workspace, SubprocessLauncher(), fs=SystemWorkspaceFs())
     print(json.dumps(result.to_dict(), indent=2))
     return 0 if result.outcome == "completed" and result.exit_code == 0 else 1
 
@@ -290,7 +294,10 @@ def _cmd_queue_enqueue(args: argparse.Namespace) -> int:
         return 1
     with DurableQueue(args.db) as queue:
         outcome = queue.enqueue(recipe, args.base_fingerprint)
-    print(json.dumps({"created": outcome.created, "entry": outcome.entry.to_dict()}, indent=2))
+    print(json.dumps({"created": outcome.created, "conflict": outcome.conflict, "entry": outcome.entry.to_dict()}, indent=2))
+    if outcome.conflict:
+        print(f"REFUSED: task {recipe.task_id!r} already exists with a different recipe", file=sys.stderr)
+        return 1
     return 0
 
 
@@ -325,7 +332,11 @@ def _cmd_provider_suggest(args: argparse.Namespace) -> int:
     except ConfigValidationError as exc:
         print(f"INVALID: {args.config} (ai-provider): {exc}", file=sys.stderr)
         return 1
-    prompt = Path(args.prompt_file).read_text(encoding="utf-8")
+    try:
+        prompt = Path(args.prompt_file).read_text(encoding="utf-8")
+    except (OSError, UnicodeDecodeError) as exc:
+        print(f"INVALID: {args.prompt_file} (prompt): {exc}", file=sys.stderr)
+        return 1
     result = run_provider_step(config, FakeProvider(args.scenario), prompt)
     print(json.dumps(result.to_dict(), indent=2))
     return 0 if result.outcome == "suggested" else 1
@@ -356,7 +367,11 @@ def _cmd_repair_check_candidate(args: argparse.Namespace) -> int:
     except ConfigValidationError as exc:
         print(f"INVALID: {args.candidate_file} (repair-candidate): {exc}", file=sys.stderr)
         return 1
-    secret = Path(args.secret_file).read_text(encoding="utf-8").strip()
+    try:
+        secret = Path(args.secret_file).read_text(encoding="utf-8").strip()
+    except (OSError, UnicodeDecodeError) as exc:
+        print(f"INVALID: {args.secret_file} (secret file): {exc}", file=sys.stderr)
+        return 1
     check = check_candidate(
         candidate, secret,
         incident_id=args.incident, base_fingerprint=args.base, target=args.target,

@@ -163,7 +163,9 @@ class FakeOpsAgent:
 class RoundTripTests(unittest.TestCase):
     def _wire(self, **ops_kw):
         ch = PairedChannel()
-        session = IncidentSession(self_node=_DEV, peer_node=_OPS, secret=_SECRETS[_DEV], channel=ch.endpoint("a"))
+        session = IncidentSession(
+            self_node=_DEV, peer_node=_OPS, secret=_SECRETS[_DEV], peer_secret=_SECRETS[_OPS], channel=ch.endpoint("a"),
+        )
         ops = FakeOpsAgent(ch.endpoint("b"), **ops_kw)
         return session, ops
 
@@ -171,7 +173,7 @@ class RoundTripTests(unittest.TestCase):
         session, ops = self._wire()
         session.submit_incident("INC-42", {"service": "hydra-umc-server", "detail": "not active"}, now=1000.0)
         ops.pump()
-        session.pump()
+        session.pump(now=1000.0)
         self.assertEqual(session.state, STATE_DEPLOY_VERIFIED)
         self.assertEqual(session.diagnosis["summary"], "unit inactive")
         self.assertTrue(session.deploy_verification["verified"])
@@ -180,7 +182,7 @@ class RoundTripTests(unittest.TestCase):
         session, ops = self._wire(deploy_verified=False)
         session.submit_incident("INC-7", {}, now=1000.0)
         ops.pump()
-        session.pump()
+        session.pump(now=1000.0)
         self.assertEqual(session.state, "failed")
 
     def test_a_dropped_connection_leaves_a_reconcilable_state_never_a_lost_incident(self):
@@ -196,9 +198,82 @@ class RoundTripTests(unittest.TestCase):
         self.assertNotEqual(resent.nonce, "n1")
         self.assertEqual(resent.payload["incident_id"], "INC-9")
         ops.pump(now=1100.0)
-        session.pump()
+        session.pump(now=1100.0)
         self.assertEqual(session.state, STATE_DEPLOY_VERIFIED)
         self.assertEqual(len(ops.handled), 1)  # processed once, not twice
+
+
+class SessionAuthenticationTests(unittest.TestCase):
+    """The session only believes messages that verify as coming from its peer."""
+
+    def _session(self):
+        ch = PairedChannel()
+        session = IncidentSession(
+            self_node=_DEV, peer_node=_OPS, secret=_SECRETS[_DEV], peer_secret=_SECRETS[_OPS], channel=ch.endpoint("a"),
+        )
+        session.submit_incident("INC-1", {}, now=1000.0)
+        return session, ch
+
+    def _forged(self, kind, payload, *, secret="wrong-secret", to_node=_DEV, from_node=_OPS, nonce="forged-1"):
+        return IncidentMessage(
+            message_id="x", from_node=from_node, to_node=to_node, kind=kind,
+            contract_version=CONTRACT_VERSION, nonce=nonce, sent_at=1000.0, payload=payload,
+        ).signed(secret)
+
+    def test_a_deploy_verification_with_a_bad_signature_changes_nothing(self):
+        session, ch = self._session()
+        ch._to_a.append(self._forged(KIND_DEPLOY_VERIFICATION, {"incident_id": "INC-1", "verified": True}))
+        session.pump(now=1000.0)
+        self.assertEqual(session.state, STATE_PENDING_ACK)
+        self.assertTrue(session.rejected[0].startswith("bad-signature"))
+
+    def test_an_unsigned_message_is_refused(self):
+        session, ch = self._session()
+        unsigned = IncidentMessage(
+            message_id="x", from_node=_OPS, to_node=_DEV, kind=KIND_DEPLOY_VERIFICATION,
+            contract_version=CONTRACT_VERSION, nonce="n", sent_at=1000.0, payload={"incident_id": "INC-1", "verified": True},
+        )
+        ch._to_a.append(unsigned)
+        session.pump(now=1000.0)
+        self.assertEqual(session.state, STATE_PENDING_ACK)
+
+    def test_a_message_for_another_incident_or_recipient_is_refused(self):
+        session, ch = self._session()
+        good = _SECRETS[_OPS]
+        ch._to_a.append(self._forged(KIND_DEPLOY_VERIFICATION, {"incident_id": "INC-OTHER", "verified": True}, secret=good, nonce="a"))
+        ch._to_a.append(self._forged(KIND_DEPLOY_VERIFICATION, {"incident_id": "INC-1", "verified": True}, secret=good, to_node="someone-else", nonce="b"))
+        session.pump(now=1000.0)
+        self.assertEqual(session.state, STATE_PENDING_ACK)
+        self.assertEqual(len(session.rejected), 2)
+
+    def test_a_late_message_cannot_undo_a_verified_deployment(self):
+        session, ch = self._session()
+        good = _SECRETS[_OPS]
+        ch._to_a.append(self._forged(KIND_DEPLOY_VERIFICATION, {"incident_id": "INC-1", "verified": True}, secret=good, nonce="a"))
+        ch._to_a.append(self._forged(KIND_DIAGNOSIS, {"incident_id": "INC-1", "summary": "late"}, secret=good, nonce="b"))
+        session.pump(now=1000.0)
+        self.assertEqual(session.state, STATE_DEPLOY_VERIFIED)
+        self.assertIsNone(session.diagnosis)
+
+    def test_a_session_without_the_peer_secret_accepts_nothing(self):
+        ch = PairedChannel()
+        session = IncidentSession(self_node=_DEV, peer_node=_OPS, secret=_SECRETS[_DEV], channel=ch.endpoint("a"))
+        session.submit_incident("INC-1", {}, now=1000.0)
+        ch._to_a.append(self._forged(KIND_ACK, {"incident_id": "INC-1"}, secret=_SECRETS[_OPS]))
+        session.pump(now=1000.0)
+        self.assertEqual(session.state, STATE_PENDING_ACK)
+
+    def test_nonces_are_unpredictable_and_old_ones_are_forgotten(self):
+        session, _ = self._session()
+        again = session.reconcile(now=1050.0)
+        self.assertTrue(again)
+        self.assertNotRegex(session.last_sent.nonce, r"^n-[a-z-]+-\d{4}$")
+        reg, pol, state = _registry(), _policy(), VerifierState()
+        first = _msg(nonce="old-nonce", sent_at=1000.0, from_node=_OPS, to_node=_DEV)
+        self.assertTrue(verify_message(first, reg, pol, state, authenticated_as=_OPS, now=1000.0).ok)
+        later = _msg(nonce="new-nonce", sent_at=5000.0, from_node=_OPS, to_node=_DEV)
+        self.assertTrue(verify_message(later, reg, pol, state, authenticated_as=_OPS, now=5000.0).ok)
+        self.assertNotIn("old-nonce", state.seen_nonces)
 
 
 class MessageAndPolicyShapeTests(unittest.TestCase):

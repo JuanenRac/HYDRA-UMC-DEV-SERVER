@@ -60,4 +60,6 @@ if "%~1"=="" (
 )
 
 :done
-pause
+set "HYDRA_UMC_RC=!ERRORLEVEL!"
+if not defined HYDRA_UMC_CI if "%~1"=="" pause
+exit /b !HYDRA_UMC_RC!

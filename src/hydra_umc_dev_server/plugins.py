@@ -10,8 +10,9 @@ inert until an operator enables it, and enabling requires the operator to
 name the SHA-256 of that plugin (its manifest and module together) - a
 plugin whose files changed since they were reviewed is refused, not loaded.
 A plugin only adds named *checks*: functions that return a JSON-serializable
-dict. It gets no route, no credentials and no way to change what the server
-allows.
+dict. It gets no route of its own, and the server hands it no credential - but
+it runs in the SAME process as the API, so a plugin is trusted code: enable only
+what you have read. The SHA-256 you approve covers the manifest and the module.
 
 States: `discovered` -> `enabled` (after a verified load) -> `disabled`;
 `failed` when validation, the digest check or the plugin's own `register`

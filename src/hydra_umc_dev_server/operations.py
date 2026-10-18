@@ -75,13 +75,30 @@ class BackupManifest:
         ):
             errors.append("'files' must be a map of relpath -> sha256 hex")
             files_raw = {}
+        for rel in files_raw:
+            try:
+                _check_relpath(rel)
+            except ConfigValidationError as exc:
+                errors.append(str(exc))
         if errors:
             raise ConfigValidationError("; ".join(errors))
         return BackupManifest(backup_id, instance_id, schema_version, dict(files_raw))
 
 
+def _check_relpath(rel: str) -> str:
+    """A manifest path must stay inside its root: relative, no '..', no
+    empty or backslash segments, no control characters."""
+    parts = rel.split("/")
+    if (
+        not rel or rel.startswith("/") or "\\" in rel or any(ord(ch) < 32 for ch in rel)
+        or any(part in ("", ".", "..") for part in parts)
+    ):
+        raise ConfigValidationError(f"backup path {rel!r} is not a plain relative path inside the backup")
+    return rel
+
+
 def _join(root: str, rel: str) -> str:
-    return (root.rstrip("/") + "/" + rel.lstrip("/")).replace("\\", "/")
+    return (root.rstrip("/") + "/" + _check_relpath(rel)).replace("\\", "/")
 
 
 def create_backup(
@@ -237,9 +254,22 @@ class SystemBackupFs:
     def write_bytes(self, path: str, data: bytes) -> None:
         import os
 
-        os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
-        with open(path, "wb") as handle:
-            handle.write(data)
+        import tempfile
+
+        directory = os.path.dirname(path) or "."
+        os.makedirs(directory, exist_ok=True)
+        # write beside the target, flush to disk, then rename: a cut during a
+        # restore leaves either the old file or the new one, never half of it
+        descriptor, temporary = tempfile.mkstemp(dir=directory, prefix=".restore-", suffix=".tmp")
+        try:
+            with os.fdopen(descriptor, "wb") as handle:
+                handle.write(data)
+                handle.flush()
+                os.fsync(handle.fileno())
+            os.replace(temporary, path)
+        finally:
+            if os.path.exists(temporary):
+                os.remove(temporary)
 
     def sha256(self, path: str) -> str:
         import hashlib

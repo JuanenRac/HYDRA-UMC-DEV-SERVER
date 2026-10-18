@@ -76,6 +76,10 @@ class StationCommandTests(unittest.TestCase):
         self.assertEqual(main(["station", "plan", str(self._example)]), 0)
 
 
+@unittest.skipUnless(
+    (Path(__file__).resolve().parent.parent / ".git").exists(),
+    "needs a git checkout (not available from a source archive)",
+)
 class MigrateCommandTests(unittest.TestCase):
     _repo = Path(__file__).resolve().parent.parent  # this repo is itself a git checkout
 

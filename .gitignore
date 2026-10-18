@@ -18,3 +18,4 @@ state/
 artifacts/
 logs/
 cache/
+.vscode/

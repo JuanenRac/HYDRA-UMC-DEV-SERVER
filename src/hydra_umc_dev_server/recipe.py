@@ -125,12 +125,14 @@ class TaskRecipe:
                 f"{tuple(policy.allowed_commands)!r}"
             )
 
-    def resolved_input_paths(self, workspace: Workspace) -> tuple[str, ...]:
+    def resolved_input_paths(self, workspace: Workspace, fs: Any = None) -> tuple[str, ...]:
         """Every declared input path, resolved inside `workspace`. Raises
         `WorkspaceEscapeError` (a `ConfigValidationError` subclass) for any
         path that climbs out - a recipe cannot name a file outside its own
-        workspace."""
+        workspace. With `fs` (a `WorkspaceFs`) the path is also resolved the way
+        the operating system would open it, so a symbolic link that points out of
+        the workspace is refused too."""
         resolved: list[str] = []
         for relpath in self.input_paths:
-            resolved.append(workspace.resolve(relpath))
+            resolved.append(workspace.resolve_with(relpath, fs) if fs is not None else workspace.resolve(relpath))
         return tuple(resolved)

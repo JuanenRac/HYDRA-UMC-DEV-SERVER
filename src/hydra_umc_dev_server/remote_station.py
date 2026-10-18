@@ -29,6 +29,7 @@ documentation:
 from __future__ import annotations
 
 import ipaddress
+import re
 from dataclasses import dataclass
 from typing import Any
 
@@ -80,6 +81,12 @@ class RemoteIdentity:
         if not isinstance(workspace_subdir, str) or not workspace_subdir or workspace_subdir.startswith("/") or ".." in workspace_subdir:
             errors.append("'workspace_subdir' must be a non-empty relative path with no '..' segments")
             workspace_subdir = "workspace"
+        if user and not _USER_RE.fullmatch(user):
+            errors.append("'user' must be a lowercase account name (letters, digits, '_' or '-', up to 32 characters)")
+        if home and not _PATH_RE.fullmatch(home):
+            errors.append("'home' may only contain letters, digits, '/', '.', '_' and '-' (it ends up in a systemd unit)")
+        if isinstance(workspace_subdir, str) and not _PATH_RE.fullmatch(workspace_subdir):
+            errors.append("'workspace_subdir' may only contain letters, digits, '/', '.', '_' and '-'")
         if user and user in RemoteIdentity._FORBIDDEN_USERS:
             errors.append(f"'user' must be a dedicated system account, not {user!r}")
         if home and not home.startswith("/"):
@@ -87,6 +94,10 @@ class RemoteIdentity:
         if errors:
             raise ConfigValidationError("; ".join(errors))
         return RemoteIdentity(user=user, home=home, workspace_subdir=workspace_subdir)
+
+
+_USER_RE = re.compile(r"[a-z_][a-z0-9_-]{0,31}")
+_PATH_RE = re.compile(r"[A-Za-z0-9/._-]+")
 
 
 @dataclass(frozen=True)
@@ -102,6 +113,11 @@ class RemoteAccess:
         try:
             addr = ipaddress.ip_address(self.bind_address)
         except ValueError:
+            return False
+        # 0.0.0.0 and :: ("every interface") and link-local addresses count as
+        # "private" for the ipaddress module, but they are not where a login-capable
+        # IDE should listen
+        if addr.is_unspecified or addr.is_link_local or addr.is_multicast:
             return False
         return addr.is_loopback or addr.is_private
 
@@ -198,7 +214,8 @@ class RemoteStationProfile:
 
         if errors:
             raise ConfigValidationError("; ".join(errors))
-        assert identity is not None and remote_access is not None  # errors would have been raised
+        if identity is None or remote_access is None:  # unreachable: errors would have been raised above
+            raise ConfigValidationError("; ".join(errors) or "remote station profile is incomplete")
         return RemoteStationProfile(
             identity=identity,
             remote_access=remote_access,

@@ -51,8 +51,10 @@ class PrivacyPolicy:
     # value is still the real prefix.
     path_prefixes: tuple[str, ...] = ("SON" "NET/",)
     name_globs: tuple[str, ...] = (
-        ".env", ".env.*", "*.pem", "*.key", "id_ed25519*", "id_rsa*",
+        ".env", ".env.*", "*.env", "*.pem", "*.key", "id_ed25519*", "id_rsa*",
         "*.secret", "refresh_tokens.json", "*.p12", "*.keystore",
+        ".git-credentials", ".netrc", ".npmrc", ".pypirc", "credentials.json",
+        "service-account*.json", "*.kdbx",
     )
     extra_relpaths: tuple[str, ...] = ()
 
@@ -233,10 +235,13 @@ class RepoMigrationInventory:
         }
 
 
-def _classify(relpath: str, modified: frozenset[str], untracked: frozenset[str], policy: PrivacyPolicy) -> str:
+def _classify(
+    relpath: str, modified: frozenset[str], untracked: frozenset[str], policy: PrivacyPolicy, *, has_git: bool = True
+) -> str:
     if policy.is_private(relpath):
         return CLASS_PRIVATE
-    if relpath in untracked:
+    # a source with no git history has nothing "published" about it
+    if not has_git or relpath in untracked:
         return CLASS_UNTRACKED
     if relpath in modified:
         return CLASS_TRACKED_MODIFIED
@@ -255,6 +260,11 @@ def build_repo_inventory(
     modified = inspector.modified_tracked(source_root) if has_git else frozenset()
     untracked = inspector.untracked(source_root) if has_git else frozenset()
     unpushed = inspector.unpushed_commits(source_root) if has_git else ()
+    # files touched by commits that were never pushed are not "published and
+    # matching origin" even though the working tree is clean
+    unpushed_files_of = getattr(inspector, "unpushed_files", None)
+    if has_git and unpushed_files_of is not None:
+        modified = modified | frozenset(unpushed_files_of(source_root))
 
     entries: list[SourceEntry] = []
     for relpath in sorted(inspector.iter_files(source_root)):
@@ -264,7 +274,7 @@ def build_repo_inventory(
                 relpath=norm,
                 size=inspector.file_size(source_root, relpath),
                 sha256=inspector.file_sha256(source_root, relpath),
-                classification=_classify(norm, modified, untracked, policy),
+                classification=_classify(norm, modified, untracked, policy, has_git=has_git),
             )
         )
     return RepoMigrationInventory(
@@ -399,7 +409,7 @@ class SystemSourceInspector:
         import subprocess
 
         result = subprocess.run(
-            ("git", "-C", root, *args),
+            ("git", "--no-optional-locks", "-C", root, *args),
             text=True,
             stdout=subprocess.PIPE,
             stderr=subprocess.DEVNULL,
@@ -444,7 +454,9 @@ class SystemSourceInspector:
             for opt in (("--cached",), ("--others", "--exclude-standard")):
                 for line in self._run_git(root, "ls-files", "-z", *opt).split("\0"):
                     rel = line.strip().replace("\\", "/")
-                    if rel and rel not in seen and os.path.isfile(os.path.join(root, rel)):
+                    full = os.path.join(root, rel)
+                    # a symbolic link is never followed: its target may be outside the repository
+                    if rel and rel not in seen and os.path.isfile(full) and not os.path.islink(full):
                         seen.add(rel)
                         yield rel
             return
@@ -474,10 +486,19 @@ class SystemSourceInspector:
 
     def _porcelain(self, root: str) -> list[tuple[str, str]]:
         rows: list[tuple[str, str]] = []
-        for line in self._run_git(root, "status", "--porcelain", "-z").split("\0"):
+        # every file of a new directory is listed (not just "newdir/"), and in -z
+        # form a rename or copy is followed by one extra token holding the old path
+        tokens = self._run_git(root, "status", "--porcelain", "-z", "--untracked-files=all").split("\0")
+        index = 0
+        while index < len(tokens):
+            line = tokens[index]
+            index += 1
             if len(line) < 4:
                 continue
-            rows.append((line[:2], line[3:].replace("\\", "/")))
+            code = line[:2]
+            rows.append((code, line[3:].replace("\\", "/")))
+            if "R" in code or "C" in code:
+                index += 1  # skip the original path of the rename/copy
         return rows
 
     def modified_tracked(self, root: str) -> frozenset[str]:
@@ -488,6 +509,14 @@ class SystemSourceInspector:
 
     def untracked(self, root: str) -> frozenset[str]:
         return frozenset(path for code, path in self._porcelain(root) if code == "??")
+
+    def unpushed_files(self, root: str) -> tuple[str, ...]:
+        """Files changed by commits that are not on the upstream branch."""
+        upstream = self._run_git(root, "rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{u}").strip()
+        if not upstream:
+            return ()
+        out = self._run_git(root, "diff", "--name-only", "-z", f"{upstream}..HEAD")
+        return tuple(path.replace("\\", "/") for path in out.split("\0") if path)
 
     def unpushed_commits(self, root: str) -> tuple[str, ...]:
         upstream = self._run_git(root, "rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{u}").strip()
