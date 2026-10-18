@@ -15,7 +15,7 @@
   <img src="https://img.shields.io/badge/Livraison-DS01--DS10%20terminé%20(fonctionnel)-brightgreen.svg" alt="DS01-DS10 terminé, fonctionnel">
 </p>
 
-> **Statut : v0.1.6, fonctionnel - les dix sur dix livrées (construit et couvert par des tests ; pas encore vérifié sur du matériel ou des services réels).** Un schéma de configuration réel et testé
+> **Statut : v0.1.7, fonctionnel - les dix sur dix livrées (construit et couvert par des tests ; pas encore vérifié sur du matériel ou des services réels).** Un schéma de configuration réel et testé
 > (`config validate`) dont la politique par défaut **n'accorde aucune
 > permission de déploiement à aucune tâche**, et une découverte de
 > manifestes en lecture seule (`inventory scan`) qui trouve les propres
@@ -33,7 +33,7 @@
 
 ---
 
-**Vérification d'honnêteté - ce qui fonctionne réellement aujourd'hui :** les seize modules listés ci-dessous (`config.py`, `inventory.py`, `remote_station.py`, `preflight.py`, `provision.py`, `migration.py`, `workspace.py`, `recipe.py`, `runner.py`, `durable_queue.py`, `ai_provider.py`, `incident_transport.py`, `repair_cycle.py`, `operations.py`, `delivery.py`, `cli.py`) sont du code réel, pas des stubs, et sont couverts par une suite de tests réelle (276 tests passants dans `tests/test_*.py`). Ce que ce code réel a effectivement fait, concrètement : valider des documents JSON, planifier des migrations sur disque, exécuter un vrai sous-processus borné dans un espace de travail isolé réel avec un environnement réellement nettoyé, persister une vraie file/journal SQLite à travers des redémarrages, et exercer un vrai aller-retour d'incident signé HMAC - le tout contre ce checkout local ou un seam de test injectable, jamais contre le matériel cible réel Raspberry Pi 5/CM5 pour lequel ce projet est construit. `provider suggest` n'appelle jamais que le `FakeProvider` déterministe ; câbler un vrai fournisseur d'IA reste une décision utilisateur explicite non encore prise. `station preflight`/`station plan` décrivent un hôte distant via un inspecteur injectable et n'ont jamais tourné contre une vraie machine distante. Rien dans ce dépôt n'a provisionné un hôte, exécuté un déploiement, ni câblé ces pièces dans une vraie boucle de travail en fonctionnement - le `overall_maturity: "functional"` codé en dur de `deliver evaluate` le dit clairement depuis le code lui-même. Voir `CHANGELOG.md` pour ce qui a été livré exactement, livraison par livraison.
+**Vérification d'honnêteté - ce qui fonctionne réellement aujourd'hui :** les seize modules listés ci-dessous (`config.py`, `inventory.py`, `remote_station.py`, `preflight.py`, `provision.py`, `migration.py`, `workspace.py`, `recipe.py`, `runner.py`, `durable_queue.py`, `ai_provider.py`, `incident_transport.py`, `repair_cycle.py`, `operations.py`, `delivery.py`, `cli.py`) sont du code réel, pas des stubs, et sont couverts par une suite de tests réelle (306 tests passants dans `tests/test_*.py`). Ce que ce code réel a effectivement fait, concrètement : valider des documents JSON, planifier des migrations sur disque, exécuter un vrai sous-processus borné dans un espace de travail isolé réel avec un environnement réellement nettoyé, persister une vraie file/journal SQLite à travers des redémarrages, et exercer un vrai aller-retour d'incident signé HMAC - le tout contre ce checkout local ou un seam de test injectable, jamais contre le matériel cible réel Raspberry Pi 5/CM5 pour lequel ce projet est construit. `provider suggest` n'appelle jamais que le `FakeProvider` déterministe ; câbler un vrai fournisseur d'IA reste une décision utilisateur explicite non encore prise. `station preflight`/`station plan` décrivent un hôte distant via un inspecteur injectable et n'ont jamais tourné contre une vraie machine distante. Rien dans ce dépôt n'a provisionné un hôte, exécuté un déploiement, ni câblé ces pièces dans une vraie boucle de travail en fonctionnement - le `overall_maturity: "functional"` codé en dur de `deliver evaluate` le dit clairement depuis le code lui-même. Voir `CHANGELOG.md` pour ce qui a été livré exactement, livraison par livraison.
 
 ---
 
@@ -184,7 +184,7 @@ Il n'y a pas d'invocation par défaut au-delà de la démo exécutée par
 [docs/CLI_REFERENCE.md](docs/CLI_REFERENCE.md) pour la surface de
 commandes réelle et complète.
 
-Deux autres commandes, `plugin list` et `serve`, couvrent le cycle de vie des plugins et une API HTTP locale authentifiée (loopback uniquement, jeton bearer). Un plugin reste inerte tant qu'il n'est pas activé avec le SHA-256 approuvé de ses fichiers et ne peut ajouter que des vérifications nommées ; l'API n'exécute aucune tâche et ne déploie rien. Voir [docs/CLI_REFERENCE.md](docs/CLI_REFERENCE.md).
+Deux autres commandes, `plugin list` et `serve`, couvrent le cycle de vie des plugins et une API HTTP locale authentifiée (loopback uniquement, jeton bearer). Un plugin reste inerte tant qu'il n'est pas activé avec le SHA-256 approuvé de ses fichiers et ne peut ajouter que des vérifications, des rapports et des générateurs nommés (déclarés avec `provides` dans `plugin.json`, exécutés par `plugin run` ou par l'API, chacun borné par un délai et une taille maximale) ; l'API n'exécute aucune tâche et ne déploie rien. Voir [docs/CLI_REFERENCE.md](docs/CLI_REFERENCE.md) et [docs/PLUGINS.md](docs/PLUGINS.md).
 
 ## 2. 🧱 ARCHITECTURE ET DÉCISIONS DE CONCEPTION
 
@@ -257,7 +257,9 @@ HYDRA-UMC-DEV-SERVER/
 │   ├── OPERATIONS.md         # La sauvegarde/restauration vérifiée DS09 et la vérification de santé opérationnelle
 │   ├── DELIVERY.md           # Le manifeste de livraison DS10 et l’évaluation honnête de la maturité
 │   ├── ARCHITECTURE.md     # Objectif, modes de travail, périmètre initial, disque
-│   └── OPS_INTEGRATION.md  # La carte des 17 relations + table des propriétaires
+│   ├── OPS_INTEGRATION.md  # La carte des 17 relations + table des propriétaires
+│   └── PLUGINS.md  # Manifeste de plugin, les trois types, cycle de vie et limites du bac à sable
+├── examples/plugins/      # Plugins d'exemple : un rapport et un générateur
 ├── images/                # Médias et icônes de l'application
 ├── tools/
 │   ├── build_test.py      # Vérification de compilation non versionnante

@@ -5,6 +5,14 @@ version number follows this ecosystem's "odometer" scheme: PATCH +1 on
 every real build, rolling into MINOR past 9 (`0.0.9` -> `0.1.0`); MAJOR is
 bumped manually only. See `bump_version.py`.
 
+## [0.1.7] - Plugins can provide reports and generators
+
+- **New plugin kinds:** besides checks, a plugin can now offer **reports** (read-only descriptions of a state) and **generators** (a function that takes a small parameter object and returns one text file). The manifest declares them with a new optional `provides` list (`checks`, `reports`, `generators`; it defaults to `["checks"]`, so existing plugins need no change), and `register` may only use the registration methods of the kinds it declared. A plugin that registers an undeclared kind, or whose `register` raises halfway, ends `failed` with nothing registered.
+- **Same sandbox for all three kinds:** a 10 second timeout, an answer that must be JSON of the right shape and at most 256 KiB, generator parameters of at most 4096 bytes handed over as a copy, and a generator filename that must be a plain file name. An exception (even `SystemExit`), an overrun or a malformed answer is an error entry; it never changes the plugin's state or touches another plugin. A generator's text is returned to the caller and never written to disk.
+- **CLI and HTTP:** new `plugin run` enables one plugin for a single process against the approved SHA-256 and runs one check, report or generator; new `POST /v1/plugins/<name>/reports/<report>` and `POST /v1/plugins/<name>/generators/<generator>` behave like the check route (bearer token, bodies capped at 4096 bytes); `GET /v1/plugins` lists the kinds and the registered items.
+- **Documentation and examples:** new `docs/PLUGINS.md` (manifest, lifecycle, limits, CLI, HTTP) linked from the README in all eight languages, and two example plugins under `examples/plugins/` (`host-report`, `readme-generator`) that the tests run.
+- 306 tests (30 new): the manifest field, the lifecycle of each kind, every sandbox limit, failure isolation between plugins, the HTTP routes with and without the token, the CLI and both example plugins.
+
 ## [0.1.6] - Safer remote station and runner, verified incident sessions, race-safe queue
 
 - **Remote station:** `0.0.0.0`, `::` and link-local addresses were accepted as "private" binds (Python counts them as private), so a code-server with a terminal could be planned on every network interface; they are now refused unless public binds are explicitly allowed. The user, home and workspace names are restricted to plain characters because they are written into a generated systemd unit (a newline in `home` used to add a root-run `ExecStartPre=`).

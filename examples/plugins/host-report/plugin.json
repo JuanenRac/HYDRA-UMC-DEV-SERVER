@@ -1,0 +1,7 @@
+{
+  "name": "host-report",
+  "version": "0.1.0",
+  "api_version": 1,
+  "entry": "plugin.py",
+  "provides": ["reports"]
+}

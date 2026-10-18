@@ -19,6 +19,10 @@ Routes
     POST /v1/plugins/<name>/enable          body {"sha256": "..."}: the approved digest
     POST /v1/plugins/<name>/disable
     POST /v1/plugins/<name>/checks/<check>  run one check, bounded by a timeout
+    POST /v1/plugins/<name>/reports/<report>        run one report, bounded by a timeout and a size limit
+    POST /v1/plugins/<name>/generators/<generator>  body {"params": {...}} (optional): run one generator;
+                                                    the answer carries the generated file's name and text,
+                                                    nothing is written to disk
 """
 from __future__ import annotations
 
@@ -40,6 +44,8 @@ MIN_TOKEN_LENGTH = 24
 _ENABLE_RE = re.compile(r"^/v1/plugins/([a-z0-9-]+)/enable$")
 _DISABLE_RE = re.compile(r"^/v1/plugins/([a-z0-9-]+)/disable$")
 _CHECK_RE = re.compile(r"^/v1/plugins/([a-z0-9-]+)/checks/([a-z0-9-]+)$")
+_REPORT_RE = re.compile(r"^/v1/plugins/([a-z0-9-]+)/reports/([a-z0-9-]+)$")
+_GENERATOR_RE = re.compile(r"^/v1/plugins/([a-z0-9-]+)/generators/([a-z0-9-]+)$")
 
 
 class ApiConfigError(ValueError):
@@ -165,6 +171,14 @@ class _Handler(BaseHTTPRequestHandler):
             check = _CHECK_RE.match(path)
             if check:
                 self._send(200, registry.run_check(check.group(1), check.group(2)))
+                return
+            report = _REPORT_RE.match(path)
+            if report:
+                self._send(200, registry.run_report(report.group(1), report.group(2)))
+                return
+            generator = _GENERATOR_RE.match(path)
+            if generator:
+                self._send(200, registry.run_generator(generator.group(1), generator.group(2), body.get("params")))
                 return
         except PluginError as exc:
             self._send(404 if str(exc).startswith("no plugin") else 409, {"error": str(exc)})

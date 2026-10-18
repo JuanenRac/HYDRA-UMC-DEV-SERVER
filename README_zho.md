@@ -15,7 +15,7 @@
   <img src="https://img.shields.io/badge/交付-DS01--DS10%20已完成%20(功能阶段)-brightgreen.svg" alt="DS01-DS10 已完成，功能阶段">
 </p>
 
-> **状态：v0.1.6，功能阶段（functional）- 十次交付已全部完成（已构建并由测试覆盖；尚未在真实硬件或服务上验证）。**
+> **状态：v0.1.7，功能阶段（functional）- 十次交付已全部完成（已构建并由测试覆盖；尚未在真实硬件或服务上验证）。**
 > 一套真实、经过测试的配置模式(`config validate`)，其默认策略**不向任何任务授予部署权限**；
 > 以及只读的清单发现功能(`inventory scan`)，可找到本生态系统自身的
 > `hydra-umc.project.json` 文件——包括本仓库自己的那份。
@@ -27,7 +27,7 @@
 
 ---
 
-**诚实核查 - 今天真正能运行的部分：** 下面列出的十六个模块(`config.py`、`inventory.py`、`remote_station.py`、`preflight.py`、`provision.py`、`migration.py`、`workspace.py`、`recipe.py`、`runner.py`、`durable_queue.py`、`ai_provider.py`、`incident_transport.py`、`repair_cycle.py`、`operations.py`、`delivery.py`、`cli.py`)都是真实代码，而非占位符，并且由真实的测试套件覆盖(276 个测试在 `tests/test_*.py` 中全部通过)。这些真实代码具体做到了什么：验证 JSON 文档、在磁盘上规划迁移、在一个真实隔离工作区内以真实的净化环境运行一个真实的受限子进程、让一个真实的 SQLite 队列/日志在重启后依然持久、并执行了一次真实的 HMAC 签名事件往返 - 所有这些都只是针对本地检出或可注入的测试替身进行的，从未针对该项目真正面向的目标硬件 Raspberry Pi 5/CM5 运行过。`provider suggest` 始终只调用确定性的 `FakeProvider`；接入真实的 AI 提供方仍是一个明确尚未做出的用户决定。`station preflight`/`station plan` 通过可注入的检查器描述远程主机，从未针对真实的远程机器运行过。本仓库中没有任何东西真正部署过主机、执行过部署，或把这些部件接入一个真正运行中的工作循环 - `deliver evaluate` 自身硬编码的 `overall_maturity: "functional"` 就是代码本身给出的明确说明。具体每一项交付的内容请见 `CHANGELOG.md`。
+**诚实核查 - 今天真正能运行的部分：** 下面列出的十六个模块(`config.py`、`inventory.py`、`remote_station.py`、`preflight.py`、`provision.py`、`migration.py`、`workspace.py`、`recipe.py`、`runner.py`、`durable_queue.py`、`ai_provider.py`、`incident_transport.py`、`repair_cycle.py`、`operations.py`、`delivery.py`、`cli.py`)都是真实代码，而非占位符，并且由真实的测试套件覆盖(306 个测试在 `tests/test_*.py` 中全部通过)。这些真实代码具体做到了什么：验证 JSON 文档、在磁盘上规划迁移、在一个真实隔离工作区内以真实的净化环境运行一个真实的受限子进程、让一个真实的 SQLite 队列/日志在重启后依然持久、并执行了一次真实的 HMAC 签名事件往返 - 所有这些都只是针对本地检出或可注入的测试替身进行的，从未针对该项目真正面向的目标硬件 Raspberry Pi 5/CM5 运行过。`provider suggest` 始终只调用确定性的 `FakeProvider`；接入真实的 AI 提供方仍是一个明确尚未做出的用户决定。`station preflight`/`station plan` 通过可注入的检查器描述远程主机，从未针对真实的远程机器运行过。本仓库中没有任何东西真正部署过主机、执行过部署，或把这些部件接入一个真正运行中的工作循环 - `deliver evaluate` 自身硬编码的 `overall_maturity: "functional"` 就是代码本身给出的明确说明。具体每一项交付的内容请见 `CHANGELOG.md`。
 
 ---
 
@@ -103,7 +103,7 @@ $ hydra-umc-dev-server inventory scan --root ..
 除了 `run.sh` 运行的演示外，本交付没有无参数的默认调用，也没有图形界面 -
 完整、真实的命令界面见 [docs/CLI_REFERENCE.md](docs/CLI_REFERENCE.md)。
 
-另外两个命令 `plugin list` 和 `serve` 负责插件生命周期以及带认证的本地 HTTP API（仅限回环地址，Bearer 令牌）。插件在以其文件已批准的 SHA-256 启用之前保持惰性，并且只能添加具名检查；该 API 不运行任何任务，也不部署任何内容。详见 [docs/CLI_REFERENCE.md](docs/CLI_REFERENCE.md)。
+另外两个命令 `plugin list` 和 `serve` 负责插件生命周期以及带认证的本地 HTTP API（仅限回环地址，Bearer 令牌）。插件在以其文件已批准的 SHA-256 启用之前保持惰性，并且只能添加具名的检查、报告和生成器（在 `plugin.json` 中用 `provides` 声明，通过 `plugin run` 或 API 运行，各自受超时和大小上限限制）；该 API 不运行任何任务，也不部署任何内容。详见 [docs/CLI_REFERENCE.md](docs/CLI_REFERENCE.md) 和 [docs/PLUGINS.md](docs/PLUGINS.md)。
 
 ## 2. 🧱 架构与设计决策
 
@@ -169,7 +169,9 @@ HYDRA-UMC-DEV-SERVER/
 │   ├── OPERATIONS.md         # DS09 的经校验备份/恢复与运行健康检查
 │   ├── DELIVERY.md           # DS10 的交付清单与诚实的成熟度评估
 │   ├── ARCHITECTURE.md     # 目的、工作模式、初始范围、磁盘布局
-│   └── OPS_INTEGRATION.md  # 17 项关系图谱 + 归属表
+│   ├── OPS_INTEGRATION.md  # 17 项关系图谱 + 归属表
+│   └── PLUGINS.md  # 插件清单、三种类型、生命周期与沙箱限制
+├── examples/plugins/      # 示例插件：一个报告和一个生成器
 ├── images/                # 媒体与应用图标
 ├── tools/
 │   ├── build_test.py      # 非版本变更的构建/编译检查

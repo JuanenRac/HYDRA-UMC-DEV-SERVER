@@ -72,7 +72,9 @@
 
 - `plugin list` / `serve` - the plugin lifecycle (plugins.py) and the
   authenticated loopback HTTP API that drives it (api.py). Plugins are
-  inert until enabled against an approved SHA-256 and only add named checks.
+  inert until enabled against an approved SHA-256 and only add named checks,
+  reports and generators. `plugin run` enables one plugin for a single
+  process (against the digest you name) and runs one item of it.
 
 `task run` is the only command that executes a subprocess, and only an
 allow-listed command, in an isolated workspace, with no inherited
@@ -97,7 +99,7 @@ from .migration import (
     build_repo_inventory,
 )
 from .api import ApiConfigError, DevServer
-from .plugins import PluginRegistry
+from .plugins import PluginError, PluginRegistry
 from .ai_provider import FakeProvider, ProviderConfig, run_provider_step
 from .durable_queue import DurableQueue
 from .incident_transport import (
@@ -423,6 +425,34 @@ def _cmd_plugin_list(args: argparse.Namespace) -> int:
     return 1 if registry.problems else 0
 
 
+def _cmd_plugin_run(args: argparse.Namespace) -> int:
+    """Enable one plugin for this process only (against the digest the operator
+    names) and run one of its checks, reports or generators."""
+    try:
+        params = json.loads(args.params) if args.params else None
+    except ValueError:
+        print("--params must be a JSON object", file=sys.stderr)
+        return 1
+    registry = PluginRegistry()
+    registry.discover(Path(args.plugins_root))
+    try:
+        described = registry.enable(args.plugin, args.sha256)
+        if described["state"] != "enabled":
+            print(json.dumps(described, indent=2))
+            return 1
+        if args.kind == "check":
+            outcome = registry.run_check(args.plugin, args.item)
+        elif args.kind == "report":
+            outcome = registry.run_report(args.plugin, args.item)
+        else:
+            outcome = registry.run_generator(args.plugin, args.item, params)
+    except PluginError as exc:
+        print(f"refused: {exc}", file=sys.stderr)
+        return 1
+    print(json.dumps(outcome, indent=2))
+    return 0 if outcome["status"] == "ok" else 1
+
+
 def _read_api_token(args: argparse.Namespace) -> str:
     """The API token comes from a file or the environment, never from argv."""
     if args.token_file:
@@ -641,6 +671,14 @@ def build_parser() -> argparse.ArgumentParser:
     plugin_list = plugin_sub.add_parser("list", help="Discover plugins under a directory and print their state (nothing is imported). Exits 1 if any plugin is broken.")
     plugin_list.add_argument("--plugins-root", required=True, help="Directory whose subdirectories are plugins.")
     plugin_list.set_defaults(func=_cmd_plugin_list)
+    plugin_run = plugin_sub.add_parser("run", help="Enable one plugin for this process against its approved SHA-256 and run one check, report or generator. Exits 1 on any refusal or error.")
+    plugin_run.add_argument("--plugins-root", required=True, help="Directory whose subdirectories are plugins.")
+    plugin_run.add_argument("--plugin", required=True, help="Plugin name.")
+    plugin_run.add_argument("--sha256", required=True, help="The approved SHA-256 shown by `plugin list`.")
+    plugin_run.add_argument("--kind", required=True, choices=("check", "report", "generator"), help="Which kind of item to run.")
+    plugin_run.add_argument("--item", required=True, help="Name of the check, report or generator.")
+    plugin_run.add_argument("--params", default=None, help="Generator parameters as a JSON object (at most 4096 bytes).")
+    plugin_run.set_defaults(func=_cmd_plugin_run)
 
     serve = subparsers.add_parser("serve", help="Run the authenticated local HTTP API (loopback only).")
     serve.add_argument("--host", default="127.0.0.1", help="Loopback address to bind (default 127.0.0.1).")

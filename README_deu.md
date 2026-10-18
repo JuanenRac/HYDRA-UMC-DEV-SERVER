@@ -15,7 +15,7 @@
   <img src="https://img.shields.io/badge/Lieferung-DS01--DS10%20komplett%20(funktionsfähig)-brightgreen.svg" alt="DS01-DS10 komplett, funktionsfähig">
 </p>
 
-> **Status: v0.1.6, funktionsfähig - alle zehn von zehn geliefert (gebaut und durch Tests abgedeckt; noch nicht auf realer Hardware oder realen Diensten verifiziert).** Ein reales, getestetes Konfigurationsschema
+> **Status: v0.1.7, funktionsfähig - alle zehn von zehn geliefert (gebaut und durch Tests abgedeckt; noch nicht auf realer Hardware oder realen Diensten verifiziert).** Ein reales, getestetes Konfigurationsschema
 > (`config validate`), dessen Standardrichtlinie **keiner Aufgabe eine
 > Deployment-Berechtigung erteilt**, sowie eine schreibgeschützte
 > Manifest-Erkennung (`inventory scan`), die die eigenen
@@ -33,7 +33,7 @@
 
 ---
 
-**Ehrlichkeitscheck - was heute wirklich läuft:** alle sechzehn unten genannten Module (`config.py`, `inventory.py`, `remote_station.py`, `preflight.py`, `provision.py`, `migration.py`, `workspace.py`, `recipe.py`, `runner.py`, `durable_queue.py`, `ai_provider.py`, `incident_transport.py`, `repair_cycle.py`, `operations.py`, `delivery.py`, `cli.py`) sind echter Code, keine Stubs, und werden von einer echten Testsuite abgedeckt (276 bestandene Tests in `tests/test_*.py`). Was dieser echte Code tatsächlich getan hat, konkret: JSON-Dokumente validiert, Migrationen auf der Festplatte geplant, einen echten, begrenzten Subprozess in einem echten isolierten Arbeitsbereich mit einer echten bereinigten Umgebung ausgeführt, eine echte SQLite-Warteschlange/-Journal über Neustarts hinweg persistiert und einen echten HMAC-signierten Incident-Roundtrip durchgeführt - alles gegen dieses lokale Checkout oder einen injizierbaren Test-Seam, niemals gegen die echte Ziel-Hardware Raspberry Pi 5/CM5, für die dieses Projekt gebaut wird. `provider suggest` ruft ausschließlich den deterministischen `FakeProvider` auf; die Anbindung eines echten KI-Anbieters bleibt eine explizite, noch nicht getroffene Nutzerentscheidung. `station preflight`/`station plan` beschreiben einen entfernten Host über einen injizierbaren Inspector und liefen noch nie gegen eine echte entfernte Maschine. Nichts in diesem Repository hat einen Host provisioniert, ein Deployment ausgeführt oder diese Teile in eine echte laufende Worker-Schleife verdrahtet - das fest codierte `overall_maturity: "functional"` von `deliver evaluate` sagt das klar aus dem Code selbst heraus. Siehe `CHANGELOG.md` für das, was genau geliefert wurde, Delivery für Delivery.
+**Ehrlichkeitscheck - was heute wirklich läuft:** alle sechzehn unten genannten Module (`config.py`, `inventory.py`, `remote_station.py`, `preflight.py`, `provision.py`, `migration.py`, `workspace.py`, `recipe.py`, `runner.py`, `durable_queue.py`, `ai_provider.py`, `incident_transport.py`, `repair_cycle.py`, `operations.py`, `delivery.py`, `cli.py`) sind echter Code, keine Stubs, und werden von einer echten Testsuite abgedeckt (306 bestandene Tests in `tests/test_*.py`). Was dieser echte Code tatsächlich getan hat, konkret: JSON-Dokumente validiert, Migrationen auf der Festplatte geplant, einen echten, begrenzten Subprozess in einem echten isolierten Arbeitsbereich mit einer echten bereinigten Umgebung ausgeführt, eine echte SQLite-Warteschlange/-Journal über Neustarts hinweg persistiert und einen echten HMAC-signierten Incident-Roundtrip durchgeführt - alles gegen dieses lokale Checkout oder einen injizierbaren Test-Seam, niemals gegen die echte Ziel-Hardware Raspberry Pi 5/CM5, für die dieses Projekt gebaut wird. `provider suggest` ruft ausschließlich den deterministischen `FakeProvider` auf; die Anbindung eines echten KI-Anbieters bleibt eine explizite, noch nicht getroffene Nutzerentscheidung. `station preflight`/`station plan` beschreiben einen entfernten Host über einen injizierbaren Inspector und liefen noch nie gegen eine echte entfernte Maschine. Nichts in diesem Repository hat einen Host provisioniert, ein Deployment ausgeführt oder diese Teile in eine echte laufende Worker-Schleife verdrahtet - das fest codierte `overall_maturity: "functional"` von `deliver evaluate` sagt das klar aus dem Code selbst heraus. Siehe `CHANGELOG.md` für das, was genau geliefert wurde, Delivery für Delivery.
 
 ---
 
@@ -187,7 +187,7 @@ Es gibt keinen Standardaufruf ohne Argumente außer der Demo, die
 Oberfläche - siehe [docs/CLI_REFERENCE.md](docs/CLI_REFERENCE.md) für
 die vollständige, reale Kommandooberfläche.
 
-Zwei weitere Befehle, `plugin list` und `serve`, decken den Plugin-Lebenszyklus und eine authentifizierte lokale HTTP-API ab (nur Loopback, Bearer-Token). Ein Plugin bleibt inaktiv, bis es mit dem freigegebenen SHA-256 seiner Dateien aktiviert wird, und kann nur benannte Prüfungen hinzufügen; die API führt keine Aufgabe aus und deployt nichts. Siehe [docs/CLI_REFERENCE.md](docs/CLI_REFERENCE.md).
+Zwei weitere Befehle, `plugin list` und `serve`, decken den Plugin-Lebenszyklus und eine authentifizierte lokale HTTP-API ab (nur Loopback, Bearer-Token). Ein Plugin bleibt inaktiv, bis es mit dem freigegebenen SHA-256 seiner Dateien aktiviert wird, und kann nur benannte Prüfungen, Berichte und Generatoren hinzufügen (in `plugin.json` mit `provides` deklariert, mit `plugin run` oder über die API ausgeführt, jeweils durch Zeitlimit und Größengrenze begrenzt); die API führt keine Aufgabe aus und deployt nichts. Siehe [docs/CLI_REFERENCE.md](docs/CLI_REFERENCE.md) und [docs/PLUGINS.md](docs/PLUGINS.md).
 
 ## 2. 🧱 ARCHITEKTUR UND DESIGN-ENTSCHEIDUNGEN
 
@@ -261,7 +261,9 @@ HYDRA-UMC-DEV-SERVER/
 │   ├── OPERATIONS.md         # Das verifizierte DS09-Backup/Restore und der operative Health-Check
 │   ├── DELIVERY.md           # Das DS10-Liefermanifest und die ehrliche Reifegradbewertung
 │   ├── ARCHITECTURE.md     # Zweck, Arbeitsmodi, anfänglicher Umfang, Festplatte
-│   └── OPS_INTEGRATION.md  # Die 17-Beziehungs-Karte + Eigentümer-Tabelle
+│   ├── OPS_INTEGRATION.md  # Die 17-Beziehungs-Karte + Eigentümer-Tabelle
+│   └── PLUGINS.md  # Plugin-Manifest, die drei Arten, Lebenszyklus und Sandbox-Grenzen
+├── examples/plugins/      # Beispiel-Plugins: ein Bericht, ein Generator
 ├── images/                # Medien und App-Icons
 ├── tools/
 │   ├── build_test.py      # Nicht-versionierende Build-/Kompilierungsprüfung

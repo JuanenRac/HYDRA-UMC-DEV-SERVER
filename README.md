@@ -15,7 +15,7 @@
   <img src="https://img.shields.io/badge/Delivery-DS01--DS10%20complete%20(functional)-brightgreen.svg" alt="DS01-DS10 complete, functional">
 </p>
 
-> **Status: v0.1.6, functional - all ten of ten shipped (built and covered by tests; not yet verified on real hardware or services).** A tested
+> **Status: v0.1.7, functional - all ten of ten shipped (built and covered by tests; not yet verified on real hardware or services).** A tested
 > configuration schema
 > (`config validate`), read-only manifest discovery (`inventory scan`),
 > a remote-station profile + host preflight + dry-run provisioning plan
@@ -60,7 +60,7 @@
 
 ---
 
-**Honesty check - what actually runs today:** all sixteen modules named below (`config.py`, `inventory.py`, `remote_station.py`, `preflight.py`, `provision.py`, `migration.py`, `workspace.py`, `recipe.py`, `runner.py`, `durable_queue.py`, `ai_provider.py`, `incident_transport.py`, `repair_cycle.py`, `operations.py`, `delivery.py`, `cli.py`) are real code, not stubs, and are covered by a real test suite (276 tests passing across `tests/test_*.py`). What that real code has actually done, concretely: validated JSON documents, planned migrations on-disk, run a real bounded subprocess in a real isolated workspace with a real scrubbed environment, persisted a real SQLite queue/journal across restarts, and exercised a real HMAC-signed incident round trip - all against this local checkout or an injectable test seam, never against the target Raspberry Pi 5/CM5 hardware this project is built for. `provider suggest` only ever calls the deterministic `FakeProvider`; wiring in a real AI provider is an explicit, undone user decision. `station preflight`/`station plan` describe a remote host through an injectable inspector and have never run against a real remote machine. Nothing in this repository has provisioned a host, executed a deploy, or wired these pieces into a running worker loop - `deliver evaluate`'s own hard-coded `overall_maturity: "functional"` says this plainly from inside the code itself. See `CHANGELOG.md` for exactly what has shipped, delivery by delivery.
+**Honesty check - what actually runs today:** all sixteen modules named below (`config.py`, `inventory.py`, `remote_station.py`, `preflight.py`, `provision.py`, `migration.py`, `workspace.py`, `recipe.py`, `runner.py`, `durable_queue.py`, `ai_provider.py`, `incident_transport.py`, `repair_cycle.py`, `operations.py`, `delivery.py`, `cli.py`) are real code, not stubs, and are covered by a real test suite (306 tests passing across `tests/test_*.py`). What that real code has actually done, concretely: validated JSON documents, planned migrations on-disk, run a real bounded subprocess in a real isolated workspace with a real scrubbed environment, persisted a real SQLite queue/journal across restarts, and exercised a real HMAC-signed incident round trip - all against this local checkout or an injectable test seam, never against the target Raspberry Pi 5/CM5 hardware this project is built for. `provider suggest` only ever calls the deterministic `FakeProvider`; wiring in a real AI provider is an explicit, undone user decision. `station preflight`/`station plan` describe a remote host through an injectable inspector and have never run against a real remote machine. Nothing in this repository has provisioned a host, executed a deploy, or wired these pieces into a running worker loop - `deliver evaluate`'s own hard-coded `overall_maturity: "functional"` says this plainly from inside the code itself. See `CHANGELOG.md` for exactly what has shipped, delivery by delivery.
 
 ---
 
@@ -201,7 +201,7 @@ and no GUI in this delivery - see
 [docs/CLI_REFERENCE.md](docs/CLI_REFERENCE.md) for the full, real command
 surface.
 
-Two more commands, `plugin list` and `serve`, cover the plugin lifecycle and an authenticated local HTTP API (loopback only, bearer token). A plugin stays inert until it is enabled against the approved SHA-256 of its files and can only add named checks; the API runs no task and deploys nothing. See [docs/CLI_REFERENCE.md](docs/CLI_REFERENCE.md).
+Two more commands, `plugin list` and `serve`, cover the plugin lifecycle and an authenticated local HTTP API (loopback only, bearer token). A plugin stays inert until it is enabled against the approved SHA-256 of its files and can only add named checks, reports and generators (declared with `provides` in `plugin.json`, run by `plugin run` or over the API, each bounded by a timeout and a size limit); the API runs no task and deploys nothing. See [docs/CLI_REFERENCE.md](docs/CLI_REFERENCE.md) and [docs/PLUGINS.md](docs/PLUGINS.md).
 
 ## 2. 🧱 ARCHITECTURE & DESIGN DECISIONS
 
@@ -275,7 +275,9 @@ HYDRA-UMC-DEV-SERVER/
 │   ├── OPERATIONS.md         # The DS09 verified backup/restore and operational health check
 │   ├── DELIVERY.md           # The DS10 delivery manifest and honest maturity evaluation
 │   ├── ARCHITECTURE.md       # Purpose, working modes, initial scope, disk layout
-│   └── OPS_INTEGRATION.md    # The 17-relationship map + state-ownership table
+│   ├── OPS_INTEGRATION.md    # The 17-relationship map + state-ownership table
+│   └── PLUGINS.md    # Plugin manifest, the three kinds, lifecycle and sandbox limits
+├── examples/plugins/      # Example plugins: one report, one generator
 ├── images/                # Media and app icons
 ├── tools/
 │   ├── build_test.py      # Non-versioning build/compile check

@@ -233,14 +233,28 @@ Discovers plugins (each immediate subdirectory holding a `plugin.json`) and
 prints their state as JSON. Nothing is imported. Exits `1` if any plugin
 directory is broken; the good ones are still listed.
 
-A plugin is `plugin.json` (`name`, `version`, `api_version` = 1, `entry`)
-plus one Python module defining `register(registry)`, which may only call
-`registry.add_check(name, function)`. It stays `discovered` until enabled
+A plugin is `plugin.json` (`name`, `version`, `api_version` = 1, `entry` and
+an optional `provides`) plus one Python module defining `register(registry)`.
+`provides` lists the kinds it offers: `checks` (the default), `reports` and
+`generators`; `register` may call `registry.add_check`, `registry.add_report`
+and `registry.add_generator` for the kinds it declared and for no other. It
+stays `discovered` until enabled
 against the SHA-256 of its manifest and module together (shown by this
 command); a plugin whose files changed since that digest was approved is
-refused. States: `discovered`, `enabled`, `disabled`, `failed`. A check
-returns a JSON dict, is cut off after 10 s, and an error is reported as an
-error, never as a result.
+refused. States: `discovered`, `enabled`, `disabled`, `failed`. An item
+returns a JSON dict (a generator returns `{"filename", "content"}`), is cut off
+after 10 s, may not answer with more than 256 KiB, and an error is reported as
+an error, never as a result. The manifest, the lifecycle and the limits are
+described in [PLUGINS.md](PLUGINS.md).
+
+## `plugin run --plugins-root DIR --plugin NAME --sha256 HEX --kind check|report|generator --item NAME [--params JSON]`
+
+Enables one plugin for this process only, against the digest you name, runs
+one of its items and prints the answer as JSON. `--params` is the generator's
+parameters (a JSON object of at most 4096 bytes). Exits `0` when the answer is
+`ok`, `1` when the digest does not match, the plugin or item does not exist,
+the parameters are not valid or the item reports an error. A generator's text
+is only printed; nothing is written to disk.
 
 ## `serve --workspace-root DIR --plugins-root DIR [--host 127.0.0.1] [--port 8790] [--token-file FILE]`
 
@@ -254,11 +268,13 @@ line. Every route except `GET /v1/health` needs `Authorization: Bearer
 |---|---|
 | `GET /v1/health` | version and plugin count (no token) |
 | `GET /v1/inventory` | manifests found under the workspace |
-| `GET /v1/plugins` | every plugin, its state, digest and checks |
+| `GET /v1/plugins` | every plugin, its state, digest, kinds and the checks, reports and generators it registered |
 | `POST /v1/plugins/rescan` | discover again from disk |
 | `POST /v1/plugins/<name>/enable` | body `{"sha256": "..."}`; `409` if refused |
 | `POST /v1/plugins/<name>/disable` | disable |
 | `POST /v1/plugins/<name>/checks/<check>` | run one check |
+| `POST /v1/plugins/<name>/reports/<report>` | run one report |
+| `POST /v1/plugins/<name>/generators/<generator>` | run one generator; optional body `{"params": {...}}`; the answer carries the file name and text |
 
 The API runs no task and deploys nothing.
 
