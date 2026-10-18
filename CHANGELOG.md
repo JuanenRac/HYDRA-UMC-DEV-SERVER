@@ -5,6 +5,11 @@ version number follows this ecosystem's "odometer" scheme: PATCH +1 on
 every real build, rolling into MINOR past 9 (`0.0.9` -> `0.1.0`); MAJOR is
 bumped manually only. See `bump_version.py`.
 
+## [0.1.8]
+
+- Build version synchronized with `hydra-umc.project.json` and the repository-native version source.
+- The licence is written as GPL-3.0-or-later in every header and in the package metadata.
+
 ## [0.1.7] - Plugins can provide reports and generators
 
 - **New plugin kinds:** besides checks, a plugin can now offer **reports** (read-only descriptions of a state) and **generators** (a function that takes a small parameter object and returns one text file). The manifest declares them with a new optional `provides` list (`checks`, `reports`, `generators`; it defaults to `["checks"]`, so existing plugins need no change), and `register` may only use the registration methods of the kinds it declared. A plugin that registers an undeclared kind, or whose `register` raises halfway, ends `failed` with nothing registered.

@@ -1,7 +1,7 @@
 <!-- =============================================================================
 HYDRA-UMC-DEV-SERVER - docs/MIGRATION_FROM_PC.md
 Copyright (C) 2026 JuanenRac (Electro Hobby 3D) <electrohobby3d@gmail.com>
-GPL-3.0 - see LICENSE
+GPL-3.0-or-later - see LICENSE
 ============================================================================= -->
 
 # Conservative migration from the PC (DS03)

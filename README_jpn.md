@@ -9,13 +9,13 @@
 ### 🏗️ エコシステム全体のための再現可能な開発サーバー
 
 <p align="center">
-  <img src="https://img.shields.io/badge/ライセンス-GPL%203.0-blue.svg" alt="GPL 3.0">
+  <img src="https://img.shields.io/badge/ライセンス-GPL%203.0--or--later-blue.svg" alt="GPL 3.0 or later">
   <img src="https://img.shields.io/badge/言語-Python%203.11%2B-blue.svg" alt="Python">
   <img src="https://img.shields.io/badge/コア-stdlibのみ-brightgreen.svg" alt="stdlibのみのコア">
   <img src="https://img.shields.io/badge/デリバリー-DS01--DS10%20完了%20(機能段階)-brightgreen.svg" alt="DS01-DS10 完了、機能段階">
 </p>
 
-> **状態: v0.1.7、機能段階（functional） - 全10回すべて提供済み（構築済みでテストによりカバーされているが、実機や実サービスでの検証はまだ）。**
+> **状態: v0.1.8、機能段階（functional） - 全10回すべて提供済み（構築済みでテストによりカバーされているが、実機や実サービスでの検証はまだ）。**
 > 実在してテスト済みの設定スキーマ(`config validate`)は、デフォルトポリシーで
 > **どのタスクにもデプロイ権限を与えない**。また読み取り専用のマニフェスト発見機能
 > (`inventory scan`)は、このエコシステム自身の `hydra-umc.project.json` を
@@ -374,4 +374,4 @@ CHANGELOGには一切触れない - これ自体はテストスイートを実�
 
 ## 📜 ライセンス
 
-GPL-3.0（ソフトウェア）／ CC BY-SA 4.0（ドキュメント）- 詳細は [LICENSE.md](LICENSE.md) を参照。
+GPL-3.0-or-later（ソフトウェア）／ CC BY-SA 4.0（ドキュメント）- 詳細は [LICENSE.md](LICENSE.md) を参照。

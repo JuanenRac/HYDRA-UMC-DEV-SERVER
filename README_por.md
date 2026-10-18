@@ -9,13 +9,13 @@
 ### 🏗️ Anfitrião de desenvolvimento reproduzível para todo o ecossistema
 
 <p align="center">
-  <img src="https://img.shields.io/badge/License-GPL%203.0-blue.svg" alt="GPL 3.0">
+  <img src="https://img.shields.io/badge/License-GPL%203.0--or--later-blue.svg" alt="GPL 3.0 or later">
   <img src="https://img.shields.io/badge/Language-Python%203.11%2B-blue.svg" alt="Python">
   <img src="https://img.shields.io/badge/Core-stdlib%20only-brightgreen.svg" alt="stdlib-only core">
   <img src="https://img.shields.io/badge/Entrega-DS01--DS10%20conclu%C3%ADda%20(funcional)-brightgreen.svg" alt="DS01-DS10 concluída, funcional">
 </p>
 
-> **Estado: v0.1.7, funcional - as dez entregas de dez concluídas (construído e coberto por testes; ainda não verificado em hardware nem em serviços reais).** Um esquema de configuração testado
+> **Estado: v0.1.8, funcional - as dez entregas de dez concluídas (construído e coberto por testes; ainda não verificado em hardware nem em serviços reais).** Um esquema de configuração testado
 > (`config validate`), descoberta de manifestos só de leitura (`inventory scan`),
 > um perfil de estação remota + verificação prévia do anfitrião + plano de aprovisionamento simulado
 > (`station …`), **migração conservadora** (`migrate …`) que planeia
@@ -481,5 +481,5 @@ Este projeto faz parte do ecossistema de robótica HYDRA-UMC do mesmo autor (Jua
 
 ## 📜 LICENÇA
 
-GPL-3.0 (software) / CC BY-SA 4.0 (documentação) - veja [LICENSE.md](LICENSE.md).
+GPL-3.0-or-later (software) / CC BY-SA 4.0 (documentação) - veja [LICENSE.md](LICENSE.md).
 

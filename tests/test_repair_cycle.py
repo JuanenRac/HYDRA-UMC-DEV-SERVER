@@ -1,7 +1,7 @@
 # =============================================================================
 # HYDRA-UMC-DEV-SERVER - tests/test_repair_cycle.py
 # Copyright (C) 2026 JuanenRac (Electro Hobby 3D) <electrohobby3d@gmail.com>
-# GPL-3.0 - see LICENSE
+# GPL-3.0-or-later - see LICENSE
 # =============================================================================
 """DS08 - one fully controlled repair cycle. The happy path resolves the
 case; a tampered / misdirected / mis-approved candidate is blocked; a

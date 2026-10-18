@@ -1,7 +1,7 @@
 # =============================================================================
 # HYDRA-UMC-DEV-SERVER - tests/test_provision.py
 # Copyright (C) 2026 JuanenRac (Electro Hobby 3D) <electrohobby3d@gmail.com>
-# GPL-3.0 - see LICENSE
+# GPL-3.0-or-later - see LICENSE
 # =============================================================================
 """The provisioning plan is a document, not an action - these tests
 confirm it stays that way (argv captured as data, nothing executed) and

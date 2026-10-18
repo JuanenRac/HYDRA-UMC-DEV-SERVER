@@ -9,13 +9,13 @@
 ### 🏗️ Reproducible Development Host for the Whole Ecosystem
 
 <p align="center">
-  <img src="https://img.shields.io/badge/License-GPL%203.0-blue.svg" alt="GPL 3.0">
+  <img src="https://img.shields.io/badge/License-GPL%203.0--or--later-blue.svg" alt="GPL 3.0 or later">
   <img src="https://img.shields.io/badge/Language-Python%203.11%2B-blue.svg" alt="Python">
   <img src="https://img.shields.io/badge/Core-stdlib%20only-brightgreen.svg" alt="stdlib-only core">
   <img src="https://img.shields.io/badge/Delivery-DS01--DS10%20complete%20(functional)-brightgreen.svg" alt="DS01-DS10 complete, functional">
 </p>
 
-> **Status: v0.1.7, functional - all ten of ten shipped (built and covered by tests; not yet verified on real hardware or services).** A tested
+> **Status: v0.1.8, functional - all ten of ten shipped (built and covered by tests; not yet verified on real hardware or services).** A tested
 > configuration schema
 > (`config validate`), read-only manifest discovery (`inventory scan`),
 > a remote-station profile + host preflight + dry-run provisioning plan
@@ -487,4 +487,4 @@ This project is part of the HYDRA-UMC robotics ecosystem by the same author (Jua
 
 ## 📜 LICENSE
 
-GPL-3.0 (software) / CC BY-SA 4.0 (documentation) - see [LICENSE.md](LICENSE.md).
+GPL-3.0-or-later (software) / CC BY-SA 4.0 (documentation) - see [LICENSE.md](LICENSE.md).

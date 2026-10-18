@@ -1,7 +1,7 @@
 # =============================================================================
 # HYDRA-UMC-DEV-SERVER - tests/test_boundaries.py
 # Copyright (C) 2026 JuanenRac (Electro Hobby 3D) <electrohobby3d@gmail.com>
-# GPL-3.0 - see LICENSE
+# GPL-3.0-or-later - see LICENSE
 # =============================================================================
 """Edges that must hold: where a remote station may listen, what may end up in a
 generated unit, how a runaway process tree is stopped, how the queue behaves when

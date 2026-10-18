@@ -1,7 +1,7 @@
 # =============================================================================
 # HYDRA-UMC-DEV-SERVER - src/hydra_umc_dev_server/ai_provider.py
 # Copyright (C) 2026 JuanenRac (Electro Hobby 3D) <electrohobby3d@gmail.com>
-# GPL-3.0 - see LICENSE
+# GPL-3.0-or-later - see LICENSE
 # =============================================================================
 """DS06 - an interchangeable AI provider behind a safety contract.
 

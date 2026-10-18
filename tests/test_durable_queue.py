@@ -1,7 +1,7 @@
 # =============================================================================
 # HYDRA-UMC-DEV-SERVER - tests/test_durable_queue.py
 # Copyright (C) 2026 JuanenRac (Electro Hobby 3D) <electrohobby3d@gmail.com>
-# GPL-3.0 - see LICENSE
+# GPL-3.0-or-later - see LICENSE
 # =============================================================================
 """DS05. Every DS05 acceptance criterion, against an in-memory or
 tmp-file SQLite queue - nothing external, nothing that runs a task."""

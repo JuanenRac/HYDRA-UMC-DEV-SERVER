@@ -9,13 +9,13 @@
 ### 🏗️ 面向整个生态系统的可复现开发服务器
 
 <p align="center">
-  <img src="https://img.shields.io/badge/许可证-GPL%203.0-blue.svg" alt="GPL 3.0">
+  <img src="https://img.shields.io/badge/许可证-GPL%203.0--or--later-blue.svg" alt="GPL 3.0 or later">
   <img src="https://img.shields.io/badge/语言-Python%203.11%2B-blue.svg" alt="Python">
   <img src="https://img.shields.io/badge/核心-仅标准库-brightgreen.svg" alt="仅标准库核心">
   <img src="https://img.shields.io/badge/交付-DS01--DS10%20已完成%20(功能阶段)-brightgreen.svg" alt="DS01-DS10 已完成，功能阶段">
 </p>
 
-> **状态：v0.1.7，功能阶段（functional）- 十次交付已全部完成（已构建并由测试覆盖；尚未在真实硬件或服务上验证）。**
+> **状态：v0.1.8，功能阶段（functional）- 十次交付已全部完成（已构建并由测试覆盖；尚未在真实硬件或服务上验证）。**
 > 一套真实、经过测试的配置模式(`config validate`)，其默认策略**不向任何任务授予部署权限**；
 > 以及只读的清单发现功能(`inventory scan`)，可找到本生态系统自身的
 > `hydra-umc.project.json` 文件——包括本仓库自己的那份。
@@ -342,4 +342,4 @@ chmod +x build.sh   # 一次性
 
 ## 📜 许可证
 
-GPL-3.0（软件）/ CC BY-SA 4.0（文档）- 详见 [LICENSE.md](LICENSE.md)。
+GPL-3.0-or-later（软件）/ CC BY-SA 4.0（文档）- 详见 [LICENSE.md](LICENSE.md)。

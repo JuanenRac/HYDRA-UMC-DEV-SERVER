@@ -1,7 +1,7 @@
 # =============================================================================
 # HYDRA-UMC-DEV-SERVER - src/hydra_umc_dev_server/preflight.py
 # Copyright (C) 2026 JuanenRac (Electro Hobby 3D) <electrohobby3d@gmail.com>
-# GPL-3.0 - see LICENSE
+# GPL-3.0-or-later - see LICENSE
 # =============================================================================
 """DS02 preflight - reads a `RemoteStationProfile` and reports whether a
 host is actually ready to become that station. It never changes the host:

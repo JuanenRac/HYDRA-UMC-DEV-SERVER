@@ -2,7 +2,7 @@
 # =============================================================================
 # HYDRA-UMC-DEV-SERVER - bump_version.py
 # Copyright (C) 2026 JuanenRac (Electro Hobby 3D) <electrohobby3d@gmail.com>
-# GPL-3.0 - see LICENSE
+# GPL-3.0-or-later - see LICENSE
 #
 # Applies the ecosystem-wide "odometer" version bump to this project's own
 # pyproject.toml (and its mirrored src/hydra_umc_dev_server/__init__.py)

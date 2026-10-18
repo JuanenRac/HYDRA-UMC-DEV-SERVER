@@ -1,7 +1,7 @@
 <!-- =============================================================================
 HYDRA-UMC-DEV-SERVER - docs/CLI_REFERENCE.md
 Copyright (C) 2026 JuanenRac (Electro Hobby 3D) <electrohobby3d@gmail.com>
-GPL-3.0 - see LICENSE
+GPL-3.0-or-later - see LICENSE
 ============================================================================= -->
 
 # CLI reference (DS01 + DS02 + DS03 + DS04 + DS05 + DS06 + DS07 + DS08 + DS09 + DS10)

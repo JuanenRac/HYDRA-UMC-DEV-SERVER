@@ -1,7 +1,7 @@
 # =============================================================================
 # HYDRA-UMC-DEV-SERVER - src/hydra_umc_dev_server/remote_station.py
 # Copyright (C) 2026 JuanenRac (Electro Hobby 3D) <electrohobby3d@gmail.com>
-# GPL-3.0 - see LICENSE
+# GPL-3.0-or-later - see LICENSE
 # =============================================================================
 """DS02 - the reproducible-remote-station profile: who the remote coding
 identity is, how remote editing reaches it, and which tools that identity

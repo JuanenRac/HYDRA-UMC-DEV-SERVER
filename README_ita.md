@@ -9,13 +9,13 @@
 ### 🏗️ Server di Sviluppo Riproducibile per Tutto l'Ecosistema
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Licenza-GPL%203.0-blue.svg" alt="GPL 3.0">
+  <img src="https://img.shields.io/badge/Licenza-GPL%203.0--or--later-blue.svg" alt="GPL 3.0 or later">
   <img src="https://img.shields.io/badge/Linguaggio-Python%203.11%2B-blue.svg" alt="Python">
   <img src="https://img.shields.io/badge/Nucleo-solo%20stdlib-brightgreen.svg" alt="Nucleo solo stdlib">
   <img src="https://img.shields.io/badge/Consegna-DS01--DS10%20completo%20(funzionale)-brightgreen.svg" alt="DS01-DS10 completo, funzionale">
 </p>
 
-> **Stato: v0.1.7, funzionale - tutte e dieci su dieci consegnate (costruito e coperto da test; non ancora verificato su hardware o servizi reali).** Uno schema di configurazione reale e
+> **Stato: v0.1.8, funzionale - tutte e dieci su dieci consegnate (costruito e coperto da test; non ancora verificato su hardware o servizi reali).** Uno schema di configurazione reale e
 > testato (`config validate`) la cui politica predefinita **non
 > concede alcun permesso di deploy a nessun task**, e una scoperta di
 > manifest in sola lettura (`inventory scan`) che trova i propri file
@@ -472,4 +472,4 @@ Questo progetto fa parte dell'ecosistema robotico HYDRA-UMC dello stesso autore 
 
 ## 📜 LICENZA
 
-GPL-3.0 (software) / CC BY-SA 4.0 (documentazione) - vedi [LICENSE.md](LICENSE.md).
+GPL-3.0-or-later (software) / CC BY-SA 4.0 (documentazione) - vedi [LICENSE.md](LICENSE.md).
