@@ -318,6 +318,7 @@ CHANGELOGには一切触れない - これ自体はテストスイートを実�
 - **[URTC-FLASHER](https://github.com/JuanenRac/URTC-FLASHER)** — URTC基板向けのデスクトップGUI書き込みツール、CAN-OTAに加えてフルチップSWD/JTAG。
 - **[URTC-TESTER](https://github.com/JuanenRac/URTC-TESTER)** — URTC基板向けのデスクトップライブCANバス診断ツール、ツールプロファイルごとに1パネル。
 - **[URTC-WEB-STUDIO](https://github.com/JuanenRac/URTC-WEB-STUDIO)** — Web Serial API経由のブラウザベースのURTC-TESTER代替、ローカルインストール不要。
+- **[URTC-GATEWAY](https://github.com/JuanenRac/URTC-GATEWAY)** — URTC の CAN バスの前に置くゲートウェイ：許可する識別子のリスト、レート制限、セッション鍵。コンピューター上でテスト済みで、実際のバスではまだ試していません。
 
 *ビジョンAIノード（Hailo-8）*
 - **[HYDRA-UMC-VISION-NODE](https://github.com/JuanenRac/HYDRA-UMC-VISION-NODE)** — Hailo-8ビジョンパイプラインの統合ハブ、ステージごとの実際のハードウェア準備状況チェックを備える。
