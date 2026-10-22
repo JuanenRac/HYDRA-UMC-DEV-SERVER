@@ -1,4 +1,4 @@
-# Changelog: HYDRA-UMC-DEV-SERVER 🖥️
+# Changelog
 
 All notable changes to this project are documented here.
 
