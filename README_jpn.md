@@ -212,7 +212,7 @@ HYDRA-UMC-DEV-SERVER/
 ├── build.sh / build.bat   # venv + 編集可能インストール + チェック + テスト
 ├── build-test.sh / .bat   # 変更を伴わないビルド検証のみ
 ├── run.sh / run.bat       # 引数なしの場合は実際のinventory scan + config validateデモ、それ以外は実際のCLIコマンドを転送
-├── bump_version.py        # エコシステム全体の「オドメーター式」バージョン増加（pyproject.toml + __init__.py）
+├── bump_version.py        # オドメーター式バージョンインクリメント（明示的な `bump` コマンドのみが実行）
 └── bump_manifest_version.py # hydra-umc.project.jsonのバージョンをネイティブのものと同期（--sync）
 ```
 

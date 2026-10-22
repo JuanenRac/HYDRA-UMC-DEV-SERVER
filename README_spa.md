@@ -273,7 +273,7 @@ HYDRA-UMC-DEV-SERVER/
 ├── build.sh / build.bat   # venv + instalación editable + comprobación + pruebas
 ├── build-test.sh / .bat   # Solo validación de build no mutante
 ├── run.sh / run.bat       # Demo real de inventory scan + config validate (sin argumentos), o reenvía un comando CLI real
-├── bump_version.py        # Incremento "odómetro" de todo el ecosistema (pyproject.toml + __init__.py)
+├── bump_version.py        # Incremento de versión tipo cuentakilómetros (solo lo ejecuta el comando `bump` explícito)
 └── bump_manifest_version.py # Sincroniza la versión de hydra-umc.project.json con la nativa (--sync)
 ```
 

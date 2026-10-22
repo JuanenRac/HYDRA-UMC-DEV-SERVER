@@ -284,7 +284,7 @@ HYDRA-UMC-DEV-SERVER/
 ├── build.sh / build.bat   # venv + editierbare Installation + Prüfung + Tests
 ├── build-test.sh / .bat   # Nur nicht-mutierende Build-Validierung
 ├── run.sh / run.bat       # Reale Demo inventory scan + config validate (ohne Argumente), oder leitet einen echten CLI-Befehl weiter
-├── bump_version.py        # Ökosystemweiter "Kilometerzähler"-Versionssprung (pyproject.toml + __init__.py)
+├── bump_version.py        # Versionserhöhung im Kilometerzähler-Stil (nur vom expliziten `bump`-Befehl ausgeführt)
 └── bump_manifest_version.py # Synchronisiert die Version von hydra-umc.project.json mit der nativen (--sync)
 ```
 

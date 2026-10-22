@@ -192,7 +192,7 @@ HYDRA-UMC-DEV-SERVER/
 ├── build.sh / build.bat   # venv + 可编辑安装 + 检查 + 测试
 ├── build-test.sh / .bat   # 仅非变更式构建校验
 ├── run.sh / run.bat       # 真实的 inventory scan + config validate 演示（无参数时），或转发一条真实的 CLI 命令
-├── bump_version.py        # 全生态系统"里程表式"版本递增（pyproject.toml + __init__.py）
+├── bump_version.py        # 里程表式版本递增（仅由显式 `bump` 命令运行）
 └── bump_manifest_version.py # 将 hydra-umc.project.json 的版本与原生版本同步（--sync）
 ```
 
