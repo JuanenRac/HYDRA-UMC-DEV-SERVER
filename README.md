@@ -318,7 +318,7 @@ On Windows: `build.bat`, then `run.bat` (same demo with no arguments) /
 `build-test.sh`/`.bat` performs the same non-mutating Python-syntax
 compile check this project's own CI workflow performs, without touching
 the project version or CHANGELOG - it does NOT run the test suite itself;
-run `./build.sh`/`build.bat` (or `pytest tests/` directly) for the full
+run `./build.sh`/`build.bat` (or `python -m unittest discover -s tests` directly) for the full
 local test suite.
 
 **Troubleshooting**

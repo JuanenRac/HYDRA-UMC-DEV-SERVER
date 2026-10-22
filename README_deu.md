@@ -305,7 +305,7 @@ validate ...`. `build-test.sh`/`.bat` führt dieselbe nicht-mutierende
 Python-Syntaxprüfung durch, die auch der eigene CI-Workflow des
 Projekts durchführt, ohne die Projektversion oder das CHANGELOG
 anzurühren - es führt NICHT die Testsuite selbst aus; führen Sie
-`./build.sh`/`build.bat` (oder direkt `pytest tests/`) für die
+`./build.sh`/`build.bat` (oder direkt `python -m unittest discover -s tests`) für die
 vollständige lokale Testsuite aus.
 
 **Fehlerbehebung**

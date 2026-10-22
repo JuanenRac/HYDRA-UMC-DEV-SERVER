@@ -301,7 +301,7 @@ Su Windows: `build.bat`, poi `run.bat` (stessa demo senza argomenti) /
 `build-test.sh`/`.bat` esegue lo stesso controllo di sintassi Python non
 mutante che esegue il workflow CI del progetto, senza toccare la
 versione del progetto né il CHANGELOG - NON esegue la suite di test;
-esegui `./build.sh`/`build.bat` (o `pytest tests/` direttamente) per la
+esegui `./build.sh`/`build.bat` (o `python -m unittest discover -s tests` direttamente) per la
 suite di test locale completa.
 
 **Risoluzione dei problemi**

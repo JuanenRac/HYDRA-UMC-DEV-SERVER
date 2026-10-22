@@ -233,7 +233,7 @@ Windowsでは: `build.bat`、次に `run.bat`（引数なしの場合は同じ�
 変更を伴わないPython構文チェックを実行し、プロジェクトのバージョンや
 CHANGELOGには一切触れない - これ自体はテストスイートを実行**しない**。
 完全なローカルテストスイートには `./build.sh`/`build.bat`
-（または直接 `pytest tests/`）を実行すること。
+（または直接 `python -m unittest discover -s tests`）を実行すること。
 
 **トラブルシューティング**
 

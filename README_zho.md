@@ -211,7 +211,7 @@ chmod +x build.sh   # 一次性
 `run.bat inventory scan ...` / `run.bat config validate ...`。
 `build-test.sh`/`.bat` 执行与项目自身 CI 工作流相同的非变更式 Python
 语法检查，不会改动项目版本或 CHANGELOG——它**不会**运行测试套件本身；
-运行 `./build.sh`/`build.bat`（或直接运行 `pytest tests/`）以执行完整的本地测试套件。
+运行 `./build.sh`/`build.bat`（或直接运行 `python -m unittest discover -s tests`）以执行完整的本地测试套件。
 
 **故障排查**
 

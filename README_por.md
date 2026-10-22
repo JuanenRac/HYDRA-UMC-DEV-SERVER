@@ -313,7 +313,7 @@ No Windows: `build.bat` e depois `run.bat` (a mesma demonstração sem argumento
 O `build-test.sh`/`.bat` faz a mesma verificação não alteradora de sintaxe Python
 que o fluxo de CI deste projeto faz, sem tocar na versão do projeto nem no CHANGELOG -
 NÃO executa a suite de testes em si; execute `./build.sh`/`build.bat` (ou
-`pytest tests/` diretamente) para a suite de testes local completa.
+`python -m unittest discover -s tests` diretamente) para a suite de testes local completa.
 
 **Resolução de problemas**
 
