@@ -32,7 +32,7 @@
 
 ---
 
-**Comprobación de honestidad - qué funciona realmente hoy:** los dieciséis módulos listados a continuación (`config.py`, `inventory.py`, `remote_station.py`, `preflight.py`, `provision.py`, `migration.py`, `workspace.py`, `recipe.py`, `runner.py`, `durable_queue.py`, `ai_provider.py`, `incident_transport.py`, `repair_cycle.py`, `operations.py`, `delivery.py`, `cli.py`) son código real, no stubs, y están cubiertos por una suite de tests real (306 tests pasando en `tests/test_*.py`). Lo que ese código real ha hecho de verdad, en concreto: validar documentos JSON, planificar migraciones en disco, ejecutar un subproceso real acotado en un workspace aislado real con un entorno real depurado, persistir una cola/journal SQLite real a través de reinicios, y ejercitar un round-trip real de incidentes firmado con HMAC - todo contra este checkout local o un seam de test inyectable, nunca contra el hardware real de destino Raspberry Pi 5/CM5 para el que está construido este proyecto. `provider suggest` solo llama nunca al `FakeProvider` determinista; cablear un proveedor de IA real es una decisión de usuario explícita y sin hacer. `station preflight`/`station plan` describen un host remoto a través de un inspector inyectable y nunca se han ejecutado contra una máquina remota real. Nada en este repositorio ha aprovisionado un host, ejecutado un despliegue, ni cableado estas piezas en un bucle de trabajo real en marcha - el propio `overall_maturity: "functional"` hardcodeado de `deliver evaluate` lo dice claramente desde dentro del propio código. Ver `CHANGELOG.md` para lo que se ha entregado exactamente, entrega por entrega.
+**Comprobación de honestidad - qué funciona realmente hoy:** los veinte módulos listados a continuación (`config.py`, `inventory.py`, `remote_station.py`, `preflight.py`, `provision.py`, `migration.py`, `workspace.py`, `recipe.py`, `runner.py`, `durable_queue.py`, `ai_provider.py`, `incident_transport.py`, `repair_cycle.py`, `operations.py`, `delivery.py`, `cli.py`, `api.py`, `plugins.py`, `sandbox.py`, `taskflow.py`) son código real, no stubs, y están cubiertos por una suite de tests real (347 tests pasando en `tests/test_*.py`). Lo que ese código real ha hecho de verdad, en concreto: validar documentos JSON, planificar migraciones en disco, ejecutar un subproceso real acotado en un workspace aislado real con un entorno real depurado, persistir una cola/journal SQLite real a través de reinicios, y ejercitar un round-trip real de incidentes firmado con HMAC - todo contra este checkout local o un seam de test inyectable, nunca contra el hardware real de destino Raspberry Pi 5/CM5 para el que está construido este proyecto. `provider suggest` solo llama nunca al `FakeProvider` determinista; cablear un proveedor de IA real es una decisión de usuario explícita y sin hacer. `station preflight`/`station plan` describen un host remoto a través de un inspector inyectable y nunca se han ejecutado contra una máquina remota real. Nada en este repositorio ha aprovisionado un host, ejecutado un despliegue, ni cableado estas piezas en un bucle de trabajo real en marcha - el propio `overall_maturity: "functional"` hardcodeado de `deliver evaluate` lo dice claramente desde dentro del propio código. Ver `CHANGELOG.md` para lo que se ha entregado exactamente, entrega por entrega.
 
 ---
 
@@ -44,7 +44,7 @@
 |---|---|
 | Versión | `0.1.8` |
 | Madurez | Funcional |
-| Tests | 339 |
+| Tests | 347 |
 | Tecnología | Python 3.11+ / JSON Schema / systemd (host role, Linux only) / SQLite (durable task/state journal, from DS05 onward) |
 | Destino | Un servidor de desarrollo |
 | En hardware real | Todavía no: no consta ninguna ejecución en hardware real para esta versión |
@@ -217,9 +217,9 @@ Otros dos comandos, `plugin list` y `serve`, cubren el ciclo de vida de los plug
   una solo cuando su propio código realmente la necesite (un driver de
   cola durable para DS05, un SDK de proveedor de IA para DS06), nunca
   de forma especulativa.
-- **Esta entrega solo valida y descubre - todavía no ejecuta nada.** No
-  existe workspace, ejecución de tareas, cola, ni ninguna llamada de red
-  en este repositorio todavía.
+- **Aquí no se despliega nada.** El ejecutor corre una sola orden permitida en un espacio de trabajo por tarea (dentro de un sandbox si el equipo lo tiene),
+  la cola es un fichero SQLite local, y las únicas llamadas de red son la descarga opcional con git de una revisión fijada y la API local en loopback.
+  Ninguna tarea tiene permiso de despliegue y nada se ha ejecutado todavía en la Raspberry Pi 5/CM5 de destino.
 
 ## 📂 ESTRUCTURA DE DIRECTORIOS
 

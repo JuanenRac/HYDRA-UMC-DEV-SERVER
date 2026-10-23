@@ -178,7 +178,7 @@ must be `"fake"` - a real provider is a user decision) with a
 `max_cost_usd`). `--scenario` (default `ok`) picks which path to
 exercise: `ok` / `timeout` / `malformed` / `quota` / `injection`. A
 timeout, malformed output or quota exhaustion is a bounded named
-`outcome`; the budget stops the step before it exceeds; the suggestion
+`outcome`; a budget already reached stops the step before the call, and a call that goes past what was left is not used; the suggestion
 is returned as data with `grants_no_permissions` / `triggers_no_deploy`
 always true, and an instruction-like suggestion is `injection_flagged`,
 never acted on. Exits `0` only on `outcome: "suggested"`.

@@ -33,7 +33,7 @@
 
 ---
 
-**Ehrlichkeitscheck - was heute wirklich läuft:** alle sechzehn unten genannten Module (`config.py`, `inventory.py`, `remote_station.py`, `preflight.py`, `provision.py`, `migration.py`, `workspace.py`, `recipe.py`, `runner.py`, `durable_queue.py`, `ai_provider.py`, `incident_transport.py`, `repair_cycle.py`, `operations.py`, `delivery.py`, `cli.py`) sind echter Code, keine Stubs, und werden von einer echten Testsuite abgedeckt (306 bestandene Tests in `tests/test_*.py`). Was dieser echte Code tatsächlich getan hat, konkret: JSON-Dokumente validiert, Migrationen auf der Festplatte geplant, einen echten, begrenzten Subprozess in einem echten isolierten Arbeitsbereich mit einer echten bereinigten Umgebung ausgeführt, eine echte SQLite-Warteschlange/-Journal über Neustarts hinweg persistiert und einen echten HMAC-signierten Incident-Roundtrip durchgeführt - alles gegen dieses lokale Checkout oder einen injizierbaren Test-Seam, niemals gegen die echte Ziel-Hardware Raspberry Pi 5/CM5, für die dieses Projekt gebaut wird. `provider suggest` ruft ausschließlich den deterministischen `FakeProvider` auf; die Anbindung eines echten KI-Anbieters bleibt eine explizite, noch nicht getroffene Nutzerentscheidung. `station preflight`/`station plan` beschreiben einen entfernten Host über einen injizierbaren Inspector und liefen noch nie gegen eine echte entfernte Maschine. Nichts in diesem Repository hat einen Host provisioniert, ein Deployment ausgeführt oder diese Teile in eine echte laufende Worker-Schleife verdrahtet - das fest codierte `overall_maturity: "functional"` von `deliver evaluate` sagt das klar aus dem Code selbst heraus. Siehe `CHANGELOG.md` für das, was genau geliefert wurde, Delivery für Delivery.
+**Ehrlichkeitscheck - was heute wirklich läuft:** alle zwanzig unten genannten Module (`config.py`, `inventory.py`, `remote_station.py`, `preflight.py`, `provision.py`, `migration.py`, `workspace.py`, `recipe.py`, `runner.py`, `durable_queue.py`, `ai_provider.py`, `incident_transport.py`, `repair_cycle.py`, `operations.py`, `delivery.py`, `cli.py`, `api.py`, `plugins.py`, `sandbox.py`, `taskflow.py`) sind echter Code, keine Stubs, und werden von einer echten Testsuite abgedeckt (347 bestandene Tests in `tests/test_*.py`). Was dieser echte Code tatsächlich getan hat, konkret: JSON-Dokumente validiert, Migrationen auf der Festplatte geplant, einen echten, begrenzten Subprozess in einem echten isolierten Arbeitsbereich mit einer echten bereinigten Umgebung ausgeführt, eine echte SQLite-Warteschlange/-Journal über Neustarts hinweg persistiert und einen echten HMAC-signierten Incident-Roundtrip durchgeführt - alles gegen dieses lokale Checkout oder einen injizierbaren Test-Seam, niemals gegen die echte Ziel-Hardware Raspberry Pi 5/CM5, für die dieses Projekt gebaut wird. `provider suggest` ruft ausschließlich den deterministischen `FakeProvider` auf; die Anbindung eines echten KI-Anbieters bleibt eine explizite, noch nicht getroffene Nutzerentscheidung. `station preflight`/`station plan` beschreiben einen entfernten Host über einen injizierbaren Inspector und liefen noch nie gegen eine echte entfernte Maschine. Nichts in diesem Repository hat einen Host provisioniert, ein Deployment ausgeführt oder diese Teile in eine echte laufende Worker-Schleife verdrahtet - das fest codierte `overall_maturity: "functional"` von `deliver evaluate` sagt das klar aus dem Code selbst heraus. Siehe `CHANGELOG.md` für das, was genau geliefert wurde, Delivery für Delivery.
 
 ---
 
@@ -45,7 +45,7 @@
 |---|---|
 | Version | `0.1.8` |
 | Reifegrad | Funktionsfähig |
-| Tests | 339 |
+| Tests | 347 |
 | Technik | Python 3.11+ / JSON Schema / systemd (host role, Linux only) / SQLite (durable task/state journal, from DS05 onward) |
 | Ziel | Ein Entwicklungsserver |
 | Auf echter Hardware | Noch nicht: für diese Version ist kein Lauf auf echter Hardware vermerkt |
@@ -228,9 +228,9 @@ Zwei weitere Befehle, `plugin list` und `serve`, decken den Plugin-Lebenszyklus 
   fügt eine erst hinzu, wenn deren eigener Code sie wirklich braucht
   (ein Treiber für die dauerhafte Warteschlange bei DS05, ein
   KI-Provider-SDK bei DS06), nie spekulativ.
-- **Diese Lieferung validiert und entdeckt nur - sie führt noch nichts
-  aus.** Es gibt in diesem Repository noch keinen Workspace, keine
-  Aufgabenausführung, keine Warteschlange und keinen Netzwerkaufruf.
+- **Hier wird nichts ausgerollt.** Der Läufer führt einen einzigen erlaubten Befehl in einem Arbeitsbereich je Aufgabe aus (in einer Sandbox, wenn der Rechner eine hat),
+  die Warteschlange ist eine lokale SQLite-Datei, und die einzigen Netzwerkaufrufe sind der optionale git-Abruf einer festgelegten Revision und die lokale API auf Loopback.
+  Keine Aufgabe darf ausrollen, und auf dem Ziel-Raspberry-Pi 5/CM5 lief noch nichts.
 
 ## 📂 VERZEICHNISSTRUKTUR
 

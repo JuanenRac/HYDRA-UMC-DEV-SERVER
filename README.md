@@ -60,7 +60,7 @@
 
 ---
 
-**Honesty check - what actually runs today:** all sixteen modules named below (`config.py`, `inventory.py`, `remote_station.py`, `preflight.py`, `provision.py`, `migration.py`, `workspace.py`, `recipe.py`, `runner.py`, `durable_queue.py`, `ai_provider.py`, `incident_transport.py`, `repair_cycle.py`, `operations.py`, `delivery.py`, `cli.py`) are real code, not stubs, and are covered by a real test suite (306 tests passing across `tests/test_*.py`). What that real code has actually done, concretely: validated JSON documents, planned migrations on-disk, run a real bounded subprocess in a real isolated workspace with a real scrubbed environment, persisted a real SQLite queue/journal across restarts, and exercised a real HMAC-signed incident round trip - all against this local checkout or an injectable test seam, never against the target Raspberry Pi 5/CM5 hardware this project is built for. `provider suggest` only ever calls the deterministic `FakeProvider`; wiring in a real AI provider is an explicit, undone user decision. `station preflight`/`station plan` describe a remote host through an injectable inspector and have never run against a real remote machine. Nothing in this repository has provisioned a host, executed a deploy, or wired these pieces into a running worker loop - `deliver evaluate`'s own hard-coded `overall_maturity: "functional"` says this plainly from inside the code itself. See `CHANGELOG.md` for exactly what has shipped, delivery by delivery.
+**Honesty check - what actually runs today:** all twenty modules named below (`config.py`, `inventory.py`, `remote_station.py`, `preflight.py`, `provision.py`, `migration.py`, `workspace.py`, `recipe.py`, `runner.py`, `durable_queue.py`, `ai_provider.py`, `incident_transport.py`, `repair_cycle.py`, `operations.py`, `delivery.py`, `cli.py`, `api.py`, `plugins.py`, `sandbox.py`, `taskflow.py`) are real code, not stubs, and are covered by a real test suite (347 tests passing across `tests/test_*.py`). What that real code has actually done, concretely: validated JSON documents, planned migrations on-disk, run a real bounded subprocess in a real isolated workspace with a real scrubbed environment, persisted a real SQLite queue/journal across restarts, and exercised a real HMAC-signed incident round trip - all against this local checkout or an injectable test seam, never against the target Raspberry Pi 5/CM5 hardware this project is built for. `provider suggest` only ever calls the deterministic `FakeProvider`; wiring in a real AI provider is an explicit, undone user decision. `station preflight`/`station plan` describe a remote host through an injectable inspector and have never run against a real remote machine. Nothing in this repository has provisioned a host, executed a deploy, or wired these pieces into a running worker loop - `deliver evaluate`'s own hard-coded `overall_maturity: "functional"` says this plainly from inside the code itself. See `CHANGELOG.md` for exactly what has shipped, delivery by delivery.
 
 ---
 
@@ -72,7 +72,7 @@
 |---|---|
 | Version | `0.1.8` |
 | Maturity | Functional |
-| Tests | 339 |
+| Tests | 347 |
 | Stack | Python 3.11+ / JSON Schema / systemd (host role, Linux only) / SQLite (durable task/state journal, from DS05 onward) |
 | Target | A development server |
 | On real hardware | Not yet: no run on real hardware is recorded for this version |
@@ -239,9 +239,9 @@ Two more commands, `plugin list` and `serve`, cover the plugin lifecycle and an 
   one only once that delivery's own code genuinely needs it (a durable-
   queue driver for DS05, an AI-provider SDK for DS06), never
   speculatively.
-- **This delivery only ever validates and discovers - it does not run
-  anything.** There is no workspace, no task execution, no queue, and no
-  network call anywhere in this repository yet.
+- **Nothing here is deployed.** The runner executes one allow-listed command in a per-task workspace (inside a sandbox when the host has one),
+  the queue is a local SQLite file, and the only network calls are the optional git fetch of a pinned revision and the local API on loopback.
+  No task has permission to deploy, and nothing has run on the target Raspberry Pi 5/CM5 yet.
 
 ## 📂 DIRECTORY STRUCTURE
 

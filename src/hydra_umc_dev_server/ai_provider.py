@@ -21,7 +21,15 @@ The contract `run_provider_step()` enforces, each defended by test:
     True. DS06 hands back a string a human reads; it wires nothing to the
     runner, the queue, or a deploy.
   * a configured budget (calls / tokens / cost) stops the step before it
-    would exceed - `outcome="budget-exhausted"`, no call made.
+    would exceed - `outcome="budget-exhausted"`, no call made when it is
+    already reached. A provider that accepts `max_tokens` / `max_cost_usd`
+    is told what is left; whatever the provider answers, a call whose own
+    tokens or cost go past what was left is not a suggestion: it is
+    `budget-exhausted` too (the usage it burned is still counted), and
+    negative or non-numeric usage is a rejected completion, not a refund.
+  * any other exception the provider raises (an OSError, a ValueError of
+    an SDK) is a `rejected` outcome, and a call that does not come back
+    within the timeout is `timed-out` whatever the provider does itself.
 
 The editor session and this automated path stay separate: a
 `ProviderResult` is inert.
@@ -29,7 +37,10 @@ The editor session and this automated path stay separate: a
 from __future__ import annotations
 
 import hashlib
+import inspect
+import math
 import re
+import threading
 from dataclasses import dataclass
 from typing import Any, Protocol, runtime_checkable
 
@@ -213,6 +224,47 @@ def _budget_headroom(budget: ProviderBudget, usage: ProviderUsage) -> str | None
     return None
 
 
+def _remaining(budget: ProviderBudget, usage: ProviderUsage) -> tuple[int, float]:
+    return max(budget.max_tokens - usage.tokens, 0), max(budget.max_cost_usd - usage.cost_usd, 0.0)
+
+
+def _accepted_limits(provider: AIProvider) -> frozenset[str]:
+    """The budget keywords the provider's `complete()` takes (`max_tokens`, `max_cost_usd`)."""
+    try:
+        names = inspect.signature(provider.complete).parameters
+    except (TypeError, ValueError):
+        return frozenset()
+    return frozenset(name for name in ("max_tokens", "max_cost_usd") if name in names)
+
+
+def _call_with_timeout(call, timeout_seconds: float):
+    """Run `call` and wait at most `timeout_seconds` for it. Raises ProviderTimeout when it does not
+    come back (the worker thread is left to finish on its own; it can only be abandoned)."""
+    outcome: dict[str, Any] = {}
+
+    def target() -> None:
+        try:
+            outcome["value"] = call()
+        except BaseException as exc:  # noqa: BLE001 - handed back to the caller, never lost
+            outcome["error"] = exc
+
+    worker = threading.Thread(target=target, name="ai-provider-call", daemon=True)
+    worker.start()
+    worker.join(timeout_seconds)
+    if worker.is_alive():
+        raise ProviderTimeout(f"the provider did not answer within {timeout_seconds:g} s")
+    if "error" in outcome:
+        raise outcome["error"]
+    return outcome["value"]
+
+
+def _usage_problem(completion: RawCompletion) -> str | None:
+    for name, value in (("tokens", completion.tokens), ("cost_usd", completion.cost_usd)):
+        if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value) or value < 0:
+            return f"provider reported {name}={value!r}, which is not a non-negative number"
+    return None
+
+
 def run_provider_step(
     config: ProviderConfig,
     provider: AIProvider,
@@ -229,19 +281,43 @@ def run_provider_step(
     if over is not None:
         return ProviderResult(outcome=OUTCOME_BUDGET_EXHAUSTED, usage=usage, reason=over)
 
+    tokens_left, cost_left = _remaining(config.budget, usage)
+    limits: dict[str, Any] = {}
+    accepted = _accepted_limits(provider)
+    if "max_tokens" in accepted:
+        limits["max_tokens"] = tokens_left
+    if "max_cost_usd" in accepted:
+        limits["max_cost_usd"] = cost_left
     try:
-        completion = provider.complete(prompt, timeout_seconds=config.timeout_seconds)
+        completion = _call_with_timeout(
+            lambda: provider.complete(prompt, timeout_seconds=config.timeout_seconds, **limits),
+            config.timeout_seconds,
+        )
     except ProviderTimeout as exc:
         return ProviderResult(outcome=OUTCOME_TIMED_OUT, usage=usage, reason=str(exc))
     except ProviderQuotaExhausted as exc:
         return ProviderResult(outcome=OUTCOME_BUDGET_EXHAUSTED, usage=usage, reason=str(exc))
     except ProviderMalformed as exc:
         return ProviderResult(outcome=OUTCOME_REJECTED, usage=usage, reason=str(exc))
+    except Exception as exc:  # noqa: BLE001 - whatever a real SDK raises is a bounded outcome, never an escalation
+        return ProviderResult(outcome=OUTCOME_REJECTED, usage=usage, reason=f"provider failed: {type(exc).__name__}: {exc}")
 
     if not isinstance(completion, RawCompletion) or not isinstance(completion.text, str) or not completion.text.strip():
         return ProviderResult(outcome=OUTCOME_REJECTED, usage=usage, reason="provider returned an unusable completion")
+    problem = _usage_problem(completion)
+    if problem is not None:
+        return ProviderResult(outcome=OUTCOME_REJECTED, usage=usage, reason=problem)
 
     new_usage = usage.plus(completion)
+    if completion.tokens > tokens_left or completion.cost_usd > cost_left + 1e-12:
+        return ProviderResult(
+            outcome=OUTCOME_BUDGET_EXHAUSTED,
+            usage=new_usage,
+            reason=(
+                f"this call used {completion.tokens} tokens and {completion.cost_usd:.4f} USD, more than the "
+                f"{tokens_left} tokens and {cost_left:.4f} USD that were left - its answer is not used"
+            ),
+        )
     text = completion.text[:_MAX_SUGGESTION_CHARS]
     flagged = _INJECTION_MARKERS.search(text) is not None
     return ProviderResult(

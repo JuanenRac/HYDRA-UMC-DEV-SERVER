@@ -36,6 +36,10 @@ to handle.
 | provider raises `ProviderQuotaExhausted` | `budget-exhausted` | stop |
 | provider raises `ProviderMalformed`, or returns empty text | `rejected` | not a partial success |
 | a `ProviderBudget` limit (calls / tokens / cost) is already reached | `budget-exhausted` | **the provider is not called** |
+| a call whose own tokens or cost go past what was left of the budget | `budget-exhausted` | its answer is **not used**; the usage it burned is counted. A provider whose `complete()` takes `max_tokens` / `max_cost_usd` is told what is left |
+| the provider reports negative, non-finite or non-numeric tokens or cost | `rejected` | never a refund of the budget |
+| the provider raises anything else (`OSError`, an SDK's `ValueError`, ...) | `rejected` | `reason` names the exception; nothing escalates |
+| the provider does not come back within `timeout_seconds` | `timed-out` | the step itself waits at most that long, whatever the provider does |
 | a normal answer | `suggested` | `suggested_text` carries it verbatim |
 
 For **every** outcome the result reports `grants_no_permissions = True`
@@ -68,5 +72,5 @@ Prints the `ProviderResult` JSON. Exits `0` only on `suggested`.
   support, editor-session vs automated-path separation)
 - no worker loop that feeds a queued task's context to `provider
   suggest` and then to `task run` - that glue is DS07/DS08
-- consumption is measured against the budget; a real per-request cost
-  meter comes with the real provider
+- consumption is measured against the budget as the provider reports it; a real
+  per-request cost meter comes with the real provider
