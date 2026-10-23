@@ -114,6 +114,7 @@ from .operations import (
     BackupManifest,
     SystemBackupFs,
     check_operational_health,
+    sign_manifest,
     verify_backup,
 )
 from .repair_cycle import RepairCandidate, check_candidate
@@ -124,6 +125,7 @@ from .remote_station import RemoteStationProfile
 from .runner import SubprocessLauncher, run_task
 from .sandbox import SandboxSpec, SandboxedLauncher
 from .taskflow import ConcurrencyGate, remove_workspace, should_remove, stage_repo
+from .worker import DEFAULT_LEASE_SECONDS, work_loop
 from .workspace import SystemWorkspaceFs, allocate_workspace
 
 _KIND_LOADERS = {
@@ -332,6 +334,30 @@ def _cmd_queue_enqueue(args: argparse.Namespace) -> int:
     return 0
 
 
+def _cmd_queue_work(args: argparse.Namespace) -> int:
+    try:
+        policy = _load_task_policy(args.policy)
+        launcher = SandboxedLauncher(
+            SubprocessLauncher(),
+            SandboxSpec(
+                mode=policy.sandbox, network=policy.sandbox_network,
+                read_only_paths=policy.sandbox_read_only_paths, required=policy.sandbox_required,
+            ),
+        )
+        if launcher.used == "none":
+            print("note: no sandbox is active on this host; the tasks run with the permissions of the service user", file=sys.stderr)
+        with DurableQueue(args.db) as queue:
+            results = work_loop(
+                queue, args.worker_id, policy, str(Path(args.workspace_base)), launcher,
+                max_tasks=args.max_tasks, stop_when_idle=not args.follow, lease_seconds=args.lease_seconds,
+            )
+    except ConfigValidationError as exc:
+        print(f"REFUSED: {exc}", file=sys.stderr)
+        return 1
+    print(json.dumps({"tasks": [result.to_dict() for result in results]}, indent=2))
+    return 0 if all(result.outcome == "succeeded" for result in results) else 1
+
+
 def _cmd_queue_status(args: argparse.Namespace) -> int:
     with DurableQueue(args.db) as queue:
         reclaimed = queue.reconcile() if args.reconcile else 0
@@ -429,9 +455,62 @@ def _cmd_ops_verify_backup(args: argparse.Namespace) -> int:
     except ConfigValidationError as exc:
         print(f"INVALID: {args.manifest_file} (backup-manifest): {exc}", file=sys.stderr)
         return 1
-    result = verify_backup(manifest, str(Path(args.backup_root)), SystemBackupFs())
+    public_key = signature = None
+    if args.public_key_file:
+        try:
+            public_key = Path(args.public_key_file).read_text(encoding="utf-8").strip()
+            signature = Path(args.signature_file).read_text(encoding="utf-8").strip() if args.signature_file else ""
+        except (OSError, UnicodeDecodeError) as exc:
+            print(f"INVALID: {exc}", file=sys.stderr)
+            return 1
+    elif args.signature_file:
+        print("INVALID: --signature-file needs --public-key-file", file=sys.stderr)
+        return 1
+    result = verify_backup(manifest, str(Path(args.backup_root)), SystemBackupFs(), public_key=public_key, signature=signature)
     print(json.dumps(result.to_dict(), indent=2))
     return 0 if result.ok else 1
+
+
+def _write_new_file(path: Path, text: str, *, private: bool) -> None:
+    """Create `path` and refuse to overwrite it; a private file is readable by its owner only."""
+    import os
+
+    descriptor = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600 if private else 0o644)
+    with os.fdopen(descriptor, "w", encoding="utf-8", newline="\n") as handle:
+        handle.write(text + "\n")
+
+
+def _cmd_ops_keygen(args: argparse.Namespace) -> int:
+    from .signing import generate_key_pair
+
+    seed, public = generate_key_pair()
+    try:
+        _write_new_file(Path(args.private_key_file), seed, private=True)
+        _write_new_file(Path(args.public_key_file), public, private=False)
+    except OSError as exc:
+        print(f"REFUSED: the key files were not written: {exc}", file=sys.stderr)
+        return 1
+    print(json.dumps({"private_key_file": args.private_key_file, "public_key_file": args.public_key_file, "public_key": public}, indent=2))
+    print("Keep the private key off shared hosts and out of version control; give the public key to whoever verifies.", file=sys.stderr)
+    return 0
+
+
+def _cmd_ops_sign_backup(args: argparse.Namespace) -> int:
+    try:
+        manifest = BackupManifest.from_dict(load_json_document(Path(args.manifest_file)))
+        seed = Path(args.private_key_file).read_text(encoding="utf-8").strip()
+        signature = sign_manifest(manifest, seed)
+    except (ConfigValidationError, OSError, UnicodeDecodeError) as exc:
+        print(f"REFUSED: {exc}", file=sys.stderr)
+        return 1
+    if args.output:
+        try:
+            _write_new_file(Path(args.output), signature, private=False)
+        except OSError as exc:
+            print(f"REFUSED: the signature file was not written: {exc}", file=sys.stderr)
+            return 1
+    print(signature)
+    return 0
 
 
 def _cmd_deliver_manifest(args: argparse.Namespace) -> int:
@@ -611,6 +690,19 @@ def build_parser() -> argparse.ArgumentParser:
     )
     queue_enqueue.set_defaults(func=_cmd_queue_enqueue)
 
+    queue_work = queue_sub.add_parser(
+        "work",
+        help="Run the worker loop: lease the oldest queued task, stage its repository at the pinned revision, run it in the sandbox while renewing the lease, record the result. Stops when the queue is empty unless --follow.",
+    )
+    queue_work.add_argument("--db", required=True, help="Path to the SQLite queue database.")
+    queue_work.add_argument("--policy", required=True, help="Path to a task-policy JSON document.")
+    queue_work.add_argument("--workspace-base", required=True, help="Absolute directory under which the per-task workspaces are created.")
+    queue_work.add_argument("--worker-id", default="worker-1", help="Name of this worker in the leases (letters, digits, '.', '_' and '-').")
+    queue_work.add_argument("--max-tasks", type=int, default=None, help="Stop after this many tasks.")
+    queue_work.add_argument("--lease-seconds", type=float, default=DEFAULT_LEASE_SECONDS, help="Length of the lease; it is renewed every third of it while the task runs.")
+    queue_work.add_argument("--follow", action="store_true", help="Keep waiting for new tasks instead of stopping when the queue is empty.")
+    queue_work.set_defaults(func=_cmd_queue_work)
+
     queue_status = queue_sub.add_parser("status", help="Print entry counts by state and the journal row count.")
     queue_status.add_argument("--db", required=True, help="Path to the SQLite queue database.")
     queue_status.add_argument("--reconcile", action="store_true", help="Return expired leases to 'queued' first.")
@@ -660,7 +752,7 @@ def build_parser() -> argparse.ArgumentParser:
         help="Check one repair candidate: signature + that it is pinned to THIS incident, base and target. Blocks a tampered or misdirected candidate.",
     )
     repair_check.add_argument("candidate_file", help="Path to a repair-candidate JSON document.")
-    repair_check.add_argument("--secret-file", required=True, help="File holding the candidate signer's HMAC secret (operator-held, never committed).")
+    repair_check.add_argument("--secret-file", required=True, help="File holding the candidate signer's HMAC secret, or its public key (ed25519-public:...) for a candidate signed with a key pair (operator-held, never committed).")
     repair_check.add_argument("--incident", required=True, help="The incident id this cycle is for.")
     repair_check.add_argument("--base", required=True, help="The base fingerprint this cycle is pinned to.")
     repair_check.add_argument("--target", required=True, help="The target this cycle installs to.")
@@ -685,7 +777,26 @@ def build_parser() -> argparse.ArgumentParser:
     )
     ops_verify.add_argument("manifest_file", help="Path to a backup-manifest JSON document.")
     ops_verify.add_argument("--backup-root", required=True, help="Directory the backup files live under.")
+    ops_verify.add_argument("--public-key-file", help="Public key (ed25519-public:...) of the operator. With it the manifest must also carry a valid signature, or the backup is not ok.")
+    ops_verify.add_argument("--signature-file", help="File with the signature of the manifest (made by `ops sign-backup`).")
     ops_verify.set_defaults(func=_cmd_ops_verify_backup)
+
+    ops_keygen = ops_sub.add_parser(
+        "keygen",
+        help="Make an Ed25519 key pair for signing backups and repair candidates. Refuses to overwrite a file; the private key is written readable by its owner only.",
+    )
+    ops_keygen.add_argument("--private-key-file", required=True, help="Where to write the private key (keep it off shared hosts).")
+    ops_keygen.add_argument("--public-key-file", required=True, help="Where to write the public key.")
+    ops_keygen.set_defaults(func=_cmd_ops_keygen)
+
+    ops_sign = ops_sub.add_parser(
+        "sign-backup",
+        help="Sign a backup manifest with a private key. The signature is printed, and written to --output when given.",
+    )
+    ops_sign.add_argument("manifest_file", help="Path to a backup-manifest JSON document.")
+    ops_sign.add_argument("--private-key-file", required=True, help="File holding the private key (ed25519-seed:...).")
+    ops_sign.add_argument("--output", help="Write the signature to this new file.")
+    ops_sign.set_defaults(func=_cmd_ops_sign_backup)
 
     deliver = subparsers.add_parser("deliver", help="Delivery package + honest maturity evaluation (DS10).")
     deliver_sub = deliver.add_subparsers(dest="deliver_command", required=True)

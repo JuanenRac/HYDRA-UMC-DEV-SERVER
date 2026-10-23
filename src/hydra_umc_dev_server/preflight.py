@@ -59,9 +59,12 @@ class PreflightCheck:
     name: str
     ok: bool
     detail: str
+    # True for a check that does not hold yet because the plan itself creates it (the
+    # dedicated account, its workspace): it does not block the plan, and it is not hidden.
+    will_create: bool = False
 
     def to_dict(self) -> dict[str, Any]:
-        return {"name": self.name, "ok": self.ok, "detail": self.detail}
+        return {"name": self.name, "ok": self.ok, "detail": self.detail, "will_create": self.will_create}
 
 
 @dataclass(frozen=True)
@@ -75,12 +78,70 @@ class PreflightReport:
     def failures(self) -> tuple[PreflightCheck, ...]:
         return tuple(check for check in self.checks if not check.ok)
 
+    def to_create(self) -> tuple[PreflightCheck, ...]:
+        return tuple(check for check in self.checks if check.will_create)
+
     def to_dict(self) -> dict[str, Any]:
         return {
             "ok": self.ok,
             "checks": [check.to_dict() for check in self.checks],
             "failures": [check.name for check in self.failures()],
+            "will_create": [check.name for check in self.to_create()],
         }
+
+
+def _identity_check(profile: RemoteStationProfile, inspector: HostInspector, exists: bool) -> PreflightCheck:
+    """The account the station runs as. A missing account is not a failure (the plan creates it);
+    an existing one must be a dedicated account. What "dedicated" means depends on how the editor
+    gets in: a service account with no login shell for `code-server`, an account that can log in
+    (a real shell and an authorized_keys file) for `ssh-remote`, because Remote-SSH has to log in."""
+    user = profile.identity.user
+    ssh = profile.remote_access.kind == "ssh-remote"
+    if not exists:
+        return PreflightCheck(
+            name="identity-user",
+            ok=True,
+            will_create=True,
+            detail=f"system account {user!r} does not exist yet; the plan creates it",
+        )
+    if not ssh:
+        dedicated = inspector.user_is_system_account(user)
+        return PreflightCheck(
+            name="identity-user",
+            ok=dedicated,
+            detail=(
+                f"{user!r} exists and is a dedicated system account"
+                if dedicated
+                else f"{user!r} exists but is a normal login user / uid 0 - refuse to run the station as it"
+            ),
+        )
+    uid_of = getattr(inspector, "user_uid", None)
+    shell_of = getattr(inspector, "user_shell", None)
+    keys_of = getattr(inspector, "user_has_authorized_keys", None)
+    if not (callable(uid_of) and callable(shell_of) and callable(keys_of)):
+        return PreflightCheck(
+            name="identity-user", ok=False,
+            detail="this host inspector cannot tell the shell and the authorized keys of the account, which ssh-remote needs",
+        )
+    uid, shell = uid_of(user), str(shell_of(user) or "")
+    problems: list[str] = []
+    if uid in (None, 0):
+        problems.append("it is uid 0 or has no uid")
+    elif uid >= 1000:
+        problems.append("it is a normal login user, not a dedicated account (uid >= 1000)")
+    if not shell or shell.endswith(("nologin", "false")):
+        problems.append(f"its shell {shell or 'none'!r} cannot log in, and Remote-SSH has to log in")
+    if not keys_of(user):
+        problems.append("it has no authorized_keys file, so nobody can log in as it")
+    return PreflightCheck(
+        name="identity-user",
+        ok=not problems,
+        detail=(
+            f"{user!r} exists, is a dedicated account with a login shell and an authorized_keys file"
+            if not problems
+            else f"{user!r} exists but " + "; ".join(problems)
+        ),
+    )
 
 
 def run_preflight(
@@ -125,13 +186,28 @@ def run_preflight(
             )
         )
 
-    checks.append(
-        PreflightCheck(
-            name="workspace-writable",
-            ok=inspector.path_is_writable(workspace),
-            detail=f"{workspace} must be writable by {profile.identity.user}",
+    user = profile.identity.user
+    user_exists = inspector.user_exists(user)
+    if not user_exists:
+        # nothing can be writable by an account that does not exist yet; the plan creates both
+        checks.append(
+            PreflightCheck(
+                name="workspace-writable",
+                ok=True,
+                will_create=True,
+                detail=f"{workspace} is not there yet; the plan creates it, owned by {user}",
+            )
         )
-    )
+    else:
+        writable_by = getattr(inspector, "path_is_writable_by", None)
+        writable = writable_by(workspace, user) if callable(writable_by) else inspector.path_is_writable(workspace)
+        checks.append(
+            PreflightCheck(
+                name="workspace-writable",
+                ok=bool(writable),
+                detail=f"{workspace} must be writable by {user}",
+            )
+        )
 
     for tool in profile.required_tools:
         present = inspector.has_executable(tool.name)
@@ -168,28 +244,7 @@ def run_preflight(
         )
     )
 
-    user = profile.identity.user
-    exists = inspector.user_exists(user)
-    if not exists:
-        checks.append(
-            PreflightCheck(
-                name="identity-user",
-                ok=False,
-                detail=f"system account {user!r} does not exist yet (DS02 provisioning would create it)",
-            )
-        )
-    else:
-        checks.append(
-            PreflightCheck(
-                name="identity-user",
-                ok=inspector.user_is_system_account(user),
-                detail=(
-                    f"{user!r} exists and is a dedicated system account"
-                    if inspector.user_is_system_account(user)
-                    else f"{user!r} exists but is a normal login user / uid 0 - refuse to run the station as it"
-                ),
-            )
-        )
+    checks.append(_identity_check(profile, inspector, user_exists))
 
     return PreflightReport(checks=tuple(checks))
 
@@ -260,6 +315,54 @@ class SystemHostInspector:
 
     def user_exists(self, name: str) -> bool:
         return self._passwd_entry(name) is not None
+
+    def user_uid(self, name: str) -> int | None:
+        entry = self._passwd_entry(name)
+        uid = getattr(entry, "pw_uid", None)
+        return uid if isinstance(uid, int) else None
+
+    def user_shell(self, name: str) -> str | None:
+        entry = self._passwd_entry(name)
+        return (str(getattr(entry, "pw_shell", "")) or None) if entry is not None else None
+
+    def user_has_authorized_keys(self, name: str) -> bool:
+        import os
+
+        entry = self._passwd_entry(name)
+        home = str(getattr(entry, "pw_dir", "")) if entry is not None else ""
+        return bool(home) and os.path.isfile(os.path.join(home, ".ssh", "authorized_keys"))
+
+    def path_is_writable_by(self, path: str, name: str) -> bool:
+        """Whether the account `name` (not the user running this check) can write to `path`, or
+        to the nearest existing parent when `path` is not there yet. Reads owner, group and mode."""
+        import os
+        import stat
+
+        entry = self._passwd_entry(name)
+        if entry is None:
+            return False
+        uid = getattr(entry, "pw_uid", -1)
+        probe = path
+        while probe and not os.path.exists(probe):
+            parent = os.path.dirname(probe)
+            if parent == probe:
+                return False
+            probe = parent
+        info = os.stat(probe)
+        if uid == 0:
+            return True
+        if info.st_uid == uid:
+            return bool(info.st_mode & stat.S_IWUSR)
+        groups = {getattr(entry, "pw_gid", -1)}
+        try:
+            import grp
+
+            groups |= {g.gr_gid for g in grp.getgrall() if name in g.gr_mem}
+        except ImportError:
+            pass
+        if info.st_gid in groups:
+            return bool(info.st_mode & stat.S_IWGRP)
+        return bool(info.st_mode & stat.S_IWOTH)
 
     def user_is_system_account(self, name: str) -> bool:
         entry = self._passwd_entry(name)

@@ -121,19 +121,50 @@ def create_backup(
     return BackupManifest(backup_id=backup_id, instance_id=instance_id, schema_version=schema_version, files=files)
 
 
+def sign_manifest(manifest: BackupManifest, seed: str) -> str:
+    """The Ed25519 signature of a manifest, made with the private key (`ed25519-seed:...`) of the operator.
+    The manifest alone only proves the files match a document that sits next to them and that anybody with
+    access to the backup can regenerate; the signature proves the operator made it."""
+    from .signing import sign_body
+
+    return sign_body(seed, manifest.to_dict())
+
+
+def manifest_signature_ok(manifest: BackupManifest, signature: str, public_key: str) -> bool:
+    from .signing import is_public_key, verify_body
+
+    return is_public_key(public_key) and verify_body(public_key, manifest.to_dict(), signature.strip())
+
+
 @dataclass(frozen=True)
 class VerifyBackupResult:
     ok: bool
     verified: tuple[str, ...] = ()
     mismatches: tuple[str, ...] = ()
     missing: tuple[str, ...] = ()
+    # None when no public key was given (the files are only compared with the manifest); otherwise whether
+    # the manifest carries a valid signature of the key holder
+    signature_valid: bool | None = None
 
     def to_dict(self) -> dict[str, Any]:
         return {"ok": self.ok, "verified": list(self.verified),
-                "mismatches": list(self.mismatches), "missing": list(self.missing)}
+                "mismatches": list(self.mismatches), "missing": list(self.missing),
+                "signature_valid": self.signature_valid}
 
 
-def verify_backup(manifest: BackupManifest, backup_root: str, fs: BackupFs) -> VerifyBackupResult:
+def verify_backup(
+    manifest: BackupManifest,
+    backup_root: str,
+    fs: BackupFs,
+    *,
+    public_key: str | None = None,
+    signature: str | None = None,
+) -> VerifyBackupResult:
+    """Re-hash every file against the manifest. With `public_key`, the manifest must also carry a valid
+    signature (`signature`) of that key, or the backup is not ok however well the files match."""
+    signature_valid: bool | None = None
+    if public_key is not None:
+        signature_valid = bool(signature) and manifest_signature_ok(manifest, signature or "", public_key)
     verified: list[str] = []
     mismatches: list[str] = []
     missing: list[str] = []
@@ -146,8 +177,9 @@ def verify_backup(manifest: BackupManifest, backup_root: str, fs: BackupFs) -> V
         else:
             mismatches.append(rel)
     return VerifyBackupResult(
-        ok=not mismatches and not missing,
+        ok=not mismatches and not missing and signature_valid is not False,
         verified=tuple(verified), mismatches=tuple(mismatches), missing=tuple(missing),
+        signature_valid=signature_valid,
     )
 
 
@@ -169,12 +201,16 @@ def restore_backup(
     *,
     expected_instance_id: str,
     expected_schema_version: str = BACKUP_SCHEMA_VERSION,
+    public_key: str | None = None,
+    signature: str | None = None,
 ) -> RestoreResult:
     if manifest.instance_id != expected_instance_id:
         return RestoreResult(False, reason=f"backup is for instance {manifest.instance_id!r}, not {expected_instance_id!r}")
     if manifest.schema_version != expected_schema_version:
         return RestoreResult(False, reason=f"backup schema {manifest.schema_version!r} != {expected_schema_version!r}")
-    check = verify_backup(manifest, backup_root, fs)
+    check = verify_backup(manifest, backup_root, fs, public_key=public_key, signature=signature)
+    if check.signature_valid is False:
+        return RestoreResult(False, reason="the manifest is not signed by the expected key - nothing was restored")
     if not check.ok:
         return RestoreResult(False, reason=f"backup is not intact: mismatches={check.mismatches} missing={check.missing}")
     restored: list[str] = []

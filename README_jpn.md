@@ -31,7 +31,7 @@
 
 ---
 
-**正直な現状確認 - 今日実際に動くもの:** 以下に挙げる 20 個のモジュール(`config.py`、`inventory.py`、`remote_station.py`、`preflight.py`、`provision.py`、`migration.py`、`workspace.py`、`recipe.py`、`runner.py`、`durable_queue.py`、`ai_provider.py`、`incident_transport.py`、`repair_cycle.py`、`operations.py`、`delivery.py`、`cli.py`, `api.py`, `plugins.py`, `sandbox.py`, `taskflow.py`)はすべてスタブではなく本物のコードであり、本物のテストスイート(`tests/test_*.py` 全体で 347 件のテストが成功)によってカバーされている。この本物のコードが実際に行ったこと: JSON ドキュメントの検証、ディスク上でのマイグレーション計画、実際の隔離ワークスペース内で実際に浄化された環境を使った本物の制限付きサブプロセスの実行、再起動をまたいだ本物の SQLite キュー/ジャーナルの永続化、本物の HMAC 署名インシデントの往復のテスト - これらすべてはこのローカルチェックアウトまたは注入可能なテスト用シームに対してのみ行われており、このプロジェクトが実際に対象とする Raspberry Pi 5/CM5 の実機に対しては一度も実行されていない。`provider suggest` は決定論的な `FakeProvider` のみを常に呼び出す。本物の AI プロバイダーを組み込むことは、まだ行われていない明示的なユーザー判断のままである。`station preflight`/`station plan` は注入可能なインスペクターを通じてリモートホストを記述するだけで、実際のリモートマシンに対して実行されたことは一度もない。このリポジトリの中で、ホストをプロビジョニングしたり、デプロイを実行したり、これらの部品を実際に稼働するワーカーループに配線したりしたものは何もない - `deliver evaluate` 自身がハードコードしている `overall_maturity: "functional"` が、コード自体からそれを率直に物語っている。これまでに何が納品されたかは `CHANGELOG.md` を参照。
+**正直な現状確認 - 今日実際に動くもの:** 以下に挙げる 22 個のモジュール(`config.py`、`inventory.py`、`remote_station.py`、`preflight.py`、`provision.py`、`migration.py`、`workspace.py`、`recipe.py`、`runner.py`、`durable_queue.py`、`ai_provider.py`、`incident_transport.py`、`repair_cycle.py`、`operations.py`、`delivery.py`、`cli.py`, `api.py`, `plugins.py`, `sandbox.py`, `taskflow.py`, `worker.py`, `signing.py`)はすべてスタブではなく本物のコードであり、本物のテストスイート(`tests/test_*.py` 全体で 392 件のテストが成功)によってカバーされている。この本物のコードが実際に行ったこと: JSON ドキュメントの検証、ディスク上でのマイグレーション計画、実際の隔離ワークスペース内で実際に浄化された環境を使った本物の制限付きサブプロセスの実行、再起動をまたいだ本物の SQLite キュー/ジャーナルの永続化、本物の HMAC 署名インシデントの往復のテスト - これらすべてはこのローカルチェックアウトまたは注入可能なテスト用シームに対してのみ行われており、このプロジェクトが実際に対象とする Raspberry Pi 5/CM5 の実機に対しては一度も実行されていない。`provider suggest` は決定論的な `FakeProvider` のみを常に呼び出す。本物の AI プロバイダーを組み込むことは、まだ行われていない明示的なユーザー判断のままである。`station preflight`/`station plan` は注入可能なインスペクターを通じてリモートホストを記述するだけで、実際のリモートマシンに対して実行されたことは一度もない。このリポジトリの中で、ホストをプロビジョニングしたり、デプロイを実行したりしたものは何もなく、ワーカーループ(`queue work`)もランチャーと git の代用品に対してしか動いたことがなく、実際のホストでは一度も動いていない - `deliver evaluate` 自身がハードコードしている `overall_maturity: "functional"` が、コード自体からそれを率直に物語っている。これまでに何が納品されたかは `CHANGELOG.md` を参照。
 
 ---
 
@@ -43,7 +43,7 @@
 |---|---|
 | バージョン | `0.1.8` |
 | 成熟度 | 機能する |
-| テスト | 347 |
+| テスト | 392 |
 | 技術 | Python 3.11+ / JSON Schema / systemd (host role, Linux only) / SQLite (durable task/state journal, from DS05 onward) |
 | 対象 | 開発用サーバー |
 | 実機での確認 | まだです：このバージョンについて実機での動作記録はありません |

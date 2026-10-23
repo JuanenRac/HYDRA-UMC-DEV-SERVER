@@ -40,6 +40,7 @@ from dataclasses import dataclass
 from typing import Any, Protocol, runtime_checkable
 
 from .config import ConfigValidationError, _require_str
+from .signing import sign_body, signature_matches
 
 STATE_NOT_STARTED = "not-started"
 STATE_BLOCKED = "blocked"
@@ -80,8 +81,14 @@ class RepairCandidate:
     def signed(self, secret: str) -> "RepairCandidate":
         return RepairCandidate(**{**self._body(), "signature": _sign(secret, self._body())})
 
-    def signature_ok(self, secret: str) -> bool:
-        return bool(self.signature) and hmac.compare_digest(self.signature, _sign(secret, self._body()))
+    def signed_ed25519(self, seed: str) -> "RepairCandidate":
+        """Signed with the private key (`ed25519-seed:...`) of the signer; the checker needs only the public key."""
+        return RepairCandidate(**{**self._body(), "signature": sign_body(seed, self._body())})
+
+    def signature_ok(self, key: str) -> bool:
+        """`key` is the HMAC secret of the signer, or its public key (`ed25519-public:...`) for a candidate
+        signed with `signed_ed25519`. The two kinds never mix."""
+        return signature_matches(key, self._body(), self.signature)
 
     def to_dict(self) -> dict[str, Any]:
         return {**self._body(), "signature": self.signature}
@@ -122,8 +129,11 @@ class Approval:
     def signed(self, secret: str) -> "Approval":
         return Approval(**{**self._body(), "signature": _sign(secret, self._body())})
 
-    def signature_ok(self, secret: str) -> bool:
-        return bool(self.signature) and hmac.compare_digest(self.signature, _sign(secret, self._body()))
+    def signed_ed25519(self, seed: str) -> "Approval":
+        return Approval(**{**self._body(), "signature": sign_body(seed, self._body())})
+
+    def signature_ok(self, key: str) -> bool:
+        return signature_matches(key, self._body(), self.signature)
 
 
 @runtime_checkable

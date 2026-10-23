@@ -42,6 +42,12 @@ cycle - it is what `repair check-candidate` runs. Prints
 The candidate signer's secret and the approver's secret are
 operator-held and **never committed**.
 
+A candidate or an approval can also be signed with a key pair
+(`signed_ed25519(seed)`, signature `ed25519:...`) and checked with the public
+key (`ed25519-public:...`) in place of the secret: the checker can no longer
+forge what it checks. A public key accepts only an Ed25519 signature and an
+HMAC secret only an HMAC one, so a signature cannot be downgraded.
+
 ## What DS08 still does not do
 
 - it does not run the real service, the real regression suite, or a

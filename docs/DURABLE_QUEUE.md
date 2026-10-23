@@ -52,7 +52,8 @@ compute it.
 
 ## What DS05 still does not do
 
-- it does not run a task or hand one to a worker loop - that glue is
-  DS06/DS07
+- it does not run a task itself: `queue work` (`worker.py`) is the loop that
+  leases, stages, runs with a renewed lease and records, and it has only run
+  against fakes of the launcher and of git
 - no AI provider (DS06)
 - no cross-host transport - the queue is one local SQLite file

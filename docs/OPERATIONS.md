@@ -47,6 +47,18 @@ It is not ok, with a named finding, when:
 `ops health --db PATH [--min-free-gb F --free-disk-gb G --journal-cap N]`
 prints the report; exit `1` if not ok. It is safe to run on a timer.
 
+## Signed manifests
+
+A manifest next to its files only proves the files match a document that anyone
+with access to the backup can regenerate. `ops keygen` makes an Ed25519 key
+pair, `ops sign-backup` signs a manifest with the private key, and
+`ops verify-backup --public-key-file ... --signature-file ...` (or
+`restore_backup(..., public_key=..., signature=...)`) refuses a manifest the key
+holder did not sign, so a host that only verifies can no longer forge a backup.
+The algorithm is the reference one of RFC 8032 in plain Python (checked against
+its test vectors; not constant-time, so sign on the operator's own machine).
+Without a key nothing changes.
+
 ## What DS09 still does not do
 
 - it does not schedule the backup or the health check - a systemd timer

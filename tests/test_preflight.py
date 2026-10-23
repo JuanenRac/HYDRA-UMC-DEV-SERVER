@@ -114,13 +114,32 @@ class PreflightFailureTests(unittest.TestCase):
         report = run_preflight(_profile(), inspector)
         self.assertIn("remote-port-free", [c.name for c in report.failures()])
 
-    def test_a_missing_identity_user_is_reported_as_not_yet_created(self):
+    def test_a_missing_identity_user_does_not_block_the_plan_that_creates_it(self):
         inspector = FakeInspector()
         inspector.users = set()
+        inspector.writable = False  # nothing can be writable by an account that is not there yet
         report = run_preflight(_profile(), inspector)
         identity = next(c for c in report.checks if c.name == "identity-user")
-        self.assertFalse(identity.ok)
+        workspace = next(c for c in report.checks if c.name == "workspace-writable")
+        self.assertTrue(identity.ok and identity.will_create)
         self.assertIn("does not exist yet", identity.detail)
+        self.assertTrue(workspace.ok and workspace.will_create)
+        self.assertTrue(report.ok, report.to_dict())
+        self.assertEqual(report.to_dict()["will_create"], ["workspace-writable", "identity-user"])
+
+    def test_an_existing_account_is_asked_whether_it_can_write_not_the_user_running_the_check(self):
+        inspector = FakeInspector()
+        inspector.writable = True  # the current user could write...
+        asked = []
+
+        def writable_by(path, name):
+            asked.append((path, name))
+            return False  # ...but the account of the station cannot
+
+        inspector.path_is_writable_by = writable_by
+        report = run_preflight(_profile(), inspector)
+        self.assertIn("workspace-writable", [c.name for c in report.failures()])
+        self.assertEqual(asked, [("/srv/hydra-umc-dev/station/workspace", "hydra-dev-station")])
 
     def test_an_identity_user_that_is_a_normal_login_user_is_refused(self):
         inspector = FakeInspector()
@@ -139,6 +158,68 @@ class PreflightFailureTests(unittest.TestCase):
         privacy = next(c for c in report.checks if c.name == "bind-address-is-private")
         self.assertTrue(privacy.ok)
         self.assertIn("allowed by allow_public_bind", privacy.detail)
+
+
+class _SshInspector(FakeInspector):
+    def __init__(self):
+        super().__init__()
+        self.uid, self.shell, self.keys = 998, "/bin/bash", True
+
+    def user_uid(self, name):
+        return self.uid
+
+    def user_shell(self, name):
+        return self.shell
+
+    def user_has_authorized_keys(self, name):
+        return self.keys
+
+
+def _ssh_profile():
+    return _profile(remote_access={"kind": "ssh-remote", "port": 22022, "bind_address": "127.0.0.1", "allow_public_bind": False})
+
+
+class PreflightSshRemoteTests(unittest.TestCase):
+    """Remote-SSH logs in, so the account needs a real shell and an authorized_keys file, not nologin."""
+
+    def identity(self, inspector):
+        inspector.free_ports = {("127.0.0.1", 22022)}
+        return next(c for c in run_preflight(_ssh_profile(), inspector).checks if c.name == "identity-user")
+
+    def test_an_account_with_a_shell_and_keys_passes(self):
+        check = self.identity(_SshInspector())
+        self.assertTrue(check.ok, check.detail)
+
+    def test_a_nologin_account_is_refused_for_ssh_remote_but_passes_for_code_server(self):
+        inspector = _SshInspector()
+        inspector.shell = "/usr/sbin/nologin"
+        check = self.identity(inspector)
+        self.assertFalse(check.ok)
+        self.assertIn("cannot log in", check.detail)
+        self.assertTrue(next(c for c in run_preflight(_profile(), FakeInspector()).checks if c.name == "identity-user").ok)
+
+    def test_an_account_without_authorized_keys_is_refused(self):
+        inspector = _SshInspector()
+        inspector.keys = False
+        check = self.identity(inspector)
+        self.assertFalse(check.ok)
+        self.assertIn("authorized_keys", check.detail)
+
+    def test_root_and_a_normal_login_user_are_still_refused(self):
+        for uid in (0, 1000):
+            inspector = _SshInspector()
+            inspector.uid = uid
+            with self.subTest(uid=uid):
+                self.assertFalse(self.identity(inspector).ok)
+
+    def test_an_inspector_that_cannot_tell_the_shell_fails_closed(self):
+        self.assertFalse(self.identity(FakeInspector()).ok)
+
+    def test_a_missing_account_is_created_by_the_plan(self):
+        inspector = _SshInspector()
+        inspector.users = set()
+        check = self.identity(inspector)
+        self.assertTrue(check.ok and check.will_create)
 
 
 class PreflightReportShapeTests(unittest.TestCase):

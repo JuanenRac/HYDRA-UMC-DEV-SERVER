@@ -72,7 +72,12 @@ Reads the profile and checks whether **this** host is ready to become
 that station: Python version, free disk at the workspace path, workspace
 writable, each required tool on `PATH`, the remote port free, the bind
 address private (or explicitly opted-in), and the identity being a real
-dedicated system account. Prints the full `PreflightReport` as JSON,
+dedicated system account. What the plan itself creates (the account and
+its workspace, when they are not there yet) is not a failure: the check is
+`ok` with `will_create: true` and the report lists them under
+`will_create`. For `ssh-remote` the account must be able to log in (a
+real shell and an `authorized_keys` file) instead of having no login
+shell. Prints the full `PreflightReport` as JSON,
 then `PREFLIGHT=PASS` (exit `0`) or `PREFLIGHT=FAIL <check names>` on
 stderr (exit `1`). **This command only reads the host - it creates no
 user, installs nothing, opens no port.**
@@ -151,6 +156,21 @@ journal row, never a second job. `--base-fingerprint` is any opaque
 string the caller derives from the source state the task is pinned to;
 DS05 stores it and later compares it.
 
+## `queue work --db PATH --policy FILE --workspace-base DIR [--worker-id ID] [--max-tasks N] [--lease-seconds S] [--follow]`
+
+The worker loop. It returns the tasks of a dead worker to the queue, then
+takes the oldest queued task and carries it through: lease, workspace,
+`repo@revision` staged with git, the command run in the sandbox of the
+policy while the lease is renewed every third of its length, the result
+recorded, the workspace removed according to `workspace_retention`. A task
+that cannot start (the policy no longer allows the command, staging fails,
+the sandbox is required and missing) is recorded as failed, never left
+leased; a lease that is lost cancels the run. The slot of
+`max_concurrent_tasks` is taken before anything is leased, so a worker
+without a free slot leaves the queue alone. It stops when the queue is empty
+(`--follow` keeps waiting). Prints `{"tasks": [...]}`; exit `1` if any task
+did not succeed. Never run against a real host yet.
+
 ## `queue status --db PATH [--reconcile]` (DS05)
 
 Prints entry counts by state and the journal row count. `--reconcile`
@@ -196,8 +216,9 @@ traceback) with a named `code` for a rejection: `unknown-identity` /
 ## `repair check-candidate <candidate_file> --secret-file FILE --incident ID --base FP --target NAME` (DS08)
 
 The candidate gate of the controlled repair cycle. Verifies the
-candidate's HMAC signature (secret read from `--secret-file`,
-operator-held, never committed) and that it is pinned to THIS incident,
+candidate's signature (read from `--secret-file`, operator-held, never
+committed: an HMAC secret, or the public key `ed25519-public:...` for a
+candidate signed with a key pair; the two kinds never mix) and that it is pinned to THIS incident,
 base fingerprint and target. Prints `{"accepted": bool, "reason":
 str|null}`; exits `1` (never a traceback) on a block - a tampered
 candidate, or one aimed at another incident / base / target.
@@ -208,12 +229,28 @@ Operational health over the durable queue and disk. Prints a
 `HealthReport`; exit `1` (never a traceback) with a named finding for
 `orphaned-leases`, `journal-over-cap`, or `low-disk`. Safe on a timer.
 
-## `ops verify-backup <manifest_file> --backup-root DIR` (DS09)
+## `ops verify-backup <manifest_file> --backup-root DIR [--public-key-file FILE --signature-file FILE]` (DS09)
 
 Re-hashes every file in a state backup against its manifest. Prints
-`{ ok, verified, mismatches, missing }`; exit `1` on any mismatch or
-missing file. `restore_backup()` (tested, no CLI yet) additionally
-refuses a backup for a different instance id or schema version.
+`{ ok, verified, mismatches, missing, signature_valid }`; exit `1` on any
+mismatch or missing file. With `--public-key-file` the manifest must also
+carry a valid signature (`--signature-file`) of that key, or the backup is
+not ok: a manifest regenerated over replaced files is caught. A key without
+a signature is not ok either. `restore_backup()` (tested, no CLI yet)
+additionally refuses a backup for a different instance id or schema version,
+and, given a public key, a manifest that is not signed by it.
+
+## `ops keygen --private-key-file FILE --public-key-file FILE`
+
+Makes an Ed25519 key pair for signing backups and repair candidates. It
+refuses to overwrite a file; the private key (`ed25519-seed:...`) is written
+readable by its owner only. Sign on the machine of the operator, not on a
+shared host (the implementation is not constant-time).
+
+## `ops sign-backup <manifest_file> --private-key-file FILE [--output FILE]`
+
+Prints the signature (`ed25519:...`) of a backup manifest, and writes it to
+`--output` (a new file) when given.
 
 ## `deliver manifest [--repo-root DIR]` (DS10)
 
@@ -305,10 +342,10 @@ Prints the installed package version (mirrors `pyproject.toml`'s own
 ## Not yet implemented
 
 The ten-delivery plan is complete, but it is only `functional` (not verified on real hardware) -
-`deliver evaluate` reports exactly this. There is still no worker loop
-that feeds a queued task's context to `provider suggest` and then runs
-the result through `task run` and the DS08 repair cycle; each piece is
-exercised in isolation. No real AI provider is wired - which one, and
+`deliver evaluate` reports exactly this. `queue work` joins the queue, the staging, the sandboxed run and the recording of
+the result, but only against fakes; there is still nothing that feeds a queued
+task's context to `provider suggest` and then runs the result through the DS08
+repair cycle, and each of those pieces is exercised in isolation. No real AI provider is wired - which one, and
 its authorization, is a user decision. `station plan` describes a
 provisioning it never carries out; `migrate plan` describes a migration
 it never carries out; there is no command that creates a user, writes a

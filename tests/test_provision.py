@@ -82,9 +82,45 @@ class ProvisionPlanContentTests(unittest.TestCase):
         self.assertIn("hydra-dev-station", step.command_preview)
         self.assertIn("--system", step.command_preview)
 
-    def test_there_is_one_ensure_tool_step_per_required_tool_entry(self):
-        tool_steps = [s for s in self.plan.steps if s.kind == "ensure-tool"]
+    def test_there_is_one_step_per_required_tool_entry_and_code_server_is_not_apt_installed(self):
+        tool_steps = [s for s in self.plan.steps if s.kind in ("ensure-tool", "install-code-server")]
         self.assertEqual(len(tool_steps), len(self.profile.required_tools))
+        for step in tool_steps:
+            self.assertFalse(step.command_preview[:1] == ("apt-get",) and "code-server" in step.command_preview)
+        installer = next(s for s in self.plan.steps if s.kind == "install-code-server")
+        self.assertEqual(installer.command_preview[0], "curl")
+        self.assertNotIn("sh", installer.command_preview)  # a download is never piped into a shell by the plan
+
+    def test_the_account_is_created_with_a_home_that_holds_nothing_and_is_closed_to_others(self):
+        user = next(s for s in self.plan.steps if s.kind == "create-system-user").command_preview
+        self.assertIn("--no-create-home", user)
+        self.assertNotIn("--create-home", user)
+        self.assertEqual(user[user.index("--shell") + 1], "/usr/sbin/nologin")
+        home = next(s for s in self.plan.steps if s.kind == "create-home").command_preview
+        self.assertEqual(home[home.index("-m") + 1], "0700")
+        self.assertEqual(home[-1], self.profile.identity.home)
+        kinds = [s.kind for s in self.plan.steps]
+        self.assertLess(kinds.index("create-system-user"), kinds.index("create-home"))
+        self.assertLess(kinds.index("create-home"), kinds.index("create-workspace"))
+
+    def test_the_unit_can_write_where_code_server_writes_and_never_starts_without_a_password(self):
+        text = self.plan.systemd_unit_text
+        home = self.profile.identity.home
+        rw = next(l for l in text.splitlines() if l.startswith("ReadWritePaths="))
+        for path in (self.profile.identity.workspace_path(), f"{home}/.config/code-server", f"{home}/.local/share/code-server"):
+            self.assertIn(path, rw)
+        self.assertIn(f"Environment=HOME={home}", text)
+        self.assertIn(f"Environment=XDG_CONFIG_HOME={home}/.config", text)
+        self.assertIn(f"EnvironmentFile={home}/code-server.env", text)
+        self.assertIn(f"ConditionPathExists={home}/code-server.env", text)
+        kinds = [s.kind for s in self.plan.steps]
+        self.assertLess(kinds.index("create-editor-state"), kinds.index("write-systemd-unit"))
+        self.assertIn("set-editor-password", kinds)
+        state = next(s for s in self.plan.steps if s.kind == "create-editor-state").command_preview
+        self.assertIn(f"{home}/.config/code-server", state)
+        self.assertIn(f"{home}/.local/share/code-server", state)
+        for step in self.plan.steps:
+            self.assertNotIn("password", " ".join(step.command_preview).lower())  # no password is ever in an argv
 
     def test_the_code_server_plan_writes_a_systemd_unit_with_the_real_bind_and_identity(self):
         self.assertTrue(self.plan.systemd_unit_name.endswith(".service"))
@@ -107,6 +143,18 @@ class ProvisionPlanContentTests(unittest.TestCase):
         self.assertEqual(plan.systemd_unit_text, "")
         self.assertIn("reuse-sshd", [s.kind for s in plan.steps])
 
+    def test_an_ssh_remote_account_gets_a_login_shell_and_a_closed_ssh_directory(self):
+        profile = _profile(
+            remote_access={"kind": "ssh-remote", "port": 22022, "bind_address": "192.168.0.180", "allow_public_bind": False}
+        )
+        plan = build_provision_plan(profile)
+        user = next(s for s in plan.steps if s.kind == "create-system-user").command_preview
+        self.assertEqual(user[user.index("--shell") + 1], "/bin/bash")
+        ssh = next(s for s in plan.steps if s.kind == "prepare-ssh-access")
+        self.assertEqual(ssh.command_preview[ssh.command_preview.index("-m") + 1], "0700")
+        self.assertTrue(ssh.command_preview[-1].endswith("/.ssh"))
+        self.assertNotIn("create-editor-state", [s.kind for s in plan.steps])
+
     def test_to_dict_is_json_shaped(self):
         payload = self.plan.to_dict()
         self.assertEqual(payload["identity_user"], "hydra-dev-station")
@@ -120,6 +168,15 @@ class ProvisionPlanPreflightGateTests(unittest.TestCase):
         self.assertTrue(report.ok)
         plan = build_provision_plan(_profile(), report)
         self.assertGreater(len(plan.steps), 0)
+
+    def test_a_plan_for_a_host_without_the_account_is_built_and_says_what_it_creates(self):
+        inspector = FakeInspector()
+        inspector.users = set()
+        report = run_preflight(_profile(), inspector)
+        self.assertTrue(report.ok, report.to_dict())
+        self.assertEqual({c.name for c in report.to_create()}, {"identity-user", "workspace-writable"})
+        plan = build_provision_plan(_profile(), report)
+        self.assertIn("create-system-user", [s.kind for s in plan.steps])
 
     def test_a_plan_built_over_a_failed_preflight_is_refused_and_names_the_failure(self):
         inspector = FakeInspector()

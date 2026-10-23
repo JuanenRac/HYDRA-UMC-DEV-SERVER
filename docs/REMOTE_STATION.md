@@ -62,19 +62,40 @@ a test.
 `build_provision_plan(profile, preflight=None)` returns a `ProvisionPlan`:
 
 - `steps[]` - ordered `{ kind, description, command_preview }`. Steps:
-  `create-system-user` (a `useradd --system` argv), `create-workspace`
-  (`install -d -o <user> -m 0750`), one `ensure-tool` per required tool
-  (`apt-get install --yes <name>`), and either `write-systemd-unit`
-  (for `code-server`) or `reuse-sshd` (for `ssh-remote`).
+  `create-system-user` (a `useradd --system --no-create-home` argv: the home
+  is made next, empty, so no skeleton files, dotfiles or keys are copied into
+  it; `/usr/sbin/nologin` for `code-server`, `/bin/bash` for `ssh-remote`
+  because Remote-SSH logs in), `create-home` (`install -d -m 0700`),
+  `create-workspace` (`install -d -o <user> -m 0750`), one `ensure-tool` per
+  required tool (`apt-get install --yes <name>`) except `code-server`, which is
+  not in the Debian / Raspberry Pi OS repositories and gets
+  `install-code-server` (a download of its official installer to read before
+  running it; the plan never pipes a download into a shell), and then, for
+  `code-server`, `create-editor-state` (the two directories it writes to),
+  `set-editor-password` (the operator writes a `code-server.env` with the
+  argon2 hash; the plan never makes a password) and `write-systemd-unit`; for
+  `ssh-remote`, `prepare-ssh-access` (`~/.ssh`, mode 0700, for the operator to
+  add the developer's public key) and `reuse-sshd`.
 - `command_preview` is the argv a real installer **would** run, carried
   as data. This module never spawns it.
 - `systemd_unit_text` - the full unit for a `code-server` station:
   `User=<identity.user>`, `ExecStart=/usr/bin/code-server --bind-addr
-  <bind>:<port> --auth password`, `WorkingDirectory` and `ReadWritePaths`
-  at the workspace path, and hardening lines. `RestrictAddressFamilies`
+  <bind>:<port> --auth password`, `WorkingDirectory` at the workspace path,
+  `ReadWritePaths` for the workspace and for the two directories code-server
+  writes to under the home (`ProtectSystem=strict` makes the rest read-only),
+  `HOME` and the XDG directories pointing there, `EnvironmentFile` with the
+  password hash and `ConditionPathExists` on that file so the unit does not
+  start without one (code-server would otherwise use a password it generated
+  for itself), and hardening lines. It has not run under a real systemd; the
+  endpoint has no TLS, so keep it on loopback and reach it through an SSH
+  tunnel. `RestrictAddressFamilies`
   deliberately keeps `AF_NETLINK` - a too-tight family list has caused a
   real crash-loop elsewhere in this ecosystem, and a real deploy still
   confirms with a live check, not `systemd-analyze verify` alone.
+
+A check that holds only because the plan creates it (the account, its
+workspace) is reported `will_create: true` and does not block the plan; a
+host without the account gets a plan that creates it.
 
 If a **failed** `PreflightReport` is passed, `build_provision_plan`
 raises `ConfigValidationError` naming the failed checks instead of
