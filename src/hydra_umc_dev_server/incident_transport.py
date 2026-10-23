@@ -26,12 +26,15 @@ network blip never loses or double-counts an incident.
 """
 from __future__ import annotations
 
+import contextlib
 import hashlib
 import hmac
 import json
 import secrets
 import math
+import sqlite3
 import time
+from collections.abc import Iterator
 from dataclasses import dataclass, field
 from typing import Any, Protocol, runtime_checkable
 
@@ -185,13 +188,89 @@ class VerifyResult:
 @dataclass
 class VerifierState:
     """Mutable per-verifier state: nonces already seen, and per-node
-    message timestamps for rate limiting. A test owns one of these."""
+    message timestamps for rate limiting. A test owns one of these.
+
+    It lives in memory, so it is lost with the process: a replayed message is
+    caught only by the process that saw the original. `SqliteVerifierState`
+    keeps the same state in a file, for a verifier that is started once per
+    message (the `incident verify` command) or by several processes."""
 
     seen_nonces: set[str] = field(default_factory=set)
     # when each nonce was accepted, so nonces older than the replay window can be
     # forgotten (a message that old is refused as stale anyway)
     nonce_times: dict[str, float] = field(default_factory=dict)
     rate_log: dict[str, list[float]] = field(default_factory=dict)
+
+    # The operations `verify_message` needs, so another store can stand in for the memory.
+    @contextlib.contextmanager
+    def exclusive(self) -> Iterator[None]:
+        yield
+
+    def nonce_seen(self, nonce: str) -> bool:
+        return nonce in self.seen_nonces
+
+    def messages_in_window(self, node: str, at: float, window: float = 60.0) -> int:
+        recent = self.rate_log.setdefault(node, [])
+        recent[:] = [t for t in recent if at - t < window]
+        return len(recent)
+
+    def accept(self, node: str, nonce: str, at: float, replay_window: float) -> None:
+        for old_nonce, seen_at in list(self.nonce_times.items()):
+            if at - seen_at > replay_window:
+                self.nonce_times.pop(old_nonce, None)
+                self.seen_nonces.discard(old_nonce)
+        self.seen_nonces.add(nonce)
+        self.nonce_times[nonce] = at
+        self.rate_log.setdefault(node, []).append(at)
+
+
+class SqliteVerifierState(VerifierState):
+    """The same state in a SQLite file (WAL), shared by every process that opens it. The check and the
+    update of one message happen inside one `BEGIN IMMEDIATE` transaction, so two processes verifying
+    the same message cannot both accept it. Entries older than their window are purged on every accept."""
+
+    def __init__(self, path: str) -> None:
+        super().__init__()
+        self._conn = sqlite3.connect(path, isolation_level=None, timeout=10.0)
+        self._conn.execute("PRAGMA journal_mode=WAL")
+        self._conn.executescript(
+            "CREATE TABLE IF NOT EXISTS nonces (nonce TEXT PRIMARY KEY, at REAL NOT NULL);"
+            "CREATE TABLE IF NOT EXISTS messages (node TEXT NOT NULL, at REAL NOT NULL);"
+            "CREATE INDEX IF NOT EXISTS messages_by_node ON messages(node, at);"
+        )
+
+    def close(self) -> None:
+        self._conn.close()
+
+    def __enter__(self) -> "SqliteVerifierState":
+        return self
+
+    def __exit__(self, *exc: object) -> None:
+        self.close()
+
+    @contextlib.contextmanager
+    def exclusive(self) -> Iterator[None]:
+        self._conn.execute("BEGIN IMMEDIATE")
+        try:
+            yield
+        except BaseException:
+            self._conn.execute("ROLLBACK")
+            raise
+        else:
+            self._conn.execute("COMMIT")
+
+    def nonce_seen(self, nonce: str) -> bool:
+        return self._conn.execute("SELECT 1 FROM nonces WHERE nonce = ?", (nonce,)).fetchone() is not None
+
+    def messages_in_window(self, node: str, at: float, window: float = 60.0) -> int:
+        row = self._conn.execute("SELECT COUNT(*) FROM messages WHERE node = ? AND ? - at < ?", (node, at, window)).fetchone()
+        return int(row[0])
+
+    def accept(self, node: str, nonce: str, at: float, replay_window: float) -> None:
+        self._conn.execute("DELETE FROM nonces WHERE ? - at > ?", (at, replay_window))
+        self._conn.execute("DELETE FROM messages WHERE ? - at >= 60.0", (at,))
+        self._conn.execute("INSERT INTO nonces(nonce, at) VALUES (?, ?)", (nonce, at))
+        self._conn.execute("INSERT INTO messages(node, at) VALUES (?, ?)", (node, at))
 
 
 def verify_message(
@@ -236,23 +315,18 @@ def verify_message(
         return VerifyResult(False, "stale",
                             f"sent_at is {abs(at - message.sent_at):.0f}s from now, outside the "
                             f"{policy.replay_window_seconds}s window")
-    if message.nonce in state.seen_nonces:
-        return VerifyResult(False, "replay", f"nonce {message.nonce!r} was already accepted")
+    # the check and the update are one step: two verifiers of the same state cannot both accept one message
+    with state.exclusive():
+        if state.nonce_seen(message.nonce):
+            return VerifyResult(False, "replay", f"nonce {message.nonce!r} was already accepted")
 
-    window = state.rate_log.setdefault(authenticated_as, [])
-    window[:] = [t for t in window if at - t < 60.0]
-    if len(window) >= policy.max_messages_per_minute:
-        return VerifyResult(False, "overloaded",
-                            f"{authenticated_as!r} sent {len(window)} messages in the last minute "
-                            f"(limit {policy.max_messages_per_minute})")
+        recent = state.messages_in_window(authenticated_as, at)
+        if recent >= policy.max_messages_per_minute:
+            return VerifyResult(False, "overloaded",
+                                f"{authenticated_as!r} sent {recent} messages in the last minute "
+                                f"(limit {policy.max_messages_per_minute})")
 
-    for old_nonce, seen_at in list(state.nonce_times.items()):
-        if at - seen_at > policy.replay_window_seconds:
-            state.nonce_times.pop(old_nonce, None)
-            state.seen_nonces.discard(old_nonce)
-    state.seen_nonces.add(message.nonce)
-    state.nonce_times[message.nonce] = at
-    window.append(at)
+        state.accept(authenticated_as, message.nonce, at, policy.replay_window_seconds)
     return VerifyResult(True)
 
 

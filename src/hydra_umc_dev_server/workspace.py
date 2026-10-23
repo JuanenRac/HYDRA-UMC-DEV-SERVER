@@ -24,13 +24,12 @@ fixtures, no con archivos privados reales".
 from __future__ import annotations
 
 import posixpath
-import re
 from dataclasses import dataclass
 from typing import Protocol, runtime_checkable
 
 from .config import ConfigValidationError
+from .identifiers import is_identifier
 
-_SAFE_ID = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$")
 
 
 class WorkspaceError(ConfigValidationError):
@@ -103,7 +102,7 @@ class Workspace:
 
 
 def _require_safe_id(task_id: str) -> str:
-    if not isinstance(task_id, str) or not _SAFE_ID.match(task_id) or ".." in task_id:
+    if not is_identifier(task_id):
         raise WorkspaceError(
             f"task id {task_id!r} must be 1-128 chars of [A-Za-z0-9._-], start alphanumeric, and contain no '..'"
         )

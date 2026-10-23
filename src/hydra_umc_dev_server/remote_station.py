@@ -29,11 +29,11 @@ documentation:
 from __future__ import annotations
 
 import ipaddress
-import re
 from dataclasses import dataclass
 from typing import Any
 
 from .config import ConfigValidationError, ToolchainPolicy, _require_bool, _require_str
+from .identifiers import is_account_name, path_text_problem
 
 _VALID_REMOTE_ACCESS_KINDS = ("code-server", "ssh-remote")
 # A remote-editing service on a dev host has no business on a well-known
@@ -81,12 +81,12 @@ class RemoteIdentity:
         if not isinstance(workspace_subdir, str) or not workspace_subdir or workspace_subdir.startswith("/") or ".." in workspace_subdir:
             errors.append("'workspace_subdir' must be a non-empty relative path with no '..' segments")
             workspace_subdir = "workspace"
-        if user and not _USER_RE.fullmatch(user):
+        if user and not is_account_name(user):
             errors.append("'user' must be a lowercase account name (letters, digits, '_' or '-', up to 32 characters)")
-        if home and not _PATH_RE.fullmatch(home):
-            errors.append("'home' may only contain letters, digits, '/', '.', '_' and '-' (it ends up in a systemd unit)")
-        if isinstance(workspace_subdir, str) and not _PATH_RE.fullmatch(workspace_subdir):
-            errors.append("'workspace_subdir' may only contain letters, digits, '/', '.', '_' and '-'")
+        if home and (problem := path_text_problem(home)):
+            errors.append(f"'home' is not a path that can go into a systemd unit: {problem}")
+        if isinstance(workspace_subdir, str) and (problem := path_text_problem(workspace_subdir)):
+            errors.append(f"'workspace_subdir' is not a plain relative path: {problem}")
         if user and user in RemoteIdentity._FORBIDDEN_USERS:
             errors.append(f"'user' must be a dedicated system account, not {user!r}")
         if home and not home.startswith("/"):
@@ -94,10 +94,6 @@ class RemoteIdentity:
         if errors:
             raise ConfigValidationError("; ".join(errors))
         return RemoteIdentity(user=user, home=home, workspace_subdir=workspace_subdir)
-
-
-_USER_RE = re.compile(r"[a-z_][a-z0-9_-]{0,31}")
-_PATH_RE = re.compile(r"[A-Za-z0-9/._-]+")
 
 
 @dataclass(frozen=True)

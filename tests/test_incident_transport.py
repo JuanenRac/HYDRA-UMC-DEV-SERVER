@@ -23,6 +23,7 @@ from hydra_umc_dev_server.incident_transport import (
     IncidentSession,
     NodeRegistry,
     TransportPolicy,
+    SqliteVerifierState,
     VerifierState,
     verify_message,
 )
@@ -95,6 +96,82 @@ class VerifyRejectionTests(unittest.TestCase):
             self.assertTrue(self._verify(_msg(nonce=f"n{i}"), state=state, now=1000.0).ok)
         r = self._verify(_msg(nonce="n-over"), state=state, now=1000.0)
         self.assertEqual(r.code, "overloaded")
+
+
+class PersistentVerifierStateTests(unittest.TestCase):
+    """The same checks over a file: a replay is caught by a later process, and the check and the update of
+    one message are one transaction."""
+
+    def setUp(self):
+        import tempfile
+
+        self._tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self._tmp.cleanup)
+        self.path = str(Path(self._tmp.name) / "verifier.sqlite3")
+        self.reg, self.pol = _registry(), _policy()
+
+    def verify(self, message, now=1000.0):
+        with SqliteVerifierState(self.path) as state:  # a new connection each time, like a new process
+            return verify_message(message, self.reg, self.pol, state, authenticated_as=_DEV, now=now)
+
+    def test_a_replay_is_caught_by_a_later_process(self):
+        self.assertTrue(self.verify(_msg(nonce="dup")).ok)
+        self.assertEqual(self.verify(_msg(nonce="dup")).code, "replay")
+
+    def test_a_refused_message_leaves_no_trace(self):
+        self.assertEqual(self.verify(_msg(nonce="bad", secret="wrong")).code, "bad-signature")
+        self.assertTrue(self.verify(_msg(nonce="bad")).ok, "a nonce is remembered only for an accepted message")
+
+    def test_the_rate_limit_holds_across_processes(self):
+        for i in range(self.pol.max_messages_per_minute):
+            self.assertTrue(self.verify(_msg(nonce=f"n{i}")).ok)
+        self.assertEqual(self.verify(_msg(nonce="over")).code, "overloaded")
+        self.assertTrue(self.verify(_msg(nonce="later", sent_at=1100.0), now=1100.0).ok, "the window moves on")
+
+    def test_old_nonces_and_messages_are_purged_by_the_window(self):
+        self.assertTrue(self.verify(_msg(nonce="old")).ok)
+        later = 1000.0 + self.pol.replay_window_seconds + 61
+        self.assertTrue(self.verify(_msg(nonce="new", sent_at=later), now=later).ok)
+        with SqliteVerifierState(self.path) as state:
+            self.assertFalse(state.nonce_seen("old"))
+            self.assertTrue(state.nonce_seen("new"))
+            self.assertEqual(state.messages_in_window(_DEV, later), 1)
+
+    def test_two_connections_cannot_both_accept_one_message(self):
+        first, second = SqliteVerifierState(self.path), SqliteVerifierState(self.path)
+        self.addCleanup(first.close)
+        self.addCleanup(second.close)
+        message = _msg(nonce="race")
+        self.assertTrue(verify_message(message, self.reg, self.pol, first, authenticated_as=_DEV, now=1000.0).ok)
+        self.assertEqual(verify_message(message, self.reg, self.pol, second, authenticated_as=_DEV, now=1000.0).code, "replay")
+
+    def test_the_command_remembers_between_runs_only_with_a_state_file(self):
+        import contextlib
+        import io
+        import json
+
+        from hydra_umc_dev_server.cli import main
+
+        message = Path(self._tmp.name) / "m.json"
+        message.write_text(json.dumps(_msg(nonce="cli").to_dict()), encoding="utf-8")
+        registry = Path(self._tmp.name) / "r.json"
+        registry.write_text(json.dumps(_SECRETS), encoding="utf-8")
+        argv = ["incident", "verify", str(message), "--policy", str(_EXAMPLE), "--registry", str(registry), "--authenticated-as", _DEV]
+
+        def run(extra):
+            with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+                return main(argv + extra)
+
+        # the message is dated 1000: only the replay window (120 s) of "now" matters, so verify against a fixed clock
+        import hydra_umc_dev_server.incident_transport as transport
+
+        real_time = transport.time.time
+        transport.time.time = lambda: 1000.0
+        self.addCleanup(setattr, transport.time, "time", real_time)
+        self.assertEqual(run(["--state-file", self.path]), 0)
+        self.assertEqual(run(["--state-file", self.path]), 1, "the second run knows the nonce")
+        self.assertEqual(run([]), 0)
+        self.assertEqual(run([]), 0, "without a state file nothing is remembered")
 
 
 # ---------------------------------------------------------------------------

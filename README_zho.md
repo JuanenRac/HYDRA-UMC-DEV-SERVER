@@ -27,7 +27,7 @@
 
 ---
 
-**诚实核查 - 今天真正能运行的部分：** 下面列出的二十二个模块(`config.py`、`inventory.py`、`remote_station.py`、`preflight.py`、`provision.py`、`migration.py`、`workspace.py`、`recipe.py`、`runner.py`、`durable_queue.py`、`ai_provider.py`、`incident_transport.py`、`repair_cycle.py`、`operations.py`、`delivery.py`、`cli.py`, `api.py`, `plugins.py`, `sandbox.py`, `taskflow.py`, `worker.py`, `signing.py`)都是真实代码，而非占位符，并且由真实的测试套件覆盖(395 个测试在 `tests/test_*.py` 中全部通过)。这些真实代码具体做到了什么：验证 JSON 文档、在磁盘上规划迁移、在一个真实隔离工作区内以真实的净化环境运行一个真实的受限子进程、让一个真实的 SQLite 队列/日志在重启后依然持久、并执行了一次真实的 HMAC 签名事件往返 - 所有这些都只是针对本地检出或可注入的测试替身进行的，从未针对该项目真正面向的目标硬件 Raspberry Pi 5/CM5 运行过。`provider suggest` 始终只调用确定性的 `FakeProvider`；接入真实的 AI 提供方仍是一个明确尚未做出的用户决定。`station preflight`/`station plan` 通过可注入的检查器描述远程主机，从未针对真实的远程机器运行过。本仓库中没有任何东西真正部署过主机、执行过部署，而工作循环(`queue work`)只针对启动器和 git 的替身运行过，从未在真实主机上运行 - `deliver evaluate` 自身硬编码的 `overall_maturity: "functional"` 就是代码本身给出的明确说明。具体每一项交付的内容请见 `CHANGELOG.md`。
+**诚实核查 - 今天真正能运行的部分：** 下面列出的二十二个模块(`config.py`、`inventory.py`、`remote_station.py`、`preflight.py`、`provision.py`、`migration.py`、`workspace.py`、`recipe.py`、`runner.py`、`durable_queue.py`、`ai_provider.py`、`incident_transport.py`、`repair_cycle.py`、`operations.py`、`delivery.py`、`cli.py`, `api.py`, `plugins.py`, `sandbox.py`, `taskflow.py`, `worker.py`, `signing.py`)都是真实代码，而非占位符，并且由真实的测试套件覆盖(418 个测试在 `tests/test_*.py` 中全部通过)。这些真实代码具体做到了什么：验证 JSON 文档、在磁盘上规划迁移、在一个真实隔离工作区内以真实的净化环境运行一个真实的受限子进程、让一个真实的 SQLite 队列/日志在重启后依然持久、并执行了一次真实的 HMAC 签名事件往返 - 所有这些都只是针对本地检出或可注入的测试替身进行的，从未针对该项目真正面向的目标硬件 Raspberry Pi 5/CM5 运行过。`provider suggest` 始终只调用确定性的 `FakeProvider`；接入真实的 AI 提供方仍是一个明确尚未做出的用户决定。`station preflight`/`station plan` 通过可注入的检查器描述远程主机，从未针对真实的远程机器运行过。本仓库中没有任何东西真正部署过主机、执行过部署，而工作循环(`queue work`)只针对启动器和 git 的替身运行过，从未在真实主机上运行 - `deliver evaluate` 自身硬编码的 `overall_maturity: "functional"` 就是代码本身给出的明确说明。具体每一项交付的内容请见 `CHANGELOG.md`。
 
 ---
 
@@ -39,7 +39,7 @@
 |---|---|
 | 版本 | `0.1.8` |
 | 成熟度 | 可用 |
-| 测试 | 395 |
+| 测试 | 418 |
 | 技术栈 | Python 3.11+ / JSON Schema / systemd (host role, Linux only) / SQLite (durable task/state journal, from DS05 onward) |
 | 目标 | 开发服务器 |
 | 真实硬件 | 尚未：此版本没有在真实硬件上运行的记录 |

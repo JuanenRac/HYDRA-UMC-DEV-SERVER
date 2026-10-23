@@ -106,6 +106,7 @@ from .incident_transport import (
     IncidentMessage,
     NodeRegistry,
     TransportPolicy,
+    SqliteVerifierState,
     VerifierState,
     verify_message,
 )
@@ -417,9 +418,13 @@ def _cmd_incident_verify(args: argparse.Namespace) -> int:
         print(f"INVALID: {args.registry} must map node id -> secret string", file=sys.stderr)
         return 1
     registry = NodeRegistry(secrets={str(k): str(v) for k, v in raw_registry.items()})
-    result = verify_message(
-        message, registry, policy, VerifierState(), authenticated_as=args.authenticated_as
-    )
+    if args.state_file:
+        # the nonces and the rate log outlive this process, so a replayed message is caught by the next run
+        with SqliteVerifierState(args.state_file) as state:
+            result = verify_message(message, registry, policy, state, authenticated_as=args.authenticated_as)
+    else:
+        print("note: without --state-file a replayed message is not caught (each run starts with no memory)", file=sys.stderr)
+        result = verify_message(message, registry, policy, VerifierState(), authenticated_as=args.authenticated_as)
     print(json.dumps(result.to_dict(), indent=2))
     return 0 if result.ok else 1
 
@@ -749,6 +754,7 @@ def build_parser() -> argparse.ArgumentParser:
     incident_verify.add_argument("--policy", required=True, help="Path to an incident-transport policy JSON document.")
     incident_verify.add_argument("--registry", required=True, help="Path to a JSON object mapping node id -> HMAC secret (operator-held, never committed).")
     incident_verify.add_argument("--authenticated-as", required=True, help="The node id the channel proved (e.g. the client-cert CN).")
+    incident_verify.add_argument("--state-file", help="SQLite file that keeps the nonces and the rate log between runs. Without it a replayed message is not caught.")
     incident_verify.set_defaults(func=_cmd_incident_verify)
 
     repair = subparsers.add_parser("repair", help="Controlled repair-cycle commands (DS08).")

@@ -7,9 +7,10 @@
 # Applies the ecosystem-wide "odometer" version bump to this project's own
 # pyproject.toml (and its mirrored src/hydra_umc_dev_server/__init__.py) on an
 # explicit bump: PATCH goes up by 1; if that would push PATCH past 9, it
-# resets to 0 and MINOR goes up by 1 instead (e.g. 0.0.9 -> 0.1.0). MAJOR is
-# never touched by this script - deliberate manual-only decision, same
-# convention across the ecosystem.
+# resets to 0 and MINOR goes up by 1 instead (e.g. 0.0.9 -> 0.1.0), and the
+# same carry runs from MINOR into MAJOR. This is the rule of the shared
+# utility (bump_manifest_version.next_version), and a test keeps the two equal;
+# once the version has the extra component the shared utility does the bump.
 #
 # Run only by the explicit bump command (`python tools/hydra_project_tool.py
 # bump`); building never runs it, so a build never changes a version. Also
@@ -30,12 +31,15 @@ INIT_VERSION_RE = re.compile(r'^__version__\s*=\s*"(\d+)\.(\d+)\.(\d+)"\s*$', re
 
 
 def bump(major: int, minor: int, patch: int) -> tuple[int, int, int]:
-    """Odometer-style carry: PATCH+1, rolling over into MINOR past 9. MAJOR
-    is never touched here."""
+    """Odometer-style carry: PATCH+1, rolling over into MINOR past 9 and MINOR
+    into MAJOR past 9, as the shared utility does."""
     patch += 1
     if patch > 9:
         patch = 0
         minor += 1
+    if minor > 9:
+        minor = 0
+        major += 1
     return major, minor, patch
 
 

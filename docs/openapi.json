@@ -1,0 +1,180 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "HYDRA-UMC-DEV-SERVER local API",
+    "description": "A small authenticated HTTP API of the development host. It listens on a loopback address only. Every route except /v1/health needs a bearer token. Nothing here runs a task, deploys or changes what the server allows.",
+    "license": { "name": "GPL-3.0-or-later" },
+    "version": "1"
+  },
+  "servers": [{ "url": "http://127.0.0.1:8790" }],
+  "components": {
+    "securitySchemes": {
+      "bearer": { "type": "http", "scheme": "bearer" }
+    },
+    "schemas": {
+      "Error": {
+        "type": "object",
+        "required": ["error"],
+        "properties": { "error": { "type": "string" } }
+      }
+    },
+    "responses": {
+      "Unauthorized": {
+        "description": "A valid bearer token is required.",
+        "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } }
+      },
+      "Busy": {
+        "description": "More requests than the server serves at the same time (32); try again after a second.",
+        "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } }
+      },
+      "NotFound": {
+        "description": "No such route, or no such plugin.",
+        "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } }
+      },
+      "Conflict": {
+        "description": "The plugin is not in a state that allows this (not enabled, digest not approved, call failed or timed out).",
+        "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } }
+      }
+    }
+  },
+  "security": [{ "bearer": [] }],
+  "paths": {
+    "/v1/health": {
+      "get": {
+        "summary": "Version and plugin count. Needs no token.",
+        "security": [],
+        "responses": {
+          "200": { "description": "ok" },
+          "503": { "$ref": "#/components/responses/Busy" }
+        }
+      }
+    },
+    "/v1/inventory": {
+      "get": {
+        "summary": "The project manifests found under the workspace.",
+        "responses": {
+          "200": { "description": "projects and issues" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "503": { "$ref": "#/components/responses/Busy" }
+        }
+      }
+    },
+    "/v1/audit": {
+      "get": {
+        "summary": "The last requests: time, method, path without its query, status and client address. Never a body or a token.",
+        "responses": {
+          "200": { "description": "entries, oldest first" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "503": { "$ref": "#/components/responses/Busy" }
+        }
+      }
+    },
+    "/v1/plugins": {
+      "get": {
+        "summary": "Every discovered plugin and its state.",
+        "responses": {
+          "200": { "description": "plugins and problems" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "503": { "$ref": "#/components/responses/Busy" }
+        }
+      }
+    },
+    "/v1/plugins/rescan": {
+      "post": {
+        "summary": "Discover the plugins again from disk.",
+        "responses": {
+          "200": { "description": "plugins and problems" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "503": { "$ref": "#/components/responses/Busy" }
+        }
+      }
+    },
+    "/v1/plugins/{name}/enable": {
+      "post": {
+        "summary": "Enable a plugin whose digest the caller approves.",
+        "parameters": [{ "name": "name", "in": "path", "required": true, "schema": { "type": "string", "pattern": "^[a-z0-9-]+$" } }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "type": "object", "required": ["sha256"], "properties": { "sha256": { "type": "string" } } }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "the plugin, enabled" },
+          "400": { "description": "sha256 is missing, or the body is not a JSON object under 4096 bytes" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "404": { "$ref": "#/components/responses/NotFound" },
+          "409": { "description": "the plugin failed to load, or its digest is not the approved one" },
+          "413": { "description": "the body is over 4096 bytes" },
+          "503": { "$ref": "#/components/responses/Busy" }
+        }
+      }
+    },
+    "/v1/plugins/{name}/disable": {
+      "post": {
+        "summary": "Disable a plugin.",
+        "parameters": [{ "name": "name", "in": "path", "required": true, "schema": { "type": "string", "pattern": "^[a-z0-9-]+$" } }],
+        "responses": {
+          "200": { "description": "the plugin, disabled" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "404": { "$ref": "#/components/responses/NotFound" },
+          "503": { "$ref": "#/components/responses/Busy" }
+        }
+      }
+    },
+    "/v1/plugins/{name}/checks/{check}": {
+      "post": {
+        "summary": "Run one check of an enabled plugin, bounded by a timeout.",
+        "parameters": [
+          { "name": "name", "in": "path", "required": true, "schema": { "type": "string", "pattern": "^[a-z0-9-]+$" } },
+          { "name": "check", "in": "path", "required": true, "schema": { "type": "string", "pattern": "^[a-z0-9-]+$" } }
+        ],
+        "responses": {
+          "200": { "description": "the answer of the check" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "404": { "$ref": "#/components/responses/NotFound" },
+          "409": { "$ref": "#/components/responses/Conflict" },
+          "503": { "$ref": "#/components/responses/Busy" }
+        }
+      }
+    },
+    "/v1/plugins/{name}/reports/{report}": {
+      "post": {
+        "summary": "Run one report of an enabled plugin, bounded by a timeout and a size limit.",
+        "parameters": [
+          { "name": "name", "in": "path", "required": true, "schema": { "type": "string", "pattern": "^[a-z0-9-]+$" } },
+          { "name": "report", "in": "path", "required": true, "schema": { "type": "string", "pattern": "^[a-z0-9-]+$" } }
+        ],
+        "responses": {
+          "200": { "description": "the report" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "404": { "$ref": "#/components/responses/NotFound" },
+          "409": { "$ref": "#/components/responses/Conflict" },
+          "503": { "$ref": "#/components/responses/Busy" }
+        }
+      }
+    },
+    "/v1/plugins/{name}/generators/{generator}": {
+      "post": {
+        "summary": "Run one generator of an enabled plugin. The answer carries the generated file's name and text; nothing is written to disk.",
+        "parameters": [
+          { "name": "name", "in": "path", "required": true, "schema": { "type": "string", "pattern": "^[a-z0-9-]+$" } },
+          { "name": "generator", "in": "path", "required": true, "schema": { "type": "string", "pattern": "^[a-z0-9-]+$" } }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": { "application/json": { "schema": { "type": "object", "properties": { "params": { "type": "object" } } } } }
+        },
+        "responses": {
+          "200": { "description": "the generated file" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "404": { "$ref": "#/components/responses/NotFound" },
+          "409": { "$ref": "#/components/responses/Conflict" },
+          "503": { "$ref": "#/components/responses/Busy" }
+        }
+      }
+    }
+  }
+}

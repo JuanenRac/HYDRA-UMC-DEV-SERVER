@@ -203,7 +203,7 @@ is returned as data with `grants_no_permissions` / `triggers_no_deploy`
 always true, and an instruction-like suggestion is `injection_flagged`,
 never acted on. Exits `0` only on `outcome: "suggested"`.
 
-## `incident verify <message_file> --policy FILE --registry FILE --authenticated-as NODE` (DS07)
+## `incident verify <message_file> --policy FILE --registry FILE --authenticated-as NODE [--state-file FILE]` (DS07)
 
 Checks one incident message against a transport policy and a node
 registry (`node id -> HMAC secret`, operator-held, never committed; see
@@ -211,7 +211,11 @@ registry (`node id -> HMAC secret`, operator-held, never committed; see
 channel proved. Prints the `VerifyResult` JSON; exits `1` (never a
 traceback) with a named `code` for a rejection: `unknown-identity` /
 `bad-signature` / `impersonation` / `replay` / `stale` / `overloaded` /
-`incompatible-version`.
+`incompatible-version`. The command is started once per message, so on its
+own it remembers nothing and a replayed message passes (it says so on
+stderr); `--state-file` keeps the nonces and the rate log in a SQLite file
+shared by every run, and the check and the update of one message are one
+transaction, so two runs cannot both accept it.
 
 ## `repair check-candidate <candidate_file> --secret-file FILE --incident ID --base FP --target NAME` (DS08)
 
@@ -318,12 +322,15 @@ Runs the local HTTP API. It binds only to a loopback address, and the bearer
 token (at least 24 characters) comes from `--token-file` or the
 `HYDRA_UMC_DEV_SERVER_TOKEN` environment variable, never from the command
 line. Every route except `GET /v1/health` needs `Authorization: Bearer
-<token>`; bodies are capped at 4096 bytes, and a connection that goes quiet for 15 seconds is closed.
+<token>`; bodies are capped at 4096 bytes, a connection that goes quiet for 15 seconds is closed,
+and at most 32 requests are served at once (the next gets `503` with `Retry-After: 1`).
+`docs/openapi.json` describes the routes; a test keeps it equal to the handler.
 
 | Route | Purpose |
 |---|---|
 | `GET /v1/health` | version and plugin count (no token) |
 | `GET /v1/inventory` | manifests found under the workspace |
+| `GET /v1/audit` | the last 500 requests (time, method, path without query, status, client); never a body or a token |
 | `GET /v1/plugins` | every plugin, its state, digest, kinds and the checks, reports and generators it registered |
 | `POST /v1/plugins/rescan` | discover again from disk |
 | `POST /v1/plugins/<name>/enable` | body `{"sha256": "..."}`; `409` if refused |

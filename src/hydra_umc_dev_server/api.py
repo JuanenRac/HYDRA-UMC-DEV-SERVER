@@ -14,6 +14,7 @@ drives the plugin lifecycle in plugins.py.
 Routes
     GET  /v1/health                         no token; version and plugin count
     GET  /v1/inventory                      manifests found under the workspace
+    GET  /v1/audit                          the last requests (method, path, status, time), newest last
     GET  /v1/plugins                        every discovered plugin and its state
     POST /v1/plugins/rescan                 discover again from disk
     POST /v1/plugins/<name>/enable          body {"sha256": "..."}: the approved digest
@@ -30,6 +31,9 @@ import hmac
 import ipaddress
 import json
 import re
+import threading
+import time
+from collections import deque
 from dataclasses import asdict
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -40,6 +44,11 @@ from .plugins import PluginError, PluginRegistry
 
 MAX_BODY_BYTES = 4096
 MIN_TOKEN_LENGTH = 24
+# At most this many requests are served at the same time; the next one is answered 503 and closed at once, so a
+# flood of connections cannot grow the number of threads without limit.
+MAX_CONNECTIONS = 32
+# How many requests the audit trail keeps (a ring: the oldest fall off).
+AUDIT_ENTRIES = 500
 
 _ENABLE_RE = re.compile(r"^/v1/plugins/([a-z0-9-]+)/enable$")
 _DISABLE_RE = re.compile(r"^/v1/plugins/([a-z0-9-]+)/disable$")
@@ -64,17 +73,52 @@ def validate_bind(host: str, token: str) -> None:
         raise ApiConfigError(f"the API token must be at least {MIN_TOKEN_LENGTH} characters")
 
 
+_BUSY_RESPONSE = (
+    b"HTTP/1.1 503 Service Unavailable\r\nContent-Type: application/json\r\nContent-Length: 30\r\n"
+    b"Retry-After: 1\r\nConnection: close\r\n\r\n{\"error\": \"too many requests\"}"
+)
+
+
 class DevServer(ThreadingHTTPServer):
     daemon_threads = True
 
-    def __init__(self, address: tuple[str, int], *, token: str, workspace_root: Path, plugins_root: Path) -> None:
+    def __init__(
+        self,
+        address: tuple[str, int],
+        *,
+        token: str,
+        workspace_root: Path,
+        plugins_root: Path,
+        max_connections: int = MAX_CONNECTIONS,
+    ) -> None:
         validate_bind(address[0], token)
+        if max_connections < 1:
+            raise ApiConfigError("max_connections must be at least 1")
         super().__init__(address, _Handler)
         self.token = token
         self.workspace_root = workspace_root
         self.plugins_root = plugins_root
         self.registry = PluginRegistry()
         self.registry.discover(plugins_root)
+        self._slots = threading.BoundedSemaphore(max_connections)
+        # the audit trail never holds a body, a token or a query string
+        self.audit: deque[dict[str, object]] = deque(maxlen=AUDIT_ENTRIES)
+
+    def process_request(self, request, client_address) -> None:  # type: ignore[override]
+        if not self._slots.acquire(blocking=False):
+            try:
+                request.sendall(_BUSY_RESPONSE)
+            except OSError:
+                pass
+            self.shutdown_request(request)
+            return
+        super().process_request(request, client_address)
+
+    def process_request_thread(self, request, client_address) -> None:  # type: ignore[override]
+        try:
+            super().process_request_thread(request, client_address)
+        finally:
+            self._slots.release()
 
 
 class _Handler(BaseHTTPRequestHandler):
@@ -87,6 +131,13 @@ class _Handler(BaseHTTPRequestHandler):
 
     # -- plumbing ----------------------------------------------------------
     def _send(self, status: int, payload: object) -> None:
+        self.server.audit.append({
+            "at": round(time.time(), 3),
+            "method": self.command,
+            "path": self.path.split("?", 1)[0][:200],
+            "status": status,
+            "client": self.client_address[0],
+        })
         body = json.dumps(payload).encode("utf-8")
         self.send_response(status)
         self.send_header("Content-Type", "application/json")
@@ -138,6 +189,8 @@ class _Handler(BaseHTTPRequestHandler):
             self._send(200, {"projects": [asdict(p) for p in result.projects], "issues": [asdict(i) for i in result.issues]})
         elif path == "/v1/plugins":
             self._send(200, {"plugins": self.server.registry.list(), "problems": self.server.registry.problems})
+        elif path == "/v1/audit":
+            self._send(200, {"entries": list(self.server.audit)})
         else:
             self._send(404, {"error": "not found"})
 
