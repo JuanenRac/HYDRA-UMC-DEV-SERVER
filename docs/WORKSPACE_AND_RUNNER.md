@@ -54,7 +54,7 @@ read/write out of it.
    input path that escapes the workspace, is `rejected` - **nothing is
    spawned**.
 2. Build the child environment: the safe allow-list only (`PATH`,
-   `HOME`, `LANG`, `LC_ALL`, `TZ`; plus non-secret OS basics like
+   `HOME`, `LANG`, `LC_ALL`, `TZ`; `PATH` is fixed to `/usr/local/bin:/usr/bin:/bin` on a POSIX host and `HOME` is the workspace; plus non-secret OS basics like
    `SYSTEMROOT` on Windows). Nothing else is inherited - no
    `GITHUB_TOKEN`, no `AWS_SECRET_ACCESS_KEY`, no `ANTHROPIC_API_KEY`,
    no `SSH_AUTH_SOCK`. This is DS04's "acceso a secretos se rechaza":
@@ -87,3 +87,33 @@ bounded however much it prints.
   sandbox yet - the workspace is a directory boundary, not a container
 - it never deploys, and `allow_deploy` in the policy stays `False` by
   default the DS01 way
+
+## Isolation, arguments and the life of a run
+
+The scrubbed environment keeps secrets out of the *environment* of a task. To keep the files of the
+service user (ssh keys, git credentials, the token file of the API) out of reach as well, the command
+is wrapped in an operating-system sandbox when the host has one (`sandbox` in the task policy):
+
+- **bubblewrap**: a private mount namespace with the system read-only, no home, an empty `/tmp`, the
+  workspace as the only writable place, a new session and no network (`--unshare-all`) unless
+  `sandbox_network` is `true`.
+- **systemd-run**: a transient unit with `ProtectHome=yes`, `ProtectSystem=strict`, `PrivateTmp`,
+  `PrivateDevices`, `NoNewPrivileges`, `PrivateNetwork` (unless the network is opened) and only the
+  workspace writable; it needs a systemd that lets the service user start units.
+- **none**: no isolation. `auto` falls back to it, `task run` says so on stderr, and
+  `sandbox_required: true` refuses to run instead.
+
+The result of a run says which one was used (`sandbox`). The command lines are built by pure functions
+and covered by tests, but the kernel enforcing them has to be confirmed on the real host: this
+repository's tests never ran a task inside bubblewrap or a systemd unit.
+
+`allowed_commands` only names the program. `allowed_arguments` (optional, per command, `fnmatch`
+patterns) lists what it may be given, and these rules always apply: no absolute, home or `..` path
+(also in `--option=value`), no NUL byte, and none of the options that make a well-known tool run
+code or read configuration the recipe did not declare (`pytest -p/-c/-o/--rootdir/--confcutdir`,
+`python -c`, `bash -c`, `node -e`, ...) unless the policy lists that exact option.
+
+`task run` also stages `repo@revision` (see `repo_sources`), refuses to start more than
+`max_concurrent_tasks` tasks under one workspace base (one lock file per running task, a lock whose
+process is gone is taken over), looks a bare script name up in the workspace (`./name` must exist
+there) and removes the workspace afterwards according to `workspace_retention`.

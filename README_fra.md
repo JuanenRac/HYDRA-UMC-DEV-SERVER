@@ -45,7 +45,7 @@
 |---|---|
 | Version | `0.1.8` |
 | Maturité | Fonctionnel |
-| Tests | 306 |
+| Tests | 339 |
 | Technologie | Python 3.11+ / JSON Schema / systemd (host role, Linux only) / SQLite (durable task/state journal, from DS05 onward) |
 | Cible | Un serveur de développement |
 | Sur matériel réel | Pas encore : aucune exécution sur du matériel réel n'est consignée pour cette version |
@@ -197,7 +197,7 @@ Il n'y a pas d'invocation par défaut au-delà de la démo exécutée par
 [docs/CLI_REFERENCE.md](docs/CLI_REFERENCE.md) pour la surface de
 commandes réelle et complète.
 
-Deux autres commandes, `plugin list` et `serve`, couvrent le cycle de vie des plugins et une API HTTP locale authentifiée (loopback uniquement, jeton bearer). Un plugin reste inerte tant qu'il n'est pas activé avec le SHA-256 approuvé de ses fichiers et ne peut ajouter que des vérifications, des rapports et des générateurs nommés (déclarés avec `provides` dans `plugin.json`, exécutés par `plugin run` ou par l'API, chacun borné par un délai et une taille maximale) ; l'API n'exécute aucune tâche et ne déploie rien. Voir [docs/CLI_REFERENCE.md](docs/CLI_REFERENCE.md) et [docs/PLUGINS.md](docs/PLUGINS.md).
+Deux autres commandes, `plugin list` et `serve`, couvrent le cycle de vie des plugins et une API HTTP locale authentifiée (loopback uniquement, jeton bearer). Un plugin reste inerte tant qu'il n'est pas activé avec le SHA-256 approuvé de ses fichiers et ne peut ajouter que des vérifications, des rapports et des générateurs nommés (déclarés avec `provides` dans `plugin.json`, exécutés par `plugin run` ou par l'API, chacun borné par un délai et une taille maximale) ; l'API n'exécute aucune tâche et ne déploie rien. Voir [docs/CLI_REFERENCE.md](docs/CLI_REFERENCE.md) et [docs/PLUGINS.md](docs/PLUGINS.md). De plus, l'exécuteur de tâches enferme la commande dans un bac à sable bubblewrap ou systemd-run quand l'hôte en a un (pas de dossier personnel, pas de réseau sauf si la politique l'ouvre, seul l'espace de travail est inscriptible), limite les arguments de chaque commande, récupère la révision épinglée, limite les tâches simultanées et supprime l'espace de travail ensuite ; les plugins s'exécutent par défaut dans leur propre processus. Rien de cela n'a encore tourné sur un hôte réel.
 
 ## 2. 🧱 ARCHITECTURE ET DÉCISIONS DE CONCEPTION
 

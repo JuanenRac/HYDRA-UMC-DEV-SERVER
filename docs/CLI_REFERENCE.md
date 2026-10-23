@@ -22,7 +22,14 @@ VALID: configs/task-policy.example.json (task-policy)
 {
   "allow_deploy": false,
   "max_concurrent_tasks": 2,
-  "allowed_commands": ["pytest", "build.sh", "build-test.sh"]
+  "allowed_commands": ["pytest", "build.sh", "build-test.sh"],
+  "allowed_arguments": {},
+  "sandbox": "auto",
+  "sandbox_required": false,
+  "sandbox_network": false,
+  "sandbox_read_only_paths": [],
+  "workspace_retention": "delete-on-success",
+  "repo_sources": {}
 }
 ```
 
@@ -108,7 +115,7 @@ bounded `timeout_seconds`, and a `command` whose `argv[0]` is in the
 policy's own `allowed_commands`. Prints `VALID: ...` (exit `0`) or
 `INVALID: ...` (exit `1`). **Runs nothing.**
 
-## `task run <recipe_file> --policy <file> --workspace-base <dir>` (DS04)
+## `task run <recipe_file> --policy <file> --workspace-base <dir> [--replace-workspace]` (DS04)
 
 Allocates `<workspace-base>/<task_id>/` (refusing one that already
 exists - two tasks never share a workspace), validates the recipe
@@ -120,9 +127,21 @@ that workspace with a **scrubbed environment** (only `PATH` / `HOME` /
 group** is killed, not just the direct child. Prints the `RunResult`
 JSON (`outcome`: `completed` / `timed-out` / `cancelled` / `rejected`,
 `exit_code`, bounded stdout/stderr tails, `killed_process_group`).
-Exits `0` only on `completed` with exit code `0`. A disallowed command
-or an escaping input path is `rejected` with **nothing spawned**. It
-deploys nothing.
+Exits `0` only on `completed` with exit code `0`. A disallowed command,
+a disallowed argument (see `allowed_arguments`) or an escaping input path
+is `rejected` with **nothing spawned**. It deploys nothing.
+
+Around the run: a task is refused when `max_concurrent_tasks` are already
+running under the same workspace base; when the policy has a `repo_sources`
+entry for the recipe's `repo`, the pinned revision is fetched into the
+workspace with git first (`staged_commit` in the output, and a commit that is
+not the pinned one is refused); the command runs inside the sandbox the host
+has (`sandbox` in the output: `bubblewrap`, `systemd-run` or `none`, and a note
+on stderr when it is `none`); a bare script name such as `build.sh` is
+looked up in the workspace and `PATH` is fixed on a POSIX host; and the
+workspace is removed afterwards according to `workspace_retention`
+(`workspace_removed` in the output). `--replace-workspace` removes a leftover
+workspace of the same task id first; it is never removed otherwise.
 
 ## `queue enqueue <recipe_file> --db PATH --base-fingerprint HEX` (DS05)
 

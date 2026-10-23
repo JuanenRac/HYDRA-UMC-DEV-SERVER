@@ -46,6 +46,9 @@ _SAFE_ENV_KEYS_WINDOWS = (
     "TEMP", "TMP", "NUMBER_OF_PROCESSORS", "PROCESSOR_ARCHITECTURE",
 )
 _TAIL_BYTES = 8 * 1024
+# On a POSIX host the task finds its tools in these directories only, never in a PATH the
+# service happened to inherit (which may hold a relative entry or a directory a task can write).
+FIXED_PATH = "/usr/local/bin:/usr/bin:/bin"
 
 OUTCOME_COMPLETED = "completed"
 OUTCOME_TIMED_OUT = "timed-out"
@@ -60,7 +63,10 @@ def build_task_env(source_env: dict[str, str] | None = None) -> dict[str, str]:
 
     src = os.environ if source_env is None else source_env
     keys = _SAFE_ENV_KEYS + (_SAFE_ENV_KEYS_WINDOWS if os.name == "nt" else ())
-    return {key: src[key] for key in keys if key in src and src[key]}
+    env = {key: src[key] for key in keys if key in src and src[key]}
+    if os.name == "posix":
+        env["PATH"] = FIXED_PATH
+    return env
 
 
 class CancelToken:
@@ -106,6 +112,7 @@ class RunResult:
     stderr_tail: str = ""
     rejection_reason: str | None = None
     killed_process_group: bool = False
+    sandbox: str = "none"
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -117,6 +124,7 @@ class RunResult:
             "stderr_tail": self.stderr_tail,
             "rejection_reason": self.rejection_reason,
             "killed_process_group": self.killed_process_group,
+            "sandbox": self.sandbox,
         }
 
 
@@ -147,13 +155,30 @@ def run_task(
         )
     del resolved  # DS04 only proves they resolve; DS05's runner stages them
 
+    argv = list(recipe.command)
+    sandbox_name = str(getattr(launcher, "used", "none"))
+    # A script of the repository ("build.sh", "./build.sh") is found in the workspace, not in PATH.
+    first = argv[0][2:] if argv[0].startswith("./") else argv[0]
+    if "/" not in first and fs is not None:
+        try:
+            candidate = workspace.resolve_with(first, fs)
+        except ConfigValidationError as exc:
+            return RunResult(task_id=recipe.task_id, outcome=OUTCOME_REJECTED, exit_code=None, duration_seconds=0.0, rejection_reason=str(exc), sandbox=sandbox_name)
+        if fs.exists(candidate):
+            argv[0] = candidate
+        elif argv[0].startswith("./"):
+            return RunResult(
+                task_id=recipe.task_id, outcome=OUTCOME_REJECTED, exit_code=None, duration_seconds=0.0,
+                rejection_reason=f"the script {argv[0]!r} does not exist in the workspace", sandbox=sandbox_name,
+            )
+
     env = build_task_env()
     # the task's HOME is its own workspace, never the real home of the service user
     # (which holds ssh keys, git credentials and the like)
     env["HOME"] = workspace.root
     started = clock.monotonic()
     try:
-        handle = launcher.spawn(tuple(recipe.command), cwd=workspace.root, env=env)
+        handle = launcher.spawn(tuple(argv), cwd=workspace.root, env=env)
     except OSError as exc:  # the command does not exist in PATH, is not executable, ...
         return RunResult(
             task_id=recipe.task_id,
@@ -161,6 +186,7 @@ def run_task(
             exit_code=None,
             duration_seconds=0.0,
             rejection_reason=f"the command could not be started: {exc}",
+            sandbox=sandbox_name,
         )
 
     outcome = OUTCOME_COMPLETED
@@ -189,6 +215,7 @@ def run_task(
         stdout_tail=handle.stdout_tail(),
         stderr_tail=handle.stderr_tail(),
         killed_process_group=killed,
+        sandbox=sandbox_name,
     )
 
 

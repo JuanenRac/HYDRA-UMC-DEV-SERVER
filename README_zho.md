@@ -39,7 +39,7 @@
 |---|---|
 | 版本 | `0.1.8` |
 | 成熟度 | 可用 |
-| 测试 | 306 |
+| 测试 | 339 |
 | 技术栈 | Python 3.11+ / JSON Schema / systemd (host role, Linux only) / SQLite (durable task/state journal, from DS05 onward) |
 | 目标 | 开发服务器 |
 | 真实硬件 | 尚未：此版本没有在真实硬件上运行的记录 |
@@ -116,7 +116,7 @@ $ hydra-umc-dev-server inventory scan --root ..
 除了 `run.sh` 运行的演示外，本交付没有无参数的默认调用，也没有图形界面 -
 完整、真实的命令界面见 [docs/CLI_REFERENCE.md](docs/CLI_REFERENCE.md)。
 
-另外两个命令 `plugin list` 和 `serve` 负责插件生命周期以及带认证的本地 HTTP API（仅限回环地址，Bearer 令牌）。插件在以其文件已批准的 SHA-256 启用之前保持惰性，并且只能添加具名的检查、报告和生成器（在 `plugin.json` 中用 `provides` 声明，通过 `plugin run` 或 API 运行，各自受超时和大小上限限制）；该 API 不运行任何任务，也不部署任何内容。详见 [docs/CLI_REFERENCE.md](docs/CLI_REFERENCE.md) 和 [docs/PLUGINS.md](docs/PLUGINS.md)。
+另外两个命令 `plugin list` 和 `serve` 负责插件生命周期以及带认证的本地 HTTP API（仅限回环地址，Bearer 令牌）。插件在以其文件已批准的 SHA-256 启用之前保持惰性，并且只能添加具名的检查、报告和生成器（在 `plugin.json` 中用 `provides` 声明，通过 `plugin run` 或 API 运行，各自受超时和大小上限限制）；该 API 不运行任何任务，也不部署任何内容。详见 [docs/CLI_REFERENCE.md](docs/CLI_REFERENCE.md) 和 [docs/PLUGINS.md](docs/PLUGINS.md)。 此外，当主机具备 bubblewrap 或 systemd-run 时，任务运行器会把命令放进沙箱（无主目录，除非策略开放否则无网络，只有工作区可写），限制每个命令的参数，拉取固定的修订版本，限制同时运行的任务数并在结束后删除工作区；插件默认在各自的进程中运行。以上内容尚未在真实主机上运行过。
 
 ## 2. 🧱 架构与设计决策
 

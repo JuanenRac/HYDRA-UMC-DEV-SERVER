@@ -45,7 +45,7 @@
 |---|---|
 | Versione | `0.1.8` |
 | Maturità | Funzionale |
-| Test | 306 |
+| Test | 339 |
 | Tecnologia | Python 3.11+ / JSON Schema / systemd (host role, Linux only) / SQLite (durable task/state journal, from DS05 onward) |
 | Destinazione | Un server di sviluppo |
 | Su hardware reale | Non ancora: per questa versione non risulta alcuna esecuzione su hardware reale |
@@ -197,7 +197,7 @@ Non c'è un'invocazione predefinita oltre alla demo eseguita da
 [docs/CLI_REFERENCE.md](docs/CLI_REFERENCE.md) per la superficie di
 comandi reale e completa.
 
-Altri due comandi, `plugin list` e `serve`, coprono il ciclo di vita dei plugin e un'API HTTP locale autenticata (solo loopback, token bearer). Un plugin resta inerte finché non viene abilitato con lo SHA-256 approvato dei suoi file e può solo aggiungere controlli, report e generatori con nome (dichiarati con `provides` in `plugin.json`, eseguiti con `plugin run` o tramite l'API, ciascuno limitato da un timeout e da una dimensione massima); l'API non esegue alcuna attività e non distribuisce nulla. Vedi [docs/CLI_REFERENCE.md](docs/CLI_REFERENCE.md) e [docs/PLUGINS.md](docs/PLUGINS.md).
+Altri due comandi, `plugin list` e `serve`, coprono il ciclo di vita dei plugin e un'API HTTP locale autenticata (solo loopback, token bearer). Un plugin resta inerte finché non viene abilitato con lo SHA-256 approvato dei suoi file e può solo aggiungere controlli, report e generatori con nome (dichiarati con `provides` in `plugin.json`, eseguiti con `plugin run` o tramite l'API, ciascuno limitato da un timeout e da una dimensione massima); l'API non esegue alcuna attività e non distribuisce nulla. Vedi [docs/CLI_REFERENCE.md](docs/CLI_REFERENCE.md) e [docs/PLUGINS.md](docs/PLUGINS.md). Inoltre l'esecutore di attività racchiude il comando in una sandbox bubblewrap o systemd-run quando l'host ne dispone (nessuna home, nessuna rete salvo che la politica la apra, solo l'area di lavoro scrivibile), limita gli argomenti di ogni comando, scarica la revisione fissata, limita le attività simultanee e rimuove poi l'area di lavoro; i plugin girano di default in un processo proprio. Niente di tutto ciò è ancora stato eseguito su un host reale.
 
 ## 2. 🧱 ARCHITETTURA E DECISIONI DI PROGETTAZIONE
 

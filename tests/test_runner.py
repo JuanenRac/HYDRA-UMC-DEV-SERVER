@@ -32,9 +32,9 @@ from hydra_umc_dev_server.runner import (
 from hydra_umc_dev_server.workspace import Workspace
 
 
-def _policy(allowed=("pytest", "build.sh")):
+def _policy(allowed=("pytest", "build.sh"), arguments=None):
     return TaskPolicy.from_dict(
-        {"allow_deploy": False, "max_concurrent_tasks": 1, "allowed_commands": list(allowed)}
+        {"allow_deploy": False, "max_concurrent_tasks": 1, "allowed_commands": list(allowed), "allowed_arguments": arguments or {}}
     )
 
 
@@ -209,7 +209,7 @@ class RealChildOfAChildIsReapedTests(unittest.TestCase):
                 "task_id": "real-tree", "repo": "x", "revision": "0.0.4",
                 "command": [sys.executable, "-c", script], "timeout_seconds": 120, "input_paths": [],
             })
-            policy = _policy([sys.executable])
+            policy = _policy([sys.executable], {sys.executable: ["-c", "*"]})
             token = CancelToken()
 
             # Cancel only once both processes have really started and written
@@ -253,7 +253,7 @@ class RealChildWithLargeOutputTests(unittest.TestCase):
                 "task_id": "real-output", "repo": "x", "revision": "0.0.4",
                 "command": [sys.executable, "-c", script], "timeout_seconds": timeout_seconds, "input_paths": [],
             })
-            return run_task(recipe, _policy([sys.executable]), ws, SubprocessLauncher(), poll_interval=0.05)
+            return run_task(recipe, _policy([sys.executable], {sys.executable: ["-c", "*"]}), ws, SubprocessLauncher(), poll_interval=0.05)
 
     def test_a_child_that_prints_megabytes_completes_instead_of_deadlocking(self):
         started = time.monotonic()

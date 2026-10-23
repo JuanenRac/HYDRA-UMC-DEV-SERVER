@@ -23,6 +23,7 @@ error into one `ConfigValidationError`.
 """
 from __future__ import annotations
 
+import fnmatch
 import re
 from dataclasses import dataclass, field
 from typing import Any
@@ -34,6 +35,68 @@ from .workspace import Workspace, _require_safe_id
 # but even at DS04 a timeout must be real and sane.
 _MAX_TIMEOUT_SECONDS = 60 * 60  # one hour
 _REVISION = re.compile(r"^[0-9a-fA-F]{7,64}$|^v?\d+\.\d+\.\d+$|^refs/tags/[\w./-]+$")
+
+
+def command_key(command0: str) -> str:
+    """`./build.sh` and `build.sh` name the same allowed script."""
+    return command0[2:] if command0.startswith("./") else command0
+
+
+# Options that make a well-known tool load code or read configuration from a place the
+# recipe never declared (pytest runs `conftest.py` and any plugin it is told to load).
+# For `-p` only the harmless form `-p no:<plugin>` is accepted.
+_DENIED_OPTIONS: dict[str, tuple[str, ...]] = {
+    "pytest": ("-p", "-c", "-o", "--rootdir", "--confcutdir", "--basetemp", "--override-ini", "--import-mode", "--pyargs", "--config-file", "--cache-clear-dir"),
+    "python": ("-c", "-i", "--command"),
+    "python3": ("-c", "-i", "--command"),
+    "sh": ("-c",),
+    "bash": ("-c", "--rcfile", "--init-file"),
+    "node": ("-e", "--eval", "-p", "--print", "-r", "--require", "--import"),
+    "perl": ("-e", "-E"),
+    "ruby": ("-e",),
+    "env": ("-S", "-C"),
+}
+
+
+def _is_path_escape(value: str) -> bool:
+    if value.startswith(("/", "~", "\\")) or (len(value) > 2 and value[1] == ":" and value[2] in "\\/"):
+        return True
+    return ".." in re.split(r"[\\/]", value)
+
+
+def argument_problems(command: tuple[str, ...], policy: TaskPolicy) -> list[str]:
+    """Why the arguments of `command` (everything after the command itself) are not allowed.
+
+    Always: no NUL, no absolute or home path, no `..` (also in the value of `--option=value`),
+    and none of the options that load code of the tool (`_DENIED_OPTIONS`). When the policy
+    lists patterns for the command in `allowed_arguments`, every argument must match one."""
+    problems: list[str] = []
+    if not command:
+        return problems
+    key = command_key(command[0])
+    args = command[1:]
+    denied = _DENIED_OPTIONS.get(key.rsplit("/", 1)[-1], ())
+    patterns = policy.allowed_arguments.get(key) or policy.allowed_arguments.get(command[0])
+    for index, arg in enumerate(args):
+        if "\x00" in arg:
+            problems.append(f"argument {index + 1} holds a NUL byte")
+            continue
+        head, _, value = arg.partition("=") if arg.startswith("-") else (arg, "", "")
+        listed = patterns is not None and any(fnmatch.fnmatchcase(arg, pattern) for pattern in patterns)
+        if arg.startswith("-") and not listed:  # an option the policy names itself is the operator's decision
+            for option in denied:
+                if arg == option or arg.startswith(option + "=") or (not option.startswith("--") and len(option) == 2 and arg.startswith(option) and len(arg) > 2 and not arg.startswith("--")):
+                    if option == "-p" and (arg == "-p" and index + 1 < len(args) and args[index + 1].startswith("no:") or arg.startswith("-pno:")):
+                        break
+                    problems.append(f"the option {head!r} is not allowed for {key!r} (it loads code or configuration the recipe did not declare)")
+                    break
+        for candidate in ((value,) if value else ()) + (() if arg.startswith("-") else (arg,)):
+            if _is_path_escape(candidate):
+                problems.append(f"argument {index + 1} {arg!r} points outside the workspace (absolute, home or '..' path)")
+                break
+        if patterns is not None and not any(fnmatch.fnmatchcase(arg, pattern) for pattern in patterns):
+            problems.append(f"argument {index + 1} {arg!r} is not in the policy's allowed_arguments for {key!r}")
+    return problems
 
 
 @dataclass(frozen=True)
@@ -119,11 +182,14 @@ class TaskRecipe:
             raise ConfigValidationError(
                 "the task policy allows no commands at all - no recipe can run under it"
             )
-        if self.command and self.command[0] not in policy.allowed_commands:
+        if self.command and command_key(self.command[0]) not in {command_key(c) for c in policy.allowed_commands}:
             raise ConfigValidationError(
                 f"command {self.command[0]!r} is not in the policy's allowed_commands "
                 f"{tuple(policy.allowed_commands)!r}"
             )
+        problems = argument_problems(self.command, policy)
+        if problems:
+            raise ConfigValidationError("; ".join(problems))
 
     def resolved_input_paths(self, workspace: Workspace, fs: Any = None) -> tuple[str, ...]:
         """Every declared input path, resolved inside `workspace`. Raises

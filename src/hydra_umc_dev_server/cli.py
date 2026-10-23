@@ -122,6 +122,8 @@ from .provision import build_provision_plan
 from .recipe import TaskRecipe
 from .remote_station import RemoteStationProfile
 from .runner import SubprocessLauncher, run_task
+from .sandbox import SandboxSpec, SandboxedLauncher
+from .taskflow import ConcurrencyGate, remove_workspace, should_remove, stage_repo
 from .workspace import SystemWorkspaceFs, allocate_workspace
 
 _KIND_LOADERS = {
@@ -278,14 +280,41 @@ def _cmd_task_run(args: argparse.Namespace) -> int:
     except ConfigValidationError as exc:
         print(f"INVALID: {recipe_path} (task-recipe): {exc}", file=sys.stderr)
         return 1
+    base = str(Path(args.workspace_base))
     try:
-        workspace = allocate_workspace(str(Path(args.workspace_base)), recipe.task_id, SystemWorkspaceFs())
+        launcher = SandboxedLauncher(
+            SubprocessLauncher(),
+            SandboxSpec(
+                mode=policy.sandbox, network=policy.sandbox_network,
+                read_only_paths=policy.sandbox_read_only_paths, required=policy.sandbox_required,
+            ),
+        )
+        gate = ConcurrencyGate(base, policy.max_concurrent_tasks)
+        with gate.hold(recipe.task_id):
+            if getattr(args, "replace_workspace", False):
+                remove_workspace(base, recipe.task_id)
+            workspace = allocate_workspace(base, recipe.task_id, SystemWorkspaceFs())
+            staged_commit = None
+            source = policy.repo_sources.get(recipe.repo)
+            if source is not None:
+                staged_commit = stage_repo(workspace.root, source, recipe.revision)
+            else:
+                print(f"note: no source is configured for {recipe.repo!r} (repo_sources); the workspace is empty", file=sys.stderr)
+            if launcher.used == "none":
+                print("note: no sandbox is active on this host; the task runs with the permissions of the service user", file=sys.stderr)
+            result = run_task(recipe, policy, workspace, launcher, fs=SystemWorkspaceFs())
+            ok = result.outcome == "completed" and result.exit_code == 0
+            removed = False
+            if should_remove(policy.workspace_retention, completed_ok=ok):
+                removed = remove_workspace(base, recipe.task_id)
     except ConfigValidationError as exc:
         print(f"REFUSED: {exc}", file=sys.stderr)
         return 1
-    result = run_task(recipe, policy, workspace, SubprocessLauncher(), fs=SystemWorkspaceFs())
-    print(json.dumps(result.to_dict(), indent=2))
-    return 0 if result.outcome == "completed" and result.exit_code == 0 else 1
+    document = result.to_dict()
+    document["staged_commit"] = staged_commit
+    document["workspace_removed"] = removed
+    print(json.dumps(document, indent=2))
+    return 0 if ok else 1
 
 
 def _cmd_queue_enqueue(args: argparse.Namespace) -> int:
@@ -565,6 +594,7 @@ def build_parser() -> argparse.ArgumentParser:
     task_run.add_argument("recipe_file", help="Path to a task-recipe JSON document.")
     task_run.add_argument("--policy", required=True, help="Path to a task-policy JSON document.")
     task_run.add_argument("--workspace-base", required=True, help="Absolute directory under which the per-task workspace is created.")
+    task_run.add_argument("--replace-workspace", action="store_true", help="Remove a leftover workspace of the same task id first (it is never removed otherwise).")
     task_run.set_defaults(func=_cmd_task_run)
 
     queue = subparsers.add_parser("queue", help="Durable task queue + execution journal commands (DS05).")

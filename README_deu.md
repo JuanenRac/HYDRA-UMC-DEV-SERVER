@@ -45,7 +45,7 @@
 |---|---|
 | Version | `0.1.8` |
 | Reifegrad | Funktionsfähig |
-| Tests | 306 |
+| Tests | 339 |
 | Technik | Python 3.11+ / JSON Schema / systemd (host role, Linux only) / SQLite (durable task/state journal, from DS05 onward) |
 | Ziel | Ein Entwicklungsserver |
 | Auf echter Hardware | Noch nicht: für diese Version ist kein Lauf auf echter Hardware vermerkt |
@@ -200,7 +200,7 @@ Es gibt keinen Standardaufruf ohne Argumente außer der Demo, die
 Oberfläche - siehe [docs/CLI_REFERENCE.md](docs/CLI_REFERENCE.md) für
 die vollständige, reale Kommandooberfläche.
 
-Zwei weitere Befehle, `plugin list` und `serve`, decken den Plugin-Lebenszyklus und eine authentifizierte lokale HTTP-API ab (nur Loopback, Bearer-Token). Ein Plugin bleibt inaktiv, bis es mit dem freigegebenen SHA-256 seiner Dateien aktiviert wird, und kann nur benannte Prüfungen, Berichte und Generatoren hinzufügen (in `plugin.json` mit `provides` deklariert, mit `plugin run` oder über die API ausgeführt, jeweils durch Zeitlimit und Größengrenze begrenzt); die API führt keine Aufgabe aus und deployt nichts. Siehe [docs/CLI_REFERENCE.md](docs/CLI_REFERENCE.md) und [docs/PLUGINS.md](docs/PLUGINS.md).
+Zwei weitere Befehle, `plugin list` und `serve`, decken den Plugin-Lebenszyklus und eine authentifizierte lokale HTTP-API ab (nur Loopback, Bearer-Token). Ein Plugin bleibt inaktiv, bis es mit dem freigegebenen SHA-256 seiner Dateien aktiviert wird, und kann nur benannte Prüfungen, Berichte und Generatoren hinzufügen (in `plugin.json` mit `provides` deklariert, mit `plugin run` oder über die API ausgeführt, jeweils durch Zeitlimit und Größengrenze begrenzt); die API führt keine Aufgabe aus und deployt nichts. Siehe [docs/CLI_REFERENCE.md](docs/CLI_REFERENCE.md) und [docs/PLUGINS.md](docs/PLUGINS.md). Außerdem packt der Aufgabenläufer den Befehl in eine bubblewrap- oder systemd-run-Sandbox, wenn der Rechner eine hat (kein Home, kein Netz, sofern die Richtlinie es nicht öffnet, nur der Arbeitsbereich beschreibbar), begrenzt die Argumente jedes Befehls, holt die festgelegte Revision, begrenzt die gleichzeitigen Aufgaben und löscht den Arbeitsbereich danach; Plugins laufen standardmäßig in einem eigenen Prozess. Nichts davon lief bisher auf einem echten Rechner.
 
 ## 2. 🧱 ARCHITEKTUR UND DESIGN-ENTSCHEIDUNGEN
 

@@ -2,8 +2,9 @@
 
 A plugin adds named items to the development server: **checks**, **reports**
 and **generators**. It is a directory with two files, `plugin.json` and one
-Python module. It runs in the same process as the API, so a plugin is trusted
-code: enable only what you have read.
+Python module. By default every call runs in its own Python process (see
+"Isolation" below), so a plugin sees nothing of the API process; enable only
+what you have read all the same.
 
 ## Manifest (`plugin.json`)
 
@@ -112,3 +113,25 @@ Python version, CPU count and disk space) and `examples/plugins/readme-generator
 provides one generator (`readme-skeleton`: a README skeleton from a name and a
 summary). Copy a directory next to your plugins, change it, and approve the new
 digest that `plugin list` shows.
+
+## Isolation
+
+`PluginRegistry(isolation="process")` is the default, and what `serve` and `plugin run` use
+(`HYDRA_DEV_SERVER_PLUGIN_ISOLATION=thread` brings back the old behaviour for a plugin that
+needs to keep state between calls).
+
+- **process** (default): enabling and every call start a separate Python process (`python -I`),
+  in an empty temporary directory that is also its `HOME`, with a scrubbed environment (no
+  token, no key, no variable of the API), limits on its CPU time and on the size of the files it
+  writes, and the whole process group killed when the call overruns its timeout or finishes. The
+  module is handed to it as the bytes that were approved, not as a path, so it cannot import a
+  file next to it and a file changed after the approval is never run. What it returns follows a
+  marker, so anything it prints cannot be taken for the answer. At most four calls run at once.
+  A plugin keeps no state from one call to the next, and the process has the permissions of the
+  service user: it is isolation from the API process, not an operating-system sandbox.
+- **thread**: the module runs in the API process (trusted code), still from the approved bytes
+  and not from the file read a second time. A call that overruns cannot be cancelled; such calls
+  are counted and no new call starts once eight are still running.
+
+Rescanning, enabling and disabling are serialised, so parallel requests cannot corrupt the
+registry.

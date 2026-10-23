@@ -132,12 +132,42 @@ class TaskPolicy:
     allow_deploy: bool
     max_concurrent_tasks: int
     allowed_commands: tuple[str, ...] = field(default_factory=tuple)
+    # Per command, the arguments (after the command itself) it may be given, as
+    # fnmatch patterns. A command with an entry here accepts nothing else; a command
+    # without one is only held to the baseline rules of `recipe.argument_problems`.
+    allowed_arguments: dict[str, tuple[str, ...]] = field(default_factory=dict)
+    # Operating-system isolation of the runner (see sandbox.py): "auto" uses
+    # bubblewrap or systemd-run when the host has one, "none" turns it off.
+    sandbox: str = "auto"
+    # When true, a host without any sandbox refuses to run a task at all.
+    sandbox_required: bool = False
+    # The sandbox has no network unless this is true.
+    sandbox_network: bool = False
+    # Directories outside the system ones that the task may read (a toolchain, a venv).
+    sandbox_read_only_paths: tuple[str, ...] = field(default_factory=tuple)
+    # What happens to the workspace after the run: "keep" always keeps it,
+    # "delete-on-success" removes it after a completed run with exit code 0,
+    # "delete" removes it after every run.
+    workspace_retention: str = "delete-on-success"
+    # Where each repository name of a recipe is fetched from (a URL or a local path).
+    # A repository without an entry is not staged (the workspace stays empty).
+    repo_sources: dict[str, str] = field(default_factory=dict)
+
+    _SANDBOX_MODES = ("auto", "bubblewrap", "systemd-run", "none")
+    _RETENTIONS = ("keep", "delete-on-success", "delete")
 
     def to_dict(self) -> dict[str, Any]:
         return {
             "allow_deploy": self.allow_deploy,
             "max_concurrent_tasks": self.max_concurrent_tasks,
             "allowed_commands": list(self.allowed_commands),
+            "allowed_arguments": {k: list(v) for k, v in self.allowed_arguments.items()},
+            "sandbox": self.sandbox,
+            "sandbox_required": self.sandbox_required,
+            "sandbox_network": self.sandbox_network,
+            "sandbox_read_only_paths": list(self.sandbox_read_only_paths),
+            "workspace_retention": self.workspace_retention,
+            "repo_sources": dict(self.repo_sources),
         }
 
     @staticmethod
@@ -151,12 +181,51 @@ class TaskPolicy:
         if not isinstance(allowed_commands_raw, list) or not all(isinstance(c, str) and c for c in allowed_commands_raw):
             errors.append("'allowed_commands' must be a list of non-empty strings")
             allowed_commands_raw = []
+        arguments_raw = data.get("allowed_arguments", {})
+        arguments: dict[str, tuple[str, ...]] = {}
+        if not isinstance(arguments_raw, dict):
+            errors.append("'allowed_arguments' must be an object of command -> list of patterns")
+        else:
+            for command, patterns in arguments_raw.items():
+                if not isinstance(patterns, list) or not all(isinstance(p, str) and p for p in patterns):
+                    errors.append(f"'allowed_arguments'[{command!r}] must be a list of non-empty strings")
+                else:
+                    arguments[command] = tuple(patterns)
+        sandbox = data.get("sandbox", "auto")
+        if sandbox not in TaskPolicy._SANDBOX_MODES:
+            errors.append(f"'sandbox' must be one of {TaskPolicy._SANDBOX_MODES}, not {sandbox!r}")
+            sandbox = "auto"
+        sandbox_required = _require_bool(data, "sandbox_required", errors, default=False)
+        sandbox_network = _require_bool(data, "sandbox_network", errors, default=False)
+        ro_raw = data.get("sandbox_read_only_paths", [])
+        ro_paths: tuple[str, ...] = ()
+        if not isinstance(ro_raw, list) or not all(isinstance(p, str) and p.startswith("/") for p in ro_raw):
+            errors.append("'sandbox_read_only_paths' must be a list of absolute paths")
+        else:
+            ro_paths = tuple(ro_raw)
+        retention = data.get("workspace_retention", "delete-on-success")
+        if retention not in TaskPolicy._RETENTIONS:
+            errors.append(f"'workspace_retention' must be one of {TaskPolicy._RETENTIONS}, not {retention!r}")
+            retention = "delete-on-success"
+        sources_raw = data.get("repo_sources", {})
+        sources: dict[str, str] = {}
+        if not isinstance(sources_raw, dict) or not all(isinstance(k, str) and isinstance(v, str) and v for k, v in sources_raw.items()):
+            errors.append("'repo_sources' must be an object of repository name -> URL or path")
+        else:
+            sources = dict(sources_raw)
         if errors:
             raise ConfigValidationError("; ".join(errors))
         return TaskPolicy(
             allow_deploy=allow_deploy,
             max_concurrent_tasks=max_concurrent_tasks,
             allowed_commands=tuple(allowed_commands_raw),
+            allowed_arguments=arguments,
+            sandbox=sandbox,
+            sandbox_required=sandbox_required,
+            sandbox_network=sandbox_network,
+            sandbox_read_only_paths=ro_paths,
+            workspace_retention=retention,
+            repo_sources=sources,
         )
 
 

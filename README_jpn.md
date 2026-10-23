@@ -43,7 +43,7 @@
 |---|---|
 | バージョン | `0.1.8` |
 | 成熟度 | 機能する |
-| テスト | 306 |
+| テスト | 339 |
 | 技術 | Python 3.11+ / JSON Schema / systemd (host role, Linux only) / SQLite (durable task/state journal, from DS05 onward) |
 | 対象 | 開発用サーバー |
 | 実機での確認 | まだです：このバージョンについて実機での動作記録はありません |
@@ -131,7 +131,7 @@ $ hydra-umc-dev-server inventory scan --root ..
 提供物にはGUIもない - 完全で実際のコマンド面については
 [docs/CLI_REFERENCE.md](docs/CLI_REFERENCE.md) を参照。
 
-さらに 2 つのコマンド `plugin list` と `serve` が、プラグインのライフサイクルと認証付きローカル HTTP API（ループバックのみ、Bearer トークン）を扱います。プラグインは、ファイルの承認済み SHA-256 で有効化されるまで動作せず、名前付きのチェック、レポート、ジェネレーターを追加することしかできません（`plugin.json` の `provides` で宣言し、`plugin run` または API で実行し、それぞれタイムアウトとサイズ上限があります）。API はタスクを実行せず、何もデプロイしません。詳しくは [docs/CLI_REFERENCE.md](docs/CLI_REFERENCE.md)、[docs/PLUGINS.md](docs/PLUGINS.md) を参照してください。
+さらに 2 つのコマンド `plugin list` と `serve` が、プラグインのライフサイクルと認証付きローカル HTTP API（ループバックのみ、Bearer トークン）を扱います。プラグインは、ファイルの承認済み SHA-256 で有効化されるまで動作せず、名前付きのチェック、レポート、ジェネレーターを追加することしかできません（`plugin.json` の `provides` で宣言し、`plugin run` または API で実行し、それぞれタイムアウトとサイズ上限があります）。API はタスクを実行せず、何もデプロイしません。詳しくは [docs/CLI_REFERENCE.md](docs/CLI_REFERENCE.md)、[docs/PLUGINS.md](docs/PLUGINS.md) を参照してください。 さらに、タスクランナーはホストに bubblewrap または systemd-run があればコマンドをサンドボックスで包み(ホームなし、ポリシーが許可しない限りネットワークなし、書き込み可能なのは作業領域のみ)、各コマンドの引数を制限し、固定されたリビジョンを取得し、同時実行数を制限し、終了後に作業領域を削除します。プラグインは既定で独自のプロセスで動きます。これらはまだ実機で実行されていません。
 
 ## 2. 🧱 アーキテクチャと設計判断
 

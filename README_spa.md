@@ -44,7 +44,7 @@
 |---|---|
 | Versión | `0.1.8` |
 | Madurez | Funcional |
-| Tests | 306 |
+| Tests | 339 |
 | Tecnología | Python 3.11+ / JSON Schema / systemd (host role, Linux only) / SQLite (durable task/state journal, from DS05 onward) |
 | Destino | Un servidor de desarrollo |
 | En hardware real | Todavía no: no consta ninguna ejecución en hardware real para esta versión |
@@ -190,7 +190,7 @@ ejecuta `run.sh`, y esta entrega no tiene interfaz gráfica - ver
 [docs/CLI_REFERENCE.md](docs/CLI_REFERENCE.md) para la superficie de
 comandos real y completa.
 
-Otros dos comandos, `plugin list` y `serve`, cubren el ciclo de vida de los plugins y una API HTTP local autenticada (solo loopback, token bearer). Un plugin permanece inerte hasta que se habilita con el SHA-256 aprobado de sus ficheros y solo puede añadir comprobaciones, informes y generadores con nombre (declarados con `provides` en `plugin.json`, ejecutados con `plugin run` o por la API, cada uno acotado por un tiempo límite y un tamaño máximo); la API no ejecuta ninguna tarea ni despliega nada. Véase [docs/CLI_REFERENCE.md](docs/CLI_REFERENCE.md) y [docs/PLUGINS.md](docs/PLUGINS.md).
+Otros dos comandos, `plugin list` y `serve`, cubren el ciclo de vida de los plugins y una API HTTP local autenticada (solo loopback, token bearer). Un plugin permanece inerte hasta que se habilita con el SHA-256 aprobado de sus ficheros y solo puede añadir comprobaciones, informes y generadores con nombre (declarados con `provides` en `plugin.json`, ejecutados con `plugin run` o por la API, cada uno acotado por un tiempo límite y un tamaño máximo); la API no ejecuta ninguna tarea ni despliega nada. Véase [docs/CLI_REFERENCE.md](docs/CLI_REFERENCE.md) y [docs/PLUGINS.md](docs/PLUGINS.md). Además, el ejecutor de tareas envuelve la orden en un sandbox de bubblewrap o systemd-run cuando el equipo lo tiene (sin home, sin red salvo que la política la abra, solo el espacio de trabajo escribible), limita los argumentos de cada orden, descarga la revisión fijada, limita las tareas simultáneas y borra el espacio de trabajo al terminar, y los plugins se ejecutan por defecto en su propio proceso. Nada de esto se ha ejecutado aún en un equipo real.
 
 ## 2. 🧱 ARQUITECTURA Y DECISIONES DE DISEÑO
 

@@ -69,7 +69,7 @@
 |---|---|
 | Versão | `0.1.8` |
 | Maturidade | Funcional |
-| Testes | 306 |
+| Testes | 339 |
 | Tecnologia | Python 3.11+ / JSON Schema / systemd (host role, Linux only) / SQLite (durable task/state journal, from DS05 onward) |
 | Destino | Um servidor de desenvolvimento |
 | Em hardware real | Ainda não: não há registo de execução em hardware real para esta versão |
@@ -210,7 +210,7 @@ nem interface gráfica nesta entrega - veja
 [docs/CLI_REFERENCE.md](docs/CLI_REFERENCE.md) para a superfície real e
 completa de comandos.
 
-Mais dois comandos, `plugin list` e `serve`, cobrem o ciclo de vida dos plugins e uma API HTTP local autenticada (só loopback, token Bearer). Um plugin fica inerte até ser ativado contra o SHA-256 aprovado dos seus ficheiros e só pode acrescentar verificações, relatórios e geradores nomeados (declarados com `provides` em `plugin.json`, executados com `plugin run` ou pela API, cada um limitado por um tempo limite e um tamanho máximo); a API não executa nenhuma tarefa nem implementa nada. Veja [docs/CLI_REFERENCE.md](docs/CLI_REFERENCE.md) e [docs/PLUGINS.md](docs/PLUGINS.md).
+Mais dois comandos, `plugin list` e `serve`, cobrem o ciclo de vida dos plugins e uma API HTTP local autenticada (só loopback, token Bearer). Um plugin fica inerte até ser ativado contra o SHA-256 aprovado dos seus ficheiros e só pode acrescentar verificações, relatórios e geradores nomeados (declarados com `provides` em `plugin.json`, executados com `plugin run` ou pela API, cada um limitado por um tempo limite e um tamanho máximo); a API não executa nenhuma tarefa nem implementa nada. Veja [docs/CLI_REFERENCE.md](docs/CLI_REFERENCE.md) e [docs/PLUGINS.md](docs/PLUGINS.md). Além disso, o executor de tarefas envolve o comando numa sandbox bubblewrap ou systemd-run quando o equipamento a tem (sem home, sem rede a não ser que a política a abra, só a área de trabalho gravável), limita os argumentos de cada comando, obtém a revisão fixada, limita as tarefas em simultâneo e remove a área de trabalho no fim; os plugins correm por omissão no seu próprio processo. Nada disto correu ainda num equipamento real.
 
 ## 2. 🧱 ARQUITETURA E DECISÕES DE DESENHO
 

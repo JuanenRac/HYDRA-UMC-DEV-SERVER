@@ -41,7 +41,14 @@ work, not yet implemented here.
 | --- | --- | --- |
 | `allow_deploy` | boolean | Optional, **defaults to `false`**. Only a document that sets the literal JSON boolean `true` can ever produce a policy with it enabled - a missing, misspelled, or non-boolean value never grants it (see `tests/test_config.py`'s own `TaskPolicyTests` for the exact cases this is verified against). |
 | `max_concurrent_tasks` | integer | Optional, defaults to `1`. Must be a real positive integer - a boolean (which Python treats as an `int` subclass) is explicitly rejected. |
-| `allowed_commands` | array of strings | Optional, defaults to `[]`. Every entry must be a non-empty string. |
+| `allowed_commands` | array of strings | Optional, defaults to `[]`. Every entry must be a non-empty string. `./build.sh` and `build.sh` name the same script. |
+| `allowed_arguments` | object of command to array of patterns | Optional, defaults to `{}`. A command with an entry accepts only arguments that match one of its `fnmatch` patterns. Whatever is listed here, no command may be given an absolute, home or `..` path (also in `--option=value`), and the options that load code of well-known tools (`pytest -p/-c/-o/--rootdir`, `python -c`, `bash -c`, `node -e`, ...) are refused unless the policy lists that exact option. |
+| `sandbox` | `auto`, `bubblewrap`, `systemd-run` or `none` | Optional, defaults to `auto` (bubblewrap, then systemd-run, then none). See `WORKSPACE_AND_RUNNER.md`. |
+| `sandbox_required` | boolean | Optional, defaults to `false`. When `true`, a host with no sandbox refuses to run a task. |
+| `sandbox_network` | boolean | Optional, defaults to `false`. The sandbox has no network unless this is `true`. |
+| `sandbox_read_only_paths` | array of absolute paths | Optional. Extra directories (a toolchain, a virtual environment) the sandboxed task may read. |
+| `workspace_retention` | `keep`, `delete-on-success` or `delete` | Optional, defaults to `delete-on-success`: the workspace is removed after a completed run with exit code 0 and kept otherwise. |
+| `repo_sources` | object of repository name to URL or path | Optional. Where `task run` fetches `repo@revision` from. A repository without an entry is not staged. |
 
 Example: `configs/task-policy.example.json` - the shipped example itself
 sets `allow_deploy: false` explicitly and is asserted, by test, to still
