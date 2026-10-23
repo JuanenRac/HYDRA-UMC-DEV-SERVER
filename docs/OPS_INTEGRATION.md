@@ -226,7 +226,9 @@ catalog grouping.
 | Published revision and CI result | The specific repository / CI run |
 
 OPS-AGENT records the human approval - no capability to approve is ever
-attributed to the AI. A transport ACK only ever proves receipt, never
+attributed to the AI. The approval is an Ed25519 signature checked with the
+approver's public key (this host holds no secret that could forge one), and
+it names the patch it approves and expires. A transport ACK only ever proves receipt, never
 installation or a physical result.
 
 First useful station: Git, a remote environment and toolchain profiles.

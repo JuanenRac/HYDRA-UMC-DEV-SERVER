@@ -72,7 +72,7 @@
 |---|---|
 | Version | `0.1.8` |
 | Maturity | Functional |
-| Tests | 418 |
+| Tests | 430 |
 | Stack | Python 3.11+ / JSON Schema / systemd (host role, Linux only) / SQLite (durable task/state journal, from DS05 onward) |
 | Target | A development server |
 | On real hardware | Not yet: no run on real hardware is recorded for this version |
@@ -218,6 +218,7 @@ Two more commands, `plugin list` and `serve`, cover the plugin lifecycle and an 
 
 ## 2. 🧱 ARCHITECTURE & DESIGN DECISIONS
 
+- **Approvals are asymmetric and bound to the patch.** A repair cycle verifies candidates and approvals with Ed25519 public keys only (a shared HMAC secret has to be on the verifying side too, so whoever could verify could also forge; `allow_symmetric_keys` keeps it as an opt-in). An approval names the patch it approves (`approved_patch_ref`) and carries an expiry (`expires_at`, UTC); both are signed, and a cycle refuses an approval for another patch, without them, or expired.
 - **No task has deployment permission by default.** This is DS01's own
   literal acceptance criterion, enforced by `TaskPolicy`'s own dataclass
   default - not just stated in prose - and covered by a dedicated test

@@ -39,7 +39,7 @@
 |---|---|
 | 版本 | `0.1.8` |
 | 成熟度 | 可用 |
-| 测试 | 418 |
+| 测试 | 430 |
 | 技术栈 | Python 3.11+ / JSON Schema / systemd (host role, Linux only) / SQLite (durable task/state journal, from DS05 onward) |
 | 目标 | 开发服务器 |
 | 真实硬件 | 尚未：此版本没有在真实硬件上运行的记录 |
@@ -120,6 +120,7 @@ $ hydra-umc-dev-server inventory scan --root ..
 
 ## 2. 🧱 架构与设计决策
 
+- **批准采用非对称签名并绑定到补丁。** 修复周期只用 Ed25519 公钥验证候选补丁和批准（共享的 HMAC 密钥也必须放在验证一侧，因此能验证的人也能伪造；`allow_symmetric_keys` 将其保留为可选的兼容模式）。批准会写明它批准的补丁（`approved_patch_ref`）并带有过期时间（`expires_at`，UTC）；二者都被签名，周期会拒绝针对其他补丁、缺少这些字段或已过期的批准。
 - **默认情况下没有任何任务拥有部署权限。** 这是 DS01 字面上的验收标准，
   由 `TaskPolicy` 数据类自身的默认值强制执行——而不仅仅是文字上的声明——
   并针对文档可能试图夹带该权限的每一种方式（字段缺失、拼写错误、非布尔值）

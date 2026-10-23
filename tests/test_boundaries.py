@@ -197,7 +197,7 @@ class QueueRaceTests(unittest.TestCase):
 
 class RepairCycleReplayTests(unittest.TestCase):
     def test_a_new_cycle_is_not_started_and_a_blocked_one_cannot_be_reopened(self):
-        cycle = RepairCycle("INC", "base", "target", "case")
+        cycle = RepairCycle("INC", "base", "target", "case", allow_symmetric_keys=True, require_bound_approval=False)
         self.assertEqual(cycle.state, STATE_NOT_STARTED)
         self.assertFalse(cycle.confirm_repro({"reproduced": False, "repro_case_id": "case"}).ok)
         self.assertEqual(cycle.state, STATE_BLOCKED)
@@ -206,7 +206,7 @@ class RepairCycleReplayTests(unittest.TestCase):
         self.assertEqual(cycle.state, STATE_BLOCKED)
 
     def test_a_truthy_string_is_not_a_reproduction(self):
-        cycle = RepairCycle("INC", "base", "target", "case")
+        cycle = RepairCycle("INC", "base", "target", "case", allow_symmetric_keys=True, require_bound_approval=False)
         self.assertFalse(cycle.confirm_repro({"reproduced": "false", "repro_case_id": "case"}).ok)
 
 

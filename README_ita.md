@@ -45,7 +45,7 @@
 |---|---|
 | Versione | `0.1.8` |
 | Maturità | Funzionale |
-| Test | 418 |
+| Test | 430 |
 | Tecnologia | Python 3.11+ / JSON Schema / systemd (host role, Linux only) / SQLite (durable task/state journal, from DS05 onward) |
 | Destinazione | Un server di sviluppo |
 | Su hardware reale | Non ancora: per questa versione non risulta alcuna esecuzione su hardware reale |
@@ -201,6 +201,7 @@ Altri due comandi, `plugin list` e `serve`, coprono il ciclo di vita dei plugin 
 
 ## 2. 🧱 ARCHITETTURA E DECISIONI DI PROGETTAZIONE
 
+- **Le approvazioni sono asimmetriche e legate alla patch.** Un ciclo di riparazione verifica candidati e approvazioni solo con chiavi pubbliche Ed25519 (un segreto HMAC condiviso deve stare anche dal lato che verifica, quindi chi potesse verificare potrebbe anche falsificare; `allow_symmetric_keys` lo mantiene come opzione volontaria). Un'approvazione nomina la patch che approva (`approved_patch_ref`) e porta una scadenza (`expires_at`, UTC); entrambi sono firmati, e un ciclo rifiuta un'approvazione per un'altra patch, senza di essi o scaduta.
 - **Nessun task ha permesso di deploy per default.** È il criterio di
   accettazione letterale di DS01, imposto dal valore predefinito della
   dataclass `TaskPolicy` stessa - non solo dichiarato in prosa - e

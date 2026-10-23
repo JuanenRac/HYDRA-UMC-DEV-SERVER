@@ -45,7 +45,7 @@
 |---|---|
 | Version | `0.1.8` |
 | Maturité | Fonctionnel |
-| Tests | 418 |
+| Tests | 430 |
 | Technologie | Python 3.11+ / JSON Schema / systemd (host role, Linux only) / SQLite (durable task/state journal, from DS05 onward) |
 | Cible | Un serveur de développement |
 | Sur matériel réel | Pas encore : aucune exécution sur du matériel réel n'est consignée pour cette version |
@@ -201,6 +201,7 @@ Deux autres commandes, `plugin list` et `serve`, couvrent le cycle de vie des pl
 
 ## 2. 🧱 ARCHITECTURE ET DÉCISIONS DE CONCEPTION
 
+- **Les approbations sont asymétriques et liées au correctif.** Un cycle de réparation vérifie candidats et approbations uniquement avec des clés publiques Ed25519 (un secret HMAC partagé doit aussi se trouver du côté qui vérifie, donc qui pourrait vérifier pourrait aussi falsifier ; `allow_symmetric_keys` le conserve en option volontaire). Une approbation nomme le correctif qu'elle approuve (`approved_patch_ref`) et porte une expiration (`expires_at`, UTC) ; les deux sont signés, et un cycle refuse une approbation pour un autre correctif, sans eux ou expirée.
 - **Aucune tâche n'a de permission de déploiement par défaut.** C'est le
   critère d'acceptation littéral de DS01, imposé par la valeur par
   défaut de la dataclass `TaskPolicy` elle-même - pas seulement énoncé

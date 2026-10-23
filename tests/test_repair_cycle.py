@@ -71,7 +71,7 @@ def _drive_to_installed(cycle: RepairCycle, installer, *, candidate=None, approv
 
 class HappyPathTests(unittest.TestCase):
     def test_a_correct_candidate_runs_the_whole_cycle_to_verified(self):
-        cycle = RepairCycle(_INC, _BASE, _TARGET, _CASE)
+        cycle = RepairCycle(_INC, _BASE, _TARGET, _CASE, allow_symmetric_keys=True, require_bound_approval=False)
         inst = FakeInstaller()
         _drive_to_installed(cycle, inst)
         out = cycle.verify({"repro_case_id": _CASE, "verified": True}, inst, observed_base_fingerprint=_BASE)
@@ -83,13 +83,13 @@ class HappyPathTests(unittest.TestCase):
 
 class BlockedCandidateTests(unittest.TestCase):
     def test_an_unreproduced_failure_never_opens_the_cycle(self):
-        cycle = RepairCycle(_INC, _BASE, _TARGET, _CASE)
+        cycle = RepairCycle(_INC, _BASE, _TARGET, _CASE, allow_symmetric_keys=True, require_bound_approval=False)
         out = cycle.confirm_repro({"reproduced": False, "repro_case_id": _CASE})
         self.assertEqual(cycle.state, STATE_BLOCKED)
         self.assertIn("not reproduced", out.reason)
 
     def test_a_tampered_candidate_signature_is_blocked(self):
-        cycle = RepairCycle(_INC, _BASE, _TARGET, _CASE)
+        cycle = RepairCycle(_INC, _BASE, _TARGET, _CASE, allow_symmetric_keys=True, require_bound_approval=False)
         cycle.confirm_repro({"reproduced": True, "repro_case_id": _CASE})
         cycle.raise_incident()
         tampered = RepairCandidate(**{**_candidate().to_dict(), "patch_ref": "evil"})  # body changed, sig now stale
@@ -98,7 +98,7 @@ class BlockedCandidateTests(unittest.TestCase):
         self.assertIn("signature", out.reason)
 
     def test_a_candidate_for_another_base_is_blocked(self):
-        cycle = RepairCycle(_INC, _BASE, _TARGET, _CASE)
+        cycle = RepairCycle(_INC, _BASE, _TARGET, _CASE, allow_symmetric_keys=True, require_bound_approval=False)
         cycle.confirm_repro({"reproduced": True, "repro_case_id": _CASE})
         cycle.raise_incident()
         out = cycle.receive_candidate(_candidate(for_base_fingerprint="other-base"), _CAND_SECRET)
@@ -106,7 +106,7 @@ class BlockedCandidateTests(unittest.TestCase):
         self.assertIn("base fingerprint", out.reason)
 
     def test_a_candidate_for_another_target_is_blocked(self):
-        cycle = RepairCycle(_INC, _BASE, _TARGET, _CASE)
+        cycle = RepairCycle(_INC, _BASE, _TARGET, _CASE, allow_symmetric_keys=True, require_bound_approval=False)
         cycle.confirm_repro({"reproduced": True, "repro_case_id": _CASE})
         cycle.raise_incident()
         out = cycle.receive_candidate(_candidate(for_target="prod-node"), _CAND_SECRET)
@@ -114,7 +114,7 @@ class BlockedCandidateTests(unittest.TestCase):
         self.assertIn("target", out.reason)
 
     def test_a_red_regression_blocks_the_cycle(self):
-        cycle = RepairCycle(_INC, _BASE, _TARGET, _CASE)
+        cycle = RepairCycle(_INC, _BASE, _TARGET, _CASE, allow_symmetric_keys=True, require_bound_approval=False)
         cycle.confirm_repro({"reproduced": True, "repro_case_id": _CASE})
         cycle.raise_incident()
         cycle.receive_candidate(_candidate(), _CAND_SECRET)
@@ -131,21 +131,21 @@ class ApprovalTests(unittest.TestCase):
         cycle.run_build_test(_green())
 
     def test_an_unregistered_approver_is_blocked(self):
-        cycle = RepairCycle(_INC, _BASE, _TARGET, _CASE)
+        cycle = RepairCycle(_INC, _BASE, _TARGET, _CASE, allow_symmetric_keys=True, require_bound_approval=False)
         self._to_build_test_passed(cycle)
         out = cycle.apply_approval(_approval(), None)
         self.assertEqual(cycle.state, STATE_BLOCKED)
         self.assertIn("not registered", out.reason)
 
     def test_an_approval_issued_for_another_base_is_blocked(self):
-        cycle = RepairCycle(_INC, _BASE, _TARGET, _CASE)
+        cycle = RepairCycle(_INC, _BASE, _TARGET, _CASE, allow_symmetric_keys=True, require_bound_approval=False)
         self._to_build_test_passed(cycle)
         out = cycle.apply_approval(_approval(approved_for_base="another-base"), _APPROVER_SECRET)
         self.assertEqual(cycle.state, STATE_BLOCKED)
         self.assertIn("different base", out.reason)
 
     def test_an_approval_issued_for_another_target_is_blocked(self):
-        cycle = RepairCycle(_INC, _BASE, _TARGET, _CASE)
+        cycle = RepairCycle(_INC, _BASE, _TARGET, _CASE, allow_symmetric_keys=True, require_bound_approval=False)
         self._to_build_test_passed(cycle)
         out = cycle.apply_approval(_approval(approved_for_target="prod-node"), _APPROVER_SECRET)
         self.assertEqual(cycle.state, STATE_BLOCKED)
@@ -154,7 +154,7 @@ class ApprovalTests(unittest.TestCase):
 
 class PostInstallRecoveryTests(unittest.TestCase):
     def test_a_failed_verification_rolls_back_and_ends_recovered(self):
-        cycle = RepairCycle(_INC, _BASE, _TARGET, _CASE)
+        cycle = RepairCycle(_INC, _BASE, _TARGET, _CASE, allow_symmetric_keys=True, require_bound_approval=False)
         inst = FakeInstaller()
         _drive_to_installed(cycle, inst)
         out = cycle.verify({"repro_case_id": _CASE, "verified": False}, inst, observed_base_fingerprint=_BASE)
@@ -163,7 +163,7 @@ class PostInstallRecoveryTests(unittest.TestCase):
         self.assertTrue(inst.rolled_back)
 
     def test_a_base_that_moved_mid_cycle_voids_the_result_and_rolls_back(self):
-        cycle = RepairCycle(_INC, _BASE, _TARGET, _CASE)
+        cycle = RepairCycle(_INC, _BASE, _TARGET, _CASE, allow_symmetric_keys=True, require_bound_approval=False)
         inst = FakeInstaller()
         _drive_to_installed(cycle, inst)
         out = cycle.verify({"repro_case_id": _CASE, "verified": True}, inst, observed_base_fingerprint="moved-base")
@@ -172,7 +172,7 @@ class PostInstallRecoveryTests(unittest.TestCase):
         self.assertTrue(inst.rolled_back)
 
     def test_verification_evidence_for_a_different_repro_case_is_not_trusted(self):
-        cycle = RepairCycle(_INC, _BASE, _TARGET, _CASE)
+        cycle = RepairCycle(_INC, _BASE, _TARGET, _CASE, allow_symmetric_keys=True, require_bound_approval=False)
         inst = FakeInstaller()
         _drive_to_installed(cycle, inst)
         out = cycle.verify({"repro_case_id": "some-other-case", "verified": True}, inst, observed_base_fingerprint=_BASE)

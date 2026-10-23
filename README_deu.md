@@ -45,7 +45,7 @@
 |---|---|
 | Version | `0.1.8` |
 | Reifegrad | Funktionsfähig |
-| Tests | 418 |
+| Tests | 430 |
 | Technik | Python 3.11+ / JSON Schema / systemd (host role, Linux only) / SQLite (durable task/state journal, from DS05 onward) |
 | Ziel | Ein Entwicklungsserver |
 | Auf echter Hardware | Noch nicht: für diese Version ist kein Lauf auf echter Hardware vermerkt |
@@ -204,6 +204,7 @@ Zwei weitere Befehle, `plugin list` und `serve`, decken den Plugin-Lebenszyklus 
 
 ## 2. 🧱 ARCHITEKTUR UND DESIGN-ENTSCHEIDUNGEN
 
+- **Freigaben sind asymmetrisch und an den Patch gebunden.** Ein Reparaturzyklus prüft Kandidaten und Freigaben nur mit öffentlichen Ed25519-Schlüsseln (ein gemeinsames HMAC-Geheimnis muss auch auf der prüfenden Seite liegen, wer prüfen könnte, könnte also auch fälschen; `allow_symmetric_keys` behält es als Opt-in). Eine Freigabe nennt den Patch, den sie freigibt (`approved_patch_ref`), und trägt ein Ablaufdatum (`expires_at`, UTC); beides ist signiert, und ein Zyklus lehnt eine Freigabe für einen anderen Patch, ohne diese Angaben oder abgelaufen ab.
 - **Keine Aufgabe hat standardmäßig eine Deployment-Berechtigung.** Das
   ist das wörtliche Abnahmekriterium von DS01, erzwungen durch den
   eigenen Standardwert der `TaskPolicy`-Dataclass - nicht nur in Prosa

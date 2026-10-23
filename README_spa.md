@@ -44,7 +44,7 @@
 |---|---|
 | Versión | `0.1.8` |
 | Madurez | Funcional |
-| Tests | 418 |
+| Tests | 430 |
 | Tecnología | Python 3.11+ / JSON Schema / systemd (host role, Linux only) / SQLite (durable task/state journal, from DS05 onward) |
 | Destino | Un servidor de desarrollo |
 | En hardware real | Todavía no: no consta ninguna ejecución en hardware real para esta versión |
@@ -194,6 +194,7 @@ Otros dos comandos, `plugin list` y `serve`, cubren el ciclo de vida de los plug
 
 ## 2. 🧱 ARQUITECTURA Y DECISIONES DE DISEÑO
 
+- **Las aprobaciones son asimétricas y van ligadas al parche.** Un ciclo de reparación verifica candidatos y aprobaciones solo con claves públicas Ed25519 (un secreto HMAC compartido tiene que estar también en el lado que verifica, así que quien pudiera verificar podría falsificar; `allow_symmetric_keys` lo conserva como opción voluntaria). Una aprobación nombra el parche que aprueba (`approved_patch_ref`) y lleva una caducidad (`expires_at`, UTC); ambos van firmados, y un ciclo rechaza una aprobación de otro parche, sin ellos o caducada.
 - **Ninguna tarea tiene permiso de despliegue por defecto.** Es el
   criterio de aceptación literal de DS01, forzado por el propio valor
   por defecto del dataclass `TaskPolicy` - no solo dicho en prosa - y

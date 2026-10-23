@@ -36,11 +36,13 @@ from __future__ import annotations
 import hashlib
 import hmac
 import json
+from collections.abc import Callable
 from dataclasses import dataclass
+from datetime import datetime, timezone
 from typing import Any, Protocol, runtime_checkable
 
 from .config import ConfigValidationError, _require_str
-from .signing import sign_body, signature_matches
+from .signing import is_public_key, sign_body, signature_matches
 
 STATE_NOT_STARTED = "not-started"
 STATE_BLOCKED = "blocked"
@@ -53,6 +55,19 @@ STATE_APPROVED = "approved"
 STATE_INSTALLED = "installed"
 STATE_VERIFIED = "verified"
 STATE_RECOVERED = "recovered"
+
+
+def _parse_expiry(text: str) -> datetime | None:
+    """A UTC ISO 8601 moment (``2026-01-31T12:00:00Z``), or None when it is empty or not a moment with a UTC offset."""
+    if not text:
+        return None
+    try:
+        moment = datetime.fromisoformat(text.replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    if moment.tzinfo is None:
+        return None
+    return moment.astimezone(timezone.utc)
 
 
 def _sign(secret: str, body: dict[str, Any]) -> str:
@@ -117,14 +132,24 @@ class Approval:
     approved_for_base: str
     approved_for_target: str
     signature: str = ""
+    # The patch the approver looked at (the candidate's patch_ref) and the moment the approval stops being valid (UTC, ISO 8601,
+    # for example 2026-01-31T12:00:00Z). Both are part of what is signed; a cycle that requires bound approvals refuses one without them.
+    approved_patch_ref: str = ""
+    expires_at: str = ""
 
     def _body(self) -> dict[str, Any]:
-        return {
+        body: dict[str, Any] = {
             "candidate_id": self.candidate_id,
             "approved_by": self.approved_by,
             "approved_for_base": self.approved_for_base,
             "approved_for_target": self.approved_for_target,
         }
+        # only when set, so an approval signed before these fields existed keeps verifying
+        if self.approved_patch_ref:
+            body["approved_patch_ref"] = self.approved_patch_ref
+        if self.expires_at:
+            body["expires_at"] = self.expires_at
+        return body
 
     def signed(self, secret: str) -> "Approval":
         return Approval(**{**self._body(), "signature": _sign(secret, self._body())})
@@ -159,7 +184,23 @@ class RepairCycle:
     and a blocked cycle is final: every later step answers "blocked" and
     changes nothing."""
 
-    def __init__(self, incident_id: str, base_fingerprint: str, target: str, repro_case_id: str) -> None:
+    def __init__(
+        self,
+        incident_id: str,
+        base_fingerprint: str,
+        target: str,
+        repro_case_id: str,
+        *,
+        allow_symmetric_keys: bool = False,
+        require_bound_approval: bool = True,
+        clock: Callable[[], datetime] | None = None,
+    ) -> None:
+        # By default only Ed25519 public keys verify a candidate or an approval: an HMAC secret has to be on the verifying side too, so
+        # whoever can verify could also forge. `allow_symmetric_keys` keeps the shared secret as an opt-in compatibility mode.
+        self.allow_symmetric_keys = allow_symmetric_keys
+        # By default an approval must name the patch it approves and carry an expiry that has not passed.
+        self.require_bound_approval = require_bound_approval
+        self._clock = clock or (lambda: datetime.now(timezone.utc))
         self.incident_id = incident_id
         self.base_fingerprint = base_fingerprint
         self.target = target
@@ -193,6 +234,8 @@ class RepairCycle:
     def receive_candidate(self, candidate: RepairCandidate, candidate_secret: str) -> StepOutcome:
         if self.state != STATE_INCIDENT_RAISED:
             return self._block(f"cannot receive a candidate from state {self.state!r}")
+        if not self.allow_symmetric_keys and not is_public_key(candidate_secret):
+            return self._block("a shared secret cannot verify a candidate: register the signer's Ed25519 public key")
         if not candidate.signature_ok(candidate_secret):
             return self._block("candidate signature does not verify - tampered or unsigned")
         if candidate.for_incident_id != self.incident_id:
@@ -223,12 +266,24 @@ class RepairCycle:
             return self._block(f"cannot apply an approval from state {self.state!r}")
         if approver_secret is None:
             return self._block(f"approver {approval.approved_by!r} is not registered")
+        if not self.allow_symmetric_keys and not is_public_key(approver_secret):
+            return self._block("a shared secret cannot verify an approval: register the approver's Ed25519 public key")
         if not approval.signature_ok(approver_secret):
             return self._block("approval signature does not verify")
         if self.candidate is None:
             return self._block("no candidate was received")
         if approval.candidate_id != self.candidate.candidate_id:
             return self._block("approval is for a different candidate")
+        if approval.approved_patch_ref and approval.approved_patch_ref != self.candidate.patch_ref:
+            return self._block("approval was issued for a different patch")
+        if self.require_bound_approval and not approval.approved_patch_ref:
+            return self._block("approval does not name the patch it approves")
+        if approval.expires_at or self.require_bound_approval:
+            expiry = _parse_expiry(approval.expires_at)
+            if expiry is None:
+                return self._block("approval carries no valid expiry (UTC, ISO 8601)")
+            if self._clock() >= expiry:
+                return self._block("approval has expired")
         if approval.approved_for_base != self.base_fingerprint:
             return self._block("approval was issued for a different base")
         if approval.approved_for_target != self.target:
