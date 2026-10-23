@@ -346,12 +346,16 @@ def _cmd_queue_work(args: argparse.Namespace) -> int:
         )
         if launcher.used == "none":
             print("note: no sandbox is active on this host; the tasks run with the permissions of the service user", file=sys.stderr)
+        base = Path(args.workspace_base)
+        if not base.is_absolute():
+            raise ConfigValidationError(f"workspace base {args.workspace_base!r} must be an absolute path")
+        base.mkdir(parents=True, exist_ok=True, mode=0o750)
         with DurableQueue(args.db) as queue:
             results = work_loop(
-                queue, args.worker_id, policy, str(Path(args.workspace_base)), launcher,
+                queue, args.worker_id, policy, base.as_posix(), launcher,
                 max_tasks=args.max_tasks, stop_when_idle=not args.follow, lease_seconds=args.lease_seconds,
             )
-    except ConfigValidationError as exc:
+    except (ConfigValidationError, OSError) as exc:
         print(f"REFUSED: {exc}", file=sys.stderr)
         return 1
     print(json.dumps({"tasks": [result.to_dict() for result in results]}, indent=2))

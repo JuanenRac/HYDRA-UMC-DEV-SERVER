@@ -248,7 +248,8 @@ class WorkCommandTests(unittest.TestCase):
 
         policy = Path(__file__).resolve().parent.parent / "configs" / "task-policy.example.json"
         with tempfile.TemporaryDirectory() as t:
-            code, out, _ = self.run_main(["queue", "work", "--db", str(Path(t) / "q.sqlite3"), "--policy", str(policy), "--workspace-base", "/ws"])
+            base = str(Path(t) / "ws")  # created by the command
+            code, out, _ = self.run_main(["queue", "work", "--db", str(Path(t) / "q.sqlite3"), "--policy", str(policy), "--workspace-base", base])
         self.assertEqual(code, 0)
         self.assertEqual(json.loads(out), {"tasks": []})
 
@@ -256,7 +257,7 @@ class WorkCommandTests(unittest.TestCase):
         from pathlib import Path
 
         with tempfile.TemporaryDirectory() as t:
-            code, _, err = self.run_main(["queue", "work", "--db", str(Path(t) / "q.sqlite3"), "--policy", str(Path(t) / "nope.json"), "--workspace-base", "/ws"])
+            code, _, err = self.run_main(["queue", "work", "--db", str(Path(t) / "q.sqlite3"), "--policy", str(Path(t) / "nope.json"), "--workspace-base", Path(t).as_posix()])
         self.assertEqual(code, 1)
         self.assertTrue(err)
 
