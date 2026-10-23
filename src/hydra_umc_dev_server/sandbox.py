@@ -16,7 +16,9 @@ sandbox when the host has one:
     it) there is no network.
   * `systemd-run`: a transient unit with `ProtectHome`, `ProtectSystem=strict`,
     `PrivateTmp`, `PrivateNetwork`, `NoNewPrivileges` and only the workspace
-    writable. It needs a systemd that lets the service user start units.
+    writable, and, when the policy sets them, `MemoryMax` (with no swap), `CPUQuota`
+    and `TasksMax`. It needs a systemd that lets the service user start units.
+    Only this one has a cgroup: bubblewrap does not enforce those limits.
 
 The builders are pure functions that return the wrapped argv, so the exact command
 line is tested without either program being installed. What they cannot prove is that
@@ -51,6 +53,10 @@ class SandboxSpec:
     network: bool = False
     read_only_paths: tuple[str, ...] = field(default_factory=tuple)
     required: bool = False
+    # cgroup limits; only the systemd-run sandbox can enforce them
+    memory_max: str | None = None
+    cpu_quota: str | None = None
+    tasks_max: int | None = None
 
 
 def detect_sandbox(
@@ -132,6 +138,12 @@ def systemd_run_argv(
         props.append("ReadOnlyPaths=" + " ".join(spec.read_only_paths))
     if not spec.network:
         props.append("PrivateNetwork=yes")
+    if spec.memory_max:
+        props += [f"MemoryMax={spec.memory_max}", "MemorySwapMax=0"]
+    if spec.cpu_quota:
+        props.append(f"CPUQuota={spec.cpu_quota}")
+    if spec.tasks_max:
+        props.append(f"TasksMax={spec.tasks_max}")
     for prop in props:
         out += ["-p", prop]
     for key in sorted(env):

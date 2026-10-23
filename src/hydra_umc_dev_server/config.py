@@ -16,6 +16,7 @@ will build on, not a preview of their behavior.
 from __future__ import annotations
 
 import json
+import re
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -145,6 +146,12 @@ class TaskPolicy:
     sandbox_network: bool = False
     # Directories outside the system ones that the task may read (a toolchain, a venv).
     sandbox_read_only_paths: tuple[str, ...] = field(default_factory=tuple)
+    # Resource limits of the task's cgroup, applied by the systemd-run sandbox (bubblewrap has no cgroup, so with it
+    # they are not enforced and the result says which sandbox ran): "2G" of memory, "200%" of CPU (two cores),
+    # at most 512 tasks (processes and threads). None leaves that limit to the host.
+    sandbox_memory_max: str | None = None
+    sandbox_cpu_quota: str | None = None
+    sandbox_tasks_max: int | None = None
     # What happens to the workspace after the run: "keep" always keeps it,
     # "delete-on-success" removes it after a completed run with exit code 0,
     # "delete" removes it after every run.
@@ -166,6 +173,9 @@ class TaskPolicy:
             "sandbox_required": self.sandbox_required,
             "sandbox_network": self.sandbox_network,
             "sandbox_read_only_paths": list(self.sandbox_read_only_paths),
+            "sandbox_memory_max": self.sandbox_memory_max,
+            "sandbox_cpu_quota": self.sandbox_cpu_quota,
+            "sandbox_tasks_max": self.sandbox_tasks_max,
             "workspace_retention": self.workspace_retention,
             "repo_sources": dict(self.repo_sources),
         }
@@ -203,6 +213,18 @@ class TaskPolicy:
             errors.append("'sandbox_read_only_paths' must be a list of absolute paths")
         else:
             ro_paths = tuple(ro_raw)
+        memory_max = data.get("sandbox_memory_max")
+        if memory_max is not None and not (isinstance(memory_max, str) and re.fullmatch(r"[1-9][0-9]*[KMGT]?", memory_max)):
+            errors.append("'sandbox_memory_max' must look like '512M' or '2G' (a number and an optional K, M, G or T)")
+            memory_max = None
+        cpu_quota = data.get("sandbox_cpu_quota")
+        if cpu_quota is not None and not (isinstance(cpu_quota, str) and re.fullmatch(r"[1-9][0-9]{0,4}%", cpu_quota)):
+            errors.append("'sandbox_cpu_quota' must look like '200%' (100% is one core)")
+            cpu_quota = None
+        tasks_max = data.get("sandbox_tasks_max")
+        if tasks_max is not None and (isinstance(tasks_max, bool) or not isinstance(tasks_max, int) or tasks_max < 1):
+            errors.append("'sandbox_tasks_max' must be a positive integer")
+            tasks_max = None
         retention = data.get("workspace_retention", "delete-on-success")
         if retention not in TaskPolicy._RETENTIONS:
             errors.append(f"'workspace_retention' must be one of {TaskPolicy._RETENTIONS}, not {retention!r}")
@@ -224,6 +246,9 @@ class TaskPolicy:
             sandbox_required=sandbox_required,
             sandbox_network=sandbox_network,
             sandbox_read_only_paths=ro_paths,
+            sandbox_memory_max=memory_max,
+            sandbox_cpu_quota=cpu_quota,
+            sandbox_tasks_max=tasks_max,
             workspace_retention=retention,
             repo_sources=sources,
         )

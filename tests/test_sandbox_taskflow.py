@@ -317,5 +317,38 @@ class ConcurrencyAndRetentionTests(unittest.TestCase):
             _make_workspace(base, "task-9")  # the same id can be used again once it was removed
 
 
+
+
+class SandboxLimitsTests(unittest.TestCase):
+    ENV = {"PATH": "/usr/bin", "HOME": "/ws/t1"}
+
+    def test_systemd_run_carries_the_cgroup_limits_of_the_policy_and_only_those(self):
+        spec = SandboxSpec(memory_max="2G", cpu_quota="200%", tasks_max=256)
+        text = " ".join(systemd_run_argv(("pytest",), cwd="/ws/t1", env=self.ENV, spec=spec, is_root=True))
+        for expected in ("MemoryMax=2G", "MemorySwapMax=0", "CPUQuota=200%", "TasksMax=256"):
+            self.assertIn(expected, text)
+        plain = " ".join(systemd_run_argv(("pytest",), cwd="/ws/t1", env=self.ENV, spec=SandboxSpec(), is_root=True))
+        for absent in ("MemoryMax", "CPUQuota", "TasksMax"):
+            self.assertNotIn(absent, plain)
+
+    def test_bubblewrap_has_no_cgroup_so_the_limits_do_not_appear_in_its_command_line(self):
+        spec = SandboxSpec(memory_max="2G", cpu_quota="200%", tasks_max=256)
+        text = " ".join(bubblewrap_argv(("pytest",), cwd="/ws/t1", env=self.ENV, spec=spec, exists=lambda p: False))
+        self.assertNotIn("MemoryMax", text)
+
+    def test_the_policy_validates_the_limits(self):
+        policy = TaskPolicy.from_dict({"allow_deploy": False, "max_concurrent_tasks": 1, "allowed_commands": ["pytest"],
+                                       "sandbox_memory_max": "512M", "sandbox_cpu_quota": "150%", "sandbox_tasks_max": 100})
+        self.assertEqual((policy.sandbox_memory_max, policy.sandbox_cpu_quota, policy.sandbox_tasks_max), ("512M", "150%", 100))
+        self.assertEqual(TaskPolicy.from_dict(policy.to_dict()), policy)
+        for bad in ({"sandbox_memory_max": "lots"}, {"sandbox_memory_max": "0"}, {"sandbox_memory_max": 5},
+                    {"sandbox_cpu_quota": "2"}, {"sandbox_cpu_quota": "0%"}, {"sandbox_tasks_max": 0},
+                    {"sandbox_tasks_max": True}, {"sandbox_tasks_max": "9"}):
+            with self.subTest(bad=bad):
+                with self.assertRaises(ConfigValidationError):
+                    TaskPolicy.from_dict({"allow_deploy": False, "max_concurrent_tasks": 1, "allowed_commands": ["pytest"], **bad})
+        self.assertIsNone(_policy().sandbox_memory_max)
+
+
 if __name__ == "__main__":
     unittest.main()

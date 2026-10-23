@@ -289,6 +289,7 @@ def _cmd_task_run(args: argparse.Namespace) -> int:
             SandboxSpec(
                 mode=policy.sandbox, network=policy.sandbox_network,
                 read_only_paths=policy.sandbox_read_only_paths, required=policy.sandbox_required,
+                memory_max=policy.sandbox_memory_max, cpu_quota=policy.sandbox_cpu_quota, tasks_max=policy.sandbox_tasks_max,
             ),
         )
         gate = ConcurrencyGate(base, policy.max_concurrent_tasks)
@@ -342,6 +343,7 @@ def _cmd_queue_work(args: argparse.Namespace) -> int:
             SandboxSpec(
                 mode=policy.sandbox, network=policy.sandbox_network,
                 read_only_paths=policy.sandbox_read_only_paths, required=policy.sandbox_required,
+                memory_max=policy.sandbox_memory_max, cpu_quota=policy.sandbox_cpu_quota, tasks_max=policy.sandbox_tasks_max,
             ),
         )
         if launcher.used == "none":

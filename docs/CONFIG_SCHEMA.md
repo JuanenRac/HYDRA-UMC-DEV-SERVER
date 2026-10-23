@@ -47,6 +47,9 @@ work, not yet implemented here.
 | `sandbox_required` | boolean | Optional, defaults to `false`. When `true`, a host with no sandbox refuses to run a task. |
 | `sandbox_network` | boolean | Optional, defaults to `false`. The sandbox has no network unless this is `true`. |
 | `sandbox_read_only_paths` | array of absolute paths | Optional. Extra directories (a toolchain, a virtual environment) the sandboxed task may read. |
+| `sandbox_memory_max` | string | Optional. Memory limit of the task's cgroup, such as `512M` or `2G` (no swap). Enforced only by the `systemd-run` sandbox; bubblewrap has no cgroup. |
+| `sandbox_cpu_quota` | string | Optional. CPU limit such as `200%` (100% is one core). Same restriction. |
+| `sandbox_tasks_max` | positive integer | Optional. Most processes and threads the task may hold. Same restriction. |
 | `workspace_retention` | `keep`, `delete-on-success` or `delete` | Optional, defaults to `delete-on-success`: the workspace is removed after a completed run with exit code 0 and kept otherwise. |
 | `repo_sources` | object of repository name to URL or path | Optional. Where `task run` fetches `repo@revision` from. A repository without an entry is not staged. |
 
