@@ -179,6 +179,7 @@ $ hydra-umc-dev-server inventory scan --root ..
 ```
 HYDRA-UMC-DEV-SERVER/
 ├── src/hydra_umc_dev_server/
+│   ├── __init__.py        # パッケージバージョン
 │   ├── config.py          # HostProfile/ToolchainPolicy/TaskPolicyのスキーマと検証（DS01）
 │   ├── inventory.py       # hydra-umc.project.jsonの実際の読み取り専用発見（DS01）
 │   ├── remote_station.py  # RemoteStationProfile: アイデンティティ + リモートアクセス + ツール（DS02）
@@ -194,7 +195,14 @@ HYDRA-UMC-DEV-SERVER/
 │   ├── repair_cycle.py    # ゲート付きの repro->...->verify サイクルとロールバック + 候補ゲート(DS08)
 │   ├── operations.py      # 検証済みの状態バックアップ/リストア + 運用ヘルスチェック(DS09)
 │   ├── delivery.py        # 配布マニフェスト(ファイルごとのsha256) + 正直な成熟度評価、決して過大評価しない(DS10)
-│   └── cli.py             # config / inventory / station / migrate / task / queue / provider / incident / repair / ops / deliver サブコマンドのエントリポイント
+│   ├── cli.py             # config / inventory / station / migrate / task / queue / provider / incident / repair / ops / deliver サブコマンドのエントリポイント
+│   ├── api.py             # 小さな認証付き HTTP API (ループバックのみ。ヘルス以外のルートはトークンが必要)
+│   ├── identifiers.py     # 名前 (アカウント、パス、タスクやワーカーの ID) の形を定める唯一の場所
+│   ├── plugins.py         # プラグインのライフサイクル: 検出、検証、有効化、実行、無効化
+│   ├── sandbox.py         # タスク実行部の OS レベルの分離
+│   ├── signing.py         # 修復候補、承認、バックアップマニフェストの Ed25519 署名
+│   ├── taskflow.py        # タスク実行の周辺: 固定リビジョンでのリポジトリ準備、同時実行の上限、作業領域の寿命
+│   └── worker.py          # タスクをリースから結果まで運ぶワーカーのループ
 ├── configs/
 │   ├── host-profile.example.json
 │   ├── toolchains.example.json
@@ -202,7 +210,9 @@ HYDRA-UMC-DEV-SERVER/
 │   ├── remote-station.example.json   # 127.0.0.1 にバインド、この形で公開・テスト済み
 │   ├── migration-destinations.example.json   # 証明可能に分離された4つのルート
 │   ├── task-recipe.example.json          # 固定されたrevision + 許可リストのコマンド
-│   └── ai-provider.example.json          # kind: fake、タイムアウト + 呼び出し/トークン/コストの予算
+│   ├── ai-provider.example.json          # kind: fake、タイムアウト + 呼び出し/トークン/コストの予算
+│   └── incident-transport.example.json   # コントラクトのバージョン + リプレイ窓 + レート制限 (秘密情報なし)
+│   # (queue コマンドは --db パスを取り、設定ファイルは使わない)
 ├── tests/                # 上記各モジュールの実際のテスト、公開されているサンプル設定を含む
 ├── docs/
 │   ├── CLI_REFERENCE.md    # 各サブコマンド、そのフラグ、終了コード契約
@@ -218,12 +228,18 @@ HYDRA-UMC-DEV-SERVER/
 │   ├── DELIVERY.md           # DS10の配布マニフェストと正直な成熟度評価
 │   ├── ARCHITECTURE.md     # 目的、作業モード、初期範囲、ディスク
 │   ├── OPS_INTEGRATION.md  # 17関係マップ＋所有権表
-│   └── PLUGINS.md  # プラグインのマニフェスト、3 種類、ライフサイクル、サンドボックスの上限
+│   ├── PLUGINS.md  # プラグインのマニフェスト、3 種類、ライフサイクル、サンドボックスの上限
+│   ├── MATURITY_CRITERIA.md # 成熟度の終了基準 (一段上がるために満たすべき条件)
+│   └── openapi.json # HTTP API の OpenAPI 記述
 ├── examples/plugins/      # サンプルプラグイン：レポート 1 つとジェネレーター 1 つ
+├── examples/              # plugins/: サンプルプラグイン (host-report、readme-generator)
 ├── images/                # メディアとアプリアイコン
 ├── tools/
 │   ├── build_test.py      # バージョン変更を伴わないビルド/コンパイルチェック
-│   └── ci_validate.py     # CIが使用するマニフェスト/CHANGELOG/ドキュメント検証
+│   ├── ci_validate.py     # CIが使用するマニフェスト/CHANGELOG/ドキュメント検証
+│   ├── _doc_policy.py     # ファミリー共通のドキュメント規則 (HYDRA-UMC-SDK のコピーで、同期を維持)
+│   ├── _readme_parity.py  # 8つの README が同じ構造であることの検査 (HYDRA-UMC-SDK のコピーで、同期を維持)
+│   └── hydra_project_tool.py # すべてのリポジトリで共通のコマンド: validate、test、ci、version、status、bump
 ├── build.sh / build.bat   # venv + 編集可能インストール + チェック + テスト
 ├── build-test.sh / .bat   # 変更を伴わないビルド検証のみ
 ├── run.sh / run.bat       # 引数なしの場合は実際のinventory scan + config validateデモ、それ以外は実際のCLIコマンドを転送

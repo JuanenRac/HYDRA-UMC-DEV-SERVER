@@ -248,6 +248,7 @@ Deux autres commandes, `plugin list` et `serve`, couvrent le cycle de vie des pl
 ```
 HYDRA-UMC-DEV-SERVER/
 ├── src/hydra_umc_dev_server/
+│   ├── __init__.py        # Version du paquet
 │   ├── config.py          # Schéma et validation de HostProfile/ToolchainPolicy/TaskPolicy (DS01)
 │   ├── inventory.py       # Découverte réelle en lecture seule de hydra-umc.project.json (DS01)
 │   ├── remote_station.py  # RemoteStationProfile : identité + accès distant + outils (DS02)
@@ -263,14 +264,24 @@ HYDRA-UMC-DEV-SERVER/
 │   ├── repair_cycle.py    # Cycle repro->...->verify à barrières avec rollback + la barrière de candidat (DS08)
 │   ├── operations.py      # Sauvegarde/restauration d'état vérifiée + vérification de santé opérationnelle (DS09)
 │   ├── delivery.py        # Manifeste de livraison (sha256 par fichier) + évaluation honnête de la maturité, ne surestime jamais (DS10)
-│   └── cli.py             # Point d'entrée des sous-commandes config / inventory / station / migrate / task / queue / provider / incident / repair / ops / deliver
+│   ├── cli.py             # Point d'entrée des sous-commandes config / inventory / station / migrate / task / queue / provider / incident / repair / ops / deliver
+│   ├── api.py             # Une petite API HTTP authentifiée, en boucle locale seulement (toute route sauf la santé exige un jeton)
+│   ├── identifiers.py     # Le seul endroit qui dit à quoi peut ressembler un nom (compte, chemin, id de tâche ou de worker)
+│   ├── plugins.py         # Cycle de vie des plugins : découvrir, valider, activer, exécuter, désactiver
+│   ├── sandbox.py         # Isolation du lanceur de tâches au niveau du système d'exploitation
+│   ├── signing.py         # Signatures Ed25519 pour les candidats de réparation, les approbations et les manifestes de sauvegarde
+│   ├── taskflow.py        # Ce qui entoure l'exécution d'une tâche : mise en place du dépôt à sa révision épinglée, limite de concurrence et vie de l'espace de travail
+│   └── worker.py          # La boucle du worker qui mène une tâche du bail jusqu'au résultat
 ├── configs/
 │   ├── host-profile.example.json
 │   ├── toolchains.example.json
 │   ├── task-policy.example.json      # allow_deploy : false, publié et testé ainsi
 │   ├── remote-station.example.json   # écoute sur 127.0.0.1, publié et testé ainsi
 │   ├── migration-destinations.example.json   # quatre racines prouvablement distinctes
-│   └── task-recipe.example.json          # révision fixée + commande de liste blanche
+│   ├── task-recipe.example.json          # révision fixée + commande de liste blanche
+│   ├── ai-provider.example.json          # kind: fake, délai + budget d'appels/jetons/coût
+│   └── incident-transport.example.json   # version du contrat + fenêtre de rejeu + limite de débit (aucun secret)
+│   # (les commandes queue prennent un chemin --db, pas de fichier de configuration)
 ├── tests/                # Tests réels de chaque module ci-dessus, incl. les configs d'exemple publiées
 ├── docs/
 │   ├── CLI_REFERENCE.md    # Chaque sous-commande, ses options et le contrat des codes de sortie
@@ -286,12 +297,18 @@ HYDRA-UMC-DEV-SERVER/
 │   ├── DELIVERY.md           # Le manifeste de livraison DS10 et l’évaluation honnête de la maturité
 │   ├── ARCHITECTURE.md     # Objectif, modes de travail, périmètre initial, disque
 │   ├── OPS_INTEGRATION.md  # La carte des 17 relations + table des propriétaires
-│   └── PLUGINS.md  # Manifeste de plugin, les trois types, cycle de vie et limites du bac à sable
+│   ├── PLUGINS.md  # Manifeste de plugin, les trois types, cycle de vie et limites du bac à sable
+│   ├── MATURITY_CRITERIA.md # Critères de sortie de maturité (ce qui doit être vrai pour monter d'un niveau)
+│   └── openapi.json # La description OpenAPI de l'API HTTP
 ├── examples/plugins/      # Plugins d'exemple : un rapport et un générateur
+├── examples/              # plugins/ : plugins d'exemple (host-report, readme-generator)
 ├── images/                # Médias et icônes de l'application
 ├── tools/
 │   ├── build_test.py      # Vérification de compilation non versionnante
-│   └── ci_validate.py     # Validation du manifeste/CHANGELOG/docs utilisée par la CI
+│   ├── ci_validate.py     # Validation du manifeste/CHANGELOG/docs utilisée par la CI
+│   ├── _doc_policy.py     # Règles de documentation partagées par la famille (copie de celle de HYDRA-UMC-SDK, tenue synchronisée)
+│   ├── _readme_parity.py  # Contrôle que les huit README partagent la même structure (copie de celui de HYDRA-UMC-SDK, tenue synchronisée)
+│   └── hydra_project_tool.py # Les mêmes commandes dans chaque dépôt : validate, test, ci, version, status, bump
 ├── build.sh / build.bat   # venv + installation éditable + vérification + tests
 ├── build-test.sh / .bat   # Validation de build non mutante uniquement
 ├── run.sh / run.bat       # Démo réelle inventory scan + config validate (sans arguments), ou relaie une commande CLI réelle

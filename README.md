@@ -263,6 +263,7 @@ Two more commands, `plugin list` and `serve`, cover the plugin lifecycle and an 
 ```
 HYDRA-UMC-DEV-SERVER/
 ├── src/hydra_umc_dev_server/
+│   ├── __init__.py        # Package version
 │   ├── config.py          # HostProfile/ToolchainPolicy/TaskPolicy schema + validation (DS01)
 │   ├── inventory.py       # Real, read-only hydra-umc.project.json discovery (DS01)
 │   ├── remote_station.py  # RemoteStationProfile: identity + remote access + tools (DS02)
@@ -278,7 +279,14 @@ HYDRA-UMC-DEV-SERVER/
 │   ├── repair_cycle.py    # Gated repro→...→verify cycle with rollback + the candidate gate (DS08)
 │   ├── operations.py      # Verified state backup/restore + operational health check (DS09)
 │   ├── delivery.py        # Delivery manifest (sha256 per shipped file) + honest maturity evaluation, never over-claims (DS10)
-│   └── cli.py             # config / inventory / station / migrate / task / queue / provider / incident / repair / ops / deliver subcommand entry point
+│   ├── cli.py             # config / inventory / station / migrate / task / queue / provider / incident / repair / ops / deliver subcommand entry point
+│   ├── api.py             # A small authenticated HTTP API, loopback only (every route but health needs a bearer token)
+│   ├── identifiers.py     # The one place that says what a name (account, path, task or worker id) may look like
+│   ├── plugins.py         # Plugin lifecycle: discover, validate, enable, run, disable
+│   ├── sandbox.py         # Operating-system isolation of the task runner
+│   ├── signing.py         # Ed25519 signatures for repair candidates, approvals and backup manifests
+│   ├── taskflow.py        # What surrounds a task run: staging the repository at its pinned revision, the concurrency limit and the life of the workspace
+│   └── worker.py          # The worker loop that carries a task from lease to result
 ├── configs/
 │   ├── host-profile.example.json
 │   ├── toolchains.example.json
@@ -304,12 +312,18 @@ HYDRA-UMC-DEV-SERVER/
 │   ├── DELIVERY.md           # The DS10 delivery manifest and honest maturity evaluation
 │   ├── ARCHITECTURE.md       # Purpose, working modes, initial scope, disk layout
 │   ├── OPS_INTEGRATION.md    # The 17-relationship map + state-ownership table
-│   └── PLUGINS.md    # Plugin manifest, the three kinds, lifecycle and sandbox limits
+│   ├── PLUGINS.md    # Plugin manifest, the three kinds, lifecycle and sandbox limits
+│   ├── MATURITY_CRITERIA.md # Maturity exit criteria (what must be true to move up a level)
+│   └── openapi.json  # The OpenAPI description of the HTTP API
 ├── examples/plugins/      # Example plugins: one report, one generator
+├── examples/              # plugins/: example plugins (host-report, readme-generator)
 ├── images/                # Media and app icons
 ├── tools/
 │   ├── build_test.py      # Non-versioning build/compile check
-│   └── ci_validate.py     # Manifest/CHANGELOG/docs validation used by CI
+│   ├── ci_validate.py     # Manifest/CHANGELOG/docs validation used by CI
+│   ├── _doc_policy.py     # Documentation rules shared by the family (a copy of HYDRA-UMC-SDK's, kept in sync)
+│   ├── _readme_parity.py  # Check that the eight READMEs share one structure (a copy of HYDRA-UMC-SDK's, kept in sync)
+│   └── hydra_project_tool.py # The same commands in every repository: validate, test, ci, version, status, bump
 ├── build.sh / build.bat   # venv + editable install + compile-check + tests
 ├── build-test.sh / .bat   # Non-mutating build validation only
 ├── run.sh / run.bat       # Real inventory scan + config validate demo (no arguments), or forwards a real CLI command

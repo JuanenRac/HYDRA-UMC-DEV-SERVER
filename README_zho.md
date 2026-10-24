@@ -159,6 +159,7 @@ $ hydra-umc-dev-server inventory scan --root ..
 ```
 HYDRA-UMC-DEV-SERVER/
 ├── src/hydra_umc_dev_server/
+│   ├── __init__.py        # 包版本
 │   ├── config.py          # HostProfile/ToolchainPolicy/TaskPolicy 的模式与校验（DS01）
 │   ├── inventory.py       # 真实的、只读的 hydra-umc.project.json 发现（DS01）
 │   ├── remote_station.py  # RemoteStationProfile：身份 + 远程访问 + 工具（DS02）
@@ -174,7 +175,14 @@ HYDRA-UMC-DEV-SERVER/
 │   ├── repair_cycle.py    # 带门禁与回滚的 repro->...->verify 周期 + 候选门禁（DS08）
 │   ├── operations.py      # 经校验的状态备份/恢复 + 运行健康检查（DS09）
 │   ├── delivery.py        # 交付清单（每个文件一个 sha256）+ 诚实的成熟度评估，绝不夸大（DS10）
-│   └── cli.py             # config / inventory / station / migrate / task / queue / provider / incident / repair / ops / deliver 子命令入口
+│   ├── cli.py             # config / inventory / station / migrate / task / queue / provider / incident / repair / ops / deliver 子命令入口
+│   ├── api.py             # 小型带认证的 HTTP API,仅限本机回环 (除健康检查外每条路由都需要令牌)
+│   ├── identifiers.py     # 唯一规定名称 (账户、路径、任务或工作进程 ID) 形式的地方
+│   ├── plugins.py         # 插件生命周期: 发现、校验、启用、运行、停用
+│   ├── sandbox.py         # 任务运行器的操作系统级隔离
+│   ├── signing.py         # 用于修复候选、批准和备份清单的 Ed25519 签名
+│   ├── taskflow.py        # 任务运行的周边工作: 按固定版本准备仓库、并发上限以及工作区的生命周期
+│   └── worker.py          # 把任务从租约带到结果的工作循环
 ├── configs/
 │   ├── host-profile.example.json
 │   ├── toolchains.example.json
@@ -182,7 +190,9 @@ HYDRA-UMC-DEV-SERVER/
 │   ├── remote-station.example.json   # 绑定 127.0.0.1，以此形式发布并测试
 │   ├── migration-destinations.example.json   # 四个可证明彼此分离的根
 │   ├── task-recipe.example.json          # 固定的 revision + 白名单命令
-│   └── ai-provider.example.json          # kind: fake，超时 + 调用/令牌/成本预算
+│   ├── ai-provider.example.json          # kind: fake,超时 + 调用/令牌/成本预算
+│   └── incident-transport.example.json   # 契约版本 + 重放窗口 + 速率限制 (不含机密)
+│   # (queue 命令使用 --db 路径,不使用配置文件)
 ├── tests/                # 上述每个模块的真实测试，包括所发布的示例配置
 ├── docs/
 │   ├── CLI_REFERENCE.md    # 每个子命令、其参数与退出码契约
@@ -198,12 +208,18 @@ HYDRA-UMC-DEV-SERVER/
 │   ├── DELIVERY.md           # DS10 的交付清单与诚实的成熟度评估
 │   ├── ARCHITECTURE.md     # 目的、工作模式、初始范围、磁盘布局
 │   ├── OPS_INTEGRATION.md  # 17 项关系图谱 + 归属表
-│   └── PLUGINS.md  # 插件清单、三种类型、生命周期与沙箱限制
+│   ├── PLUGINS.md  # 插件清单、三种类型、生命周期与沙箱限制
+│   ├── MATURITY_CRITERIA.md # 成熟度退出标准 (升一级必须满足的条件)
+│   └── openapi.json # HTTP API 的 OpenAPI 描述
 ├── examples/plugins/      # 示例插件：一个报告和一个生成器
+├── examples/              # plugins/: 示例插件 (host-report、readme-generator)
 ├── images/                # 媒体与应用图标
 ├── tools/
 │   ├── build_test.py      # 非版本变更的构建/编译检查
-│   └── ci_validate.py     # CI 使用的清单/CHANGELOG/文档校验
+│   ├── ci_validate.py     # CI 使用的清单/CHANGELOG/文档校验
+│   ├── _doc_policy.py     # 家族共享的文档规则 (HYDRA-UMC-SDK 的副本,保持同步)
+│   ├── _readme_parity.py  # 检查八个 README 结构一致 (HYDRA-UMC-SDK 的副本,保持同步)
+│   └── hydra_project_tool.py # 每个仓库相同的命令: validate、test、ci、version、status、bump
 ├── build.sh / build.bat   # venv + 可编辑安装 + 检查 + 测试
 ├── build-test.sh / .bat   # 仅非变更式构建校验
 ├── run.sh / run.bat       # 真实的 inventory scan + config validate 演示（无参数时），或转发一条真实的 CLI 命令
