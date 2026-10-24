@@ -5,7 +5,6 @@
 # =============================================================================
 """The bump of this repository and the shared utility apply one rule."""
 import importlib.util
-import sys
 import unittest
 from pathlib import Path
 

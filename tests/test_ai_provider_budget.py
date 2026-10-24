@@ -79,8 +79,8 @@ class ProviderFailureTests(unittest.TestCase):
     def test_any_exception_of_a_real_sdk_is_a_rejected_outcome(self):
         for error in (OSError("network down"), ValueError("bad request"), RuntimeError("boom"), KeyError("k")):
             class Failing:
-                def complete(self, prompt, *, timeout_seconds):
-                    raise error
+                def complete(self, prompt, *, timeout_seconds, failure=error):
+                    raise failure
 
             with self.subTest(error=type(error).__name__):
                 result = run_provider_step(config(), Failing(), "p")

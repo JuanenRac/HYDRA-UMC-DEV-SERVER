@@ -104,8 +104,12 @@ is wrapped in an operating-system sandbox when the host has one (`sandbox` in th
   `sandbox_required: true` refuses to run instead.
 
 The result of a run says which one was used (`sandbox`). The command lines are built by pure functions
-and covered by tests, but the kernel enforcing them has to be confirmed on the real host: this
-repository's tests never ran a task inside bubblewrap or a systemd unit.
+and covered by tests; `tests/test_sandbox_real_host.py` also runs real tasks in the sandbox and looks at what they could and could not do
+(write outside the workspace, read the home of the service user, use the network, exceed `MemoryMax` or `TasksMax`). It has been run
+against `systemd-run` on a real systemd host; it skips, saying why, where no usable sandbox exists, and the bubblewrap tests have not been
+run anywhere yet. Two rules came out of it: the workspace of a `systemd-run` task is bound into the unit (a workspace under `/tmp` or
+`/var/tmp` would otherwise not exist for it), and a workspace under `/home`, `/root` or `/run/user` is refused, because `ProtectHome`
+leaves nothing there to run in; keep the workspace base somewhere like `/srv` or `/var/lib`.
 
 `allowed_commands` only names the program. `allowed_arguments` (optional, per command, `fnmatch`
 patterns) lists what it may be given, and these rules always apply: no absolute, home or `..` path

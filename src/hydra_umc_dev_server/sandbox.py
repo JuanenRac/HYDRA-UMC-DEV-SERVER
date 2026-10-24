@@ -20,6 +20,11 @@ sandbox when the host has one:
     and `TasksMax`. It needs a systemd that lets the service user start units.
     Only this one has a cgroup: bubblewrap does not enforce those limits.
 
+    The workspace has to be somewhere the unit can reach once `ProtectHome` and `PrivateTmp` have done their work: a workspace under
+    `/tmp` or `/var/tmp` is bound into the unit (`BindPaths`; without it the unit fails to start with status 226), and one under
+    `/home`, `/root` or `/run/user` cannot be reached at all (status 200), so that is refused with the reason before anything runs.
+    Both were found by running the unit on a real systemd host.
+
 The builders are pure functions that return the wrapped argv, so the exact command
 line is tested without either program being installed. What they cannot prove is that
 the kernel of a given host enforces them: `detect_sandbox` only says which program
@@ -45,6 +50,10 @@ _NETWORK_RO_FILES = ("/etc/resolv.conf", "/etc/hosts", "/etc/nsswitch.conf")
 
 class SandboxUnavailableError(ConfigValidationError):
     """The policy asks for a sandbox (or requires one) and the host has none."""
+
+
+# Where `ProtectHome=yes` leaves nothing for a workspace to be in.
+_HIDDEN_BY_PROTECT_HOME = ("/home", "/root", "/run/user")
 
 
 @dataclass(frozen=True)
@@ -124,6 +133,12 @@ def systemd_run_argv(
     is_root: bool | None = None,
 ) -> tuple[str, ...]:
     """`systemd-run` command line for a transient unit with the same promises."""
+    for hidden in _HIDDEN_BY_PROTECT_HOME:
+        if cwd == hidden or cwd.startswith(hidden + "/"):
+            raise SandboxUnavailableError(
+                f"the workspace {cwd!r} is under {hidden}, which the systemd-run sandbox hides (ProtectHome): "
+                "put the workspace base somewhere else (for example /srv or /var/lib), or use bubblewrap"
+            )
     root = (os.geteuid() == 0) if is_root is None and hasattr(os, "geteuid") else bool(is_root)
     out: list[str] = ["systemd-run"]
     if not root:
@@ -133,6 +148,8 @@ def systemd_run_argv(
         "ProtectHome=yes", "ProtectSystem=strict", "PrivateTmp=yes", "PrivateDevices=yes",
         "NoNewPrivileges=yes", "ProtectKernelTunables=yes", "ProtectControlGroups=yes",
         f"ReadWritePaths={cwd}",
+        # a workspace under /tmp or /var/tmp is not there once PrivateTmp has replaced them: bind it in
+        f"BindPaths={cwd}",
     ]
     if spec.read_only_paths:
         props.append("ReadOnlyPaths=" + " ".join(spec.read_only_paths))

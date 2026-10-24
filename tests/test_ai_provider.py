@@ -16,7 +16,6 @@ from hydra_umc_dev_server.ai_provider import (
     OUTCOME_TIMED_OUT,
     AIProvider,
     FakeProvider,
-    ProviderBudget,
     ProviderConfig,
     ProviderUsage,
     RawCompletion,

@@ -118,7 +118,7 @@ class BlockedCandidateTests(unittest.TestCase):
         cycle.confirm_repro({"reproduced": True, "repro_case_id": _CASE})
         cycle.raise_incident()
         cycle.receive_candidate(_candidate(), _CAND_SECRET)
-        out = cycle.run_regression(_red())
+        cycle.run_regression(_red())
         self.assertEqual(cycle.state, STATE_BLOCKED)
 
 
@@ -175,7 +175,7 @@ class PostInstallRecoveryTests(unittest.TestCase):
         cycle = RepairCycle(_INC, _BASE, _TARGET, _CASE, allow_symmetric_keys=True, require_bound_approval=False)
         inst = FakeInstaller()
         _drive_to_installed(cycle, inst)
-        out = cycle.verify({"repro_case_id": "some-other-case", "verified": True}, inst, observed_base_fingerprint=_BASE)
+        cycle.verify({"repro_case_id": "some-other-case", "verified": True}, inst, observed_base_fingerprint=_BASE)
         self.assertEqual(cycle.state, STATE_BLOCKED)
         self.assertTrue(inst.rolled_back)
 

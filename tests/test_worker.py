@@ -8,7 +8,7 @@ git, a fake clock and an in-memory queue; nothing is spawned and nothing touches
 import tempfile
 import unittest
 
-from hydra_umc_dev_server.config import TaskPolicy
+from hydra_umc_dev_server.config import ConfigValidationError, TaskPolicy
 from hydra_umc_dev_server.durable_queue import STATE_FAILED, STATE_LEASED, STATE_QUEUED, STATE_SUCCEEDED, DurableQueue
 from hydra_umc_dev_server.recipe import TaskRecipe
 from hydra_umc_dev_server.taskflow import ConcurrencyGate, TooManyTasksError
@@ -226,7 +226,7 @@ class WorkerTests(unittest.TestCase):
         self.assertEqual(self.queue.entry("w-0002").state, STATE_QUEUED)
 
     def test_an_unsafe_worker_id_is_refused(self):
-        with self.assertRaises(Exception):
+        with self.assertRaises(ConfigValidationError):
             work_once(self.queue, "../evil", _policy(), "/ws", FakeLauncher(), fs=self.fs, gate=self.gate)
 
 

@@ -1,0 +1,59 @@
+# =============================================================================
+# HYDRA-UMC-DEV-SERVER - additional checks: every supported Python, the linter and the runner on Windows
+# Copyright (C) 2026 JuanenRac (Electro Hobby 3D) <electrohobby3d@gmail.com>
+# GPL-3.0-or-later - see LICENSE
+# =============================================================================
+name: DEV-SERVER checks
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  python-versions:
+    name: Tests on Python ${{ matrix.python }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ["3.11", "3.12", "3.13"]
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Run the tests
+        run: |
+          python -m pip install ".[dev]"
+          PYTHONPATH=src python -m pytest tests -q
+
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: ruff
+        run: |
+          python -m pip install ruff
+          ruff check --select F,E9,B src tests
+
+  runner-on-windows:
+    name: Runner on Windows
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: The runner, the workspace and the sandbox command lines
+        shell: bash
+        run: |
+          python -m pip install ".[dev]"
+          PYTHONPATH=src python -m pytest tests/test_runner.py tests/test_workspace.py tests/test_sandbox_taskflow.py tests/test_sandbox_real_host.py -q

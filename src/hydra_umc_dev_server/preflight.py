@@ -307,7 +307,7 @@ class SystemHostInspector:
         except ImportError:
             raise ConfigValidationError(
                 "identity-user checks need a POSIX host - preflight for a remote station is a Linux concept"
-            )
+            ) from None
         try:
             return pwd.getpwnam(name)
         except KeyError:

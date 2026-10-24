@@ -280,5 +280,51 @@ class SigningCommandTests(unittest.TestCase):
             self.assertEqual(self.run_main(argv)[0], 1)
 
 
+class NativeBackendTests(unittest.TestCase):
+    """The `cryptography` package, when it is installed, must give exactly what the pure code gives; without it the pure code answers."""
+
+    def setUp(self):
+        import os
+
+        self._saved = os.environ.get("HYDRA_UMC_DEV_SERVER_PURE_ED25519")
+        os.environ.pop("HYDRA_UMC_DEV_SERVER_PURE_ED25519", None)
+        self.addCleanup(self._restore)
+
+    def _restore(self):
+        import os
+
+        if self._saved is None:
+            os.environ.pop("HYDRA_UMC_DEV_SERVER_PURE_ED25519", None)
+        else:
+            os.environ["HYDRA_UMC_DEV_SERVER_PURE_ED25519"] = self._saved
+
+    def test_the_pure_backend_can_be_forced(self):
+        import os
+
+        from hydra_umc_dev_server.signing import signing_backend
+
+        os.environ["HYDRA_UMC_DEV_SERVER_PURE_ED25519"] = "1"
+        self.assertEqual(signing_backend(), "pure")
+
+    def test_native_and_pure_agree_on_keys_and_signatures(self):
+        import os
+
+        from hydra_umc_dev_server import signing
+
+        if signing.signing_backend() != "native":
+            self.skipTest("the cryptography package is not installed: only the pure backend exists here")
+        for seed in (bytes(32), bytes(range(32)), hashlib.sha256(b"seed").digest(), b"\xff" * 32):
+            for message in (b"", b"abc", b"x" * 1000):
+                native_public = signing.public_key_bytes(seed)
+                native_signature = signing.sign_bytes(seed, message)
+                os.environ["HYDRA_UMC_DEV_SERVER_PURE_ED25519"] = "1"
+                try:
+                    self.assertEqual(signing.public_key_bytes(seed), native_public)
+                    self.assertEqual(signing.sign_bytes(seed, message), native_signature)
+                    self.assertTrue(signing.verify_bytes(native_public, message, native_signature))
+                finally:
+                    os.environ.pop("HYDRA_UMC_DEV_SERVER_PURE_ED25519", None)
+
+
 if __name__ == "__main__":
     unittest.main()

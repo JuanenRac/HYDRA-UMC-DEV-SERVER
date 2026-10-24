@@ -9,13 +9,17 @@ An HMAC secret has to be on both sides of a check, so whoever can verify a candi
 one. With a key pair the signer holds the private key (a 32-byte seed) and the verifier only the public
 key: a host that checks a backup or a candidate can no longer make one.
 
-This project has no dependencies, so the algorithm is the reference one of RFC 8032 written with Python
-integers. It is checked against the test vectors of the RFC. Two limits, stated plainly:
+This project has no required dependencies, so the algorithm is the reference one of RFC 8032 written with
+Python integers. It is checked against the test vectors of the RFC. Two limits, stated plainly:
 
-  * it is not constant-time: sign on the machine of the operator that holds the seed, never on a shared
-    host where another process could time it. Verification handles only public data and is unaffected.
-  * it is slower than a C library (a few milliseconds per signature), which does not matter for a
-    manifest or a candidate.
+  * the pure version is not constant-time: sign on the machine of the operator that holds the seed, never
+    on a shared host where another process could time it. When the `cryptography` package is installed
+    (an optional dependency, OpenSSL underneath) the operations that use the seed - deriving the public
+    key and signing - go through it instead and are constant-time; `signing_backend()` says which one is
+    in use and `HYDRA_UMC_DEV_SERVER_PURE_ED25519=1` forces the pure one. Verification handles only public
+    data, so it always uses the pure code and is unaffected.
+  * the pure version is slower than a C library (a few milliseconds per signature), which does not matter
+    for a manifest or a candidate.
 
 Keys travel as text: `ed25519-seed:<64 hex>` (private, keep it 0600 and out of version control) and
 `ed25519-public:<64 hex>`; a signature is `ed25519:<128 hex>`.
@@ -125,16 +129,49 @@ def _hash_int(data: bytes) -> int:
     return int.from_bytes(_sha512(data), "little")
 
 
+def _native_ed25519() -> Any:
+    """The `cryptography` Ed25519 module when it can be used, else None. Looked up on every call so a test can switch it."""
+    if os.environ.get("HYDRA_UMC_DEV_SERVER_PURE_ED25519", "").strip() == "1":
+        return None
+    try:
+        from cryptography.hazmat.primitives.asymmetric import ed25519  # noqa: PLC0415 - optional dependency
+    except ImportError:
+        return None
+    return ed25519
+
+
+def signing_backend() -> str:
+    """`native` when the seed-dependent operations go through the `cryptography` package, `pure` otherwise."""
+    return "native" if _native_ed25519() is not None else "pure"
+
+
+def _pure_public_key_bytes(seed: bytes) -> bytes:
+    scalar, _ = _expand(seed)
+    return _compress(_mul(scalar, _G))
+
+
 def public_key_bytes(seed: bytes) -> bytes:
     if len(seed) != 32:
         raise ConfigValidationError("an Ed25519 seed is 32 bytes")
-    scalar, _ = _expand(seed)
-    return _compress(_mul(scalar, _G))
+    native = _native_ed25519()
+    if native is not None:
+        from cryptography.hazmat.primitives import serialization  # noqa: PLC0415
+
+        key = native.Ed25519PrivateKey.from_private_bytes(seed)
+        return key.public_key().public_bytes(serialization.Encoding.Raw, serialization.PublicFormat.Raw)
+    return _pure_public_key_bytes(seed)
 
 
 def sign_bytes(seed: bytes, message: bytes) -> bytes:
     if len(seed) != 32:
         raise ConfigValidationError("an Ed25519 seed is 32 bytes")
+    native = _native_ed25519()
+    if native is not None:
+        return native.Ed25519PrivateKey.from_private_bytes(seed).sign(message)
+    return _pure_sign_bytes(seed, message)
+
+
+def _pure_sign_bytes(seed: bytes, message: bytes) -> bytes:
     scalar, prefix = _expand(seed)
     public = _compress(_mul(scalar, _G))
     r = _hash_int(prefix + message) % _L

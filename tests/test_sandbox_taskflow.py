@@ -71,7 +71,7 @@ class SandboxCommandLineTests(unittest.TestCase):
         argv = systemd_run_argv(("pytest", "-q"), cwd="/ws/t1", env=self.ENV, spec=SandboxSpec(), is_root=False)
         text = " ".join(argv)
         self.assertIn("--user", argv)
-        for expected in ("ProtectHome=yes", "ProtectSystem=strict", "PrivateTmp=yes", "PrivateNetwork=yes", "NoNewPrivileges=yes", "ReadWritePaths=/ws/t1"):
+        for expected in ("ProtectHome=yes", "ProtectSystem=strict", "PrivateTmp=yes", "PrivateNetwork=yes", "NoNewPrivileges=yes", "ReadWritePaths=/ws/t1", "BindPaths=/ws/t1"):
             self.assertIn(expected, text)
         self.assertEqual(argv[argv.index("--") + 1:], ("pytest", "-q"))
         as_root = systemd_run_argv(("pytest",), cwd="/ws/t1", env=self.ENV, spec=SandboxSpec(network=True), is_root=True)

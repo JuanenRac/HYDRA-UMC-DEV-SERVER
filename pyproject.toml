@@ -21,6 +21,8 @@ dependencies = []
 
 [project.optional-dependencies]
 dev = ["pytest>=8.0"]
+# constant-time Ed25519 for the seed-dependent operations (public key, signing); without it the pure RFC 8032 code answers
+signing = ["cryptography>=42"]
 
 [project.urls]
 Homepage = "https://github.com/JuanenRac/HYDRA-UMC-DEV-SERVER"

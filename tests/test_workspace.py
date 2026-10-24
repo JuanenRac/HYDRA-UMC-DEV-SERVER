@@ -10,6 +10,7 @@ import unittest
 from hydra_umc_dev_server.workspace import (
     Workspace,
     WorkspaceCollisionError,
+    WorkspaceError,
     WorkspaceEscapeError,
     WorkspaceFs,
     allocate_workspace,
@@ -99,11 +100,11 @@ class AllocateWorkspaceTests(unittest.TestCase):
     def test_an_unsafe_task_id_is_refused(self):
         fs = FakeFs(existing=["/srv/dev/workspaces"])
         for bad in ("../escape", "a/b", "", ".hidden", "x" * 200):
-            with self.assertRaises(Exception):
+            with self.assertRaises(WorkspaceError):
                 allocate_workspace("/srv/dev/workspaces", bad, fs)
 
     def test_a_non_absolute_base_is_refused(self):
-        with self.assertRaises(Exception):
+        with self.assertRaises(WorkspaceError):
             allocate_workspace("relative/workspaces", "t1", FakeFs())
 
 
