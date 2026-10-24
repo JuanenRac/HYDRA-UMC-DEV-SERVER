@@ -15,7 +15,7 @@
   <img src="https://img.shields.io/badge/Delivery-DS01--DS10%20complete%20(functional)-brightgreen.svg" alt="DS01-DS10 complete, functional">
 </p>
 
-> **Status: v0.1.8, functional - all ten of ten shipped (built and covered by tests; not yet verified on real hardware or services).** A tested
+> **Status: v0.1.9, functional - all ten of ten shipped (built and covered by tests; not yet verified on real hardware or services).** A tested
 > configuration schema
 > (`config validate`), read-only manifest discovery (`inventory scan`),
 > a remote-station profile + host preflight + dry-run provisioning plan
@@ -70,9 +70,9 @@
 
 | | |
 |---|---|
-| Version | `0.1.8` |
+| Version | `0.1.9` |
 | Maturity | Functional |
-| Tests | 430 |
+| Tests | 347 |
 | Stack | Python 3.11+ / JSON Schema / systemd (host role, Linux only) / SQLite (durable task/state journal, from DS05 onward) |
 | Target | A development server |
 | On real hardware | Not yet: no run on real hardware is recorded for this version |

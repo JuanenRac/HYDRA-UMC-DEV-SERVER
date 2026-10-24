@@ -15,7 +15,7 @@
   <img src="https://img.shields.io/badge/交付-DS01--DS10%20已完成%20(功能阶段)-brightgreen.svg" alt="DS01-DS10 已完成，功能阶段">
 </p>
 
-> **状态：v0.1.8，功能阶段（functional）- 十次交付已全部完成（已构建并由测试覆盖；尚未在真实硬件或服务上验证）。**
+> **状态：v0.1.9，功能阶段（functional）- 十次交付已全部完成（已构建并由测试覆盖；尚未在真实硬件或服务上验证）。**
 > 一套真实、经过测试的配置模式(`config validate`)，其默认策略**不向任何任务授予部署权限**；
 > 以及只读的清单发现功能(`inventory scan`)，可找到本生态系统自身的
 > `hydra-umc.project.json` 文件——包括本仓库自己的那份。
@@ -37,9 +37,9 @@
 
 | | |
 |---|---|
-| 版本 | `0.1.8` |
+| 版本 | `0.1.9` |
 | 成熟度 | 可用 |
-| 测试 | 430 |
+| 测试 | 347 |
 | 技术栈 | Python 3.11+ / JSON Schema / systemd (host role, Linux only) / SQLite (durable task/state journal, from DS05 onward) |
 | 目标 | 开发服务器 |
 | 真实硬件 | 尚未：此版本没有在真实硬件上运行的记录 |

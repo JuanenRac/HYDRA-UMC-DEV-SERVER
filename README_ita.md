@@ -15,7 +15,7 @@
   <img src="https://img.shields.io/badge/Consegna-DS01--DS10%20completo%20(funzionale)-brightgreen.svg" alt="DS01-DS10 completo, funzionale">
 </p>
 
-> **Stato: v0.1.8, funzionale - tutte e dieci su dieci consegnate (costruito e coperto da test; non ancora verificato su hardware o servizi reali).** Uno schema di configurazione reale e
+> **Stato: v0.1.9, funzionale - tutte e dieci su dieci consegnate (costruito e coperto da test; non ancora verificato su hardware o servizi reali).** Uno schema di configurazione reale e
 > testato (`config validate`) la cui politica predefinita **non
 > concede alcun permesso di deploy a nessun task**, e una scoperta di
 > manifest in sola lettura (`inventory scan`) che trova i propri file
@@ -43,9 +43,9 @@
 
 | | |
 |---|---|
-| Versione | `0.1.8` |
+| Versione | `0.1.9` |
 | Maturità | Funzionale |
-| Test | 430 |
+| Test | 347 |
 | Tecnologia | Python 3.11+ / JSON Schema / systemd (host role, Linux only) / SQLite (durable task/state journal, from DS05 onward) |
 | Destinazione | Un server di sviluppo |
 | Su hardware reale | Non ancora: per questa versione non risulta alcuna esecuzione su hardware reale |
