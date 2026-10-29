@@ -294,9 +294,9 @@ class ApiTests(unittest.TestCase):
         self.assertEqual(self._call("POST", "/v1/plugins/demo/reports/state")[0], 409)
         self.assertEqual(self._call("POST", "/v1/plugins/demo/generators/hello")[0], 409)
 
-    def test_a_get_on_the_new_routes_is_not_found(self):
-        self.assertEqual(self._call("GET", "/v1/plugins/demo/reports/state")[0], 404)
-        self.assertEqual(self._call("GET", "/v1/plugins/demo/generators/hello")[0], 404)
+    def test_a_get_on_the_new_routes_is_method_not_allowed(self):
+        self.assertEqual(self._call("GET", "/v1/plugins/demo/reports/state")[0], 405)
+        self.assertEqual(self._call("GET", "/v1/plugins/demo/generators/hello")[0], 405)
 
 
 class CliAndExamplesTests(unittest.TestCase):

@@ -323,7 +323,7 @@ token (at least 24 characters) comes from `--token-file` or the
 `HYDRA_UMC_DEV_SERVER_TOKEN` environment variable, never from the command
 line. Every route except `GET /v1/health` needs `Authorization: Bearer
 <token>`; bodies are capped at 4096 bytes, a connection that goes quiet for 15 seconds is closed,
-and at most 32 requests are served at once (the next gets `503` with `Retry-After: 1`).
+and at most 32 requests are served at once (the next gets `503` with `Retry-After: 1`). The status codes are fixed: `401` (with `WWW-Authenticate: Bearer`) for a missing or wrong token, `404` for a route or plugin that does not exist, `405` (with `Allow`) for a known route called with the wrong method and for any method other than `GET` and `POST`, `409` for a plugin that is not in a state that allows the call, `413` for a body over the limit, `500` (no trace in the body) for a failure inside the server and `503` when busy.
 `docs/openapi.json` describes the routes; a test keeps it equal to the handler.
 
 | Route | Purpose |

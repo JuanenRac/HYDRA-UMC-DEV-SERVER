@@ -57,6 +57,15 @@ _REPORT_RE = re.compile(r"^/v1/plugins/([a-z0-9-]+)/reports/([a-z0-9-]+)$")
 _GENERATOR_RE = re.compile(r"^/v1/plugins/([a-z0-9-]+)/generators/([a-z0-9-]+)$")
 
 
+_RESCAN_PATH = "/v1/plugins/rescan"
+_GET_ROUTES = frozenset({"/v1/health", "/v1/inventory", "/v1/audit", "/v1/plugins"})
+_POST_PATTERNS = (_ENABLE_RE, _DISABLE_RE, _CHECK_RE, _REPORT_RE, _GENERATOR_RE)
+
+
+def _is_post_route(path: str) -> bool:
+    return path == _RESCAN_PATH or any(pattern.match(path) for pattern in _POST_PATTERNS)
+
+
 class ApiConfigError(ValueError):
     """The API cannot be started with these settings."""
 
@@ -130,7 +139,7 @@ class _Handler(BaseHTTPRequestHandler):
         return  # request lines can carry paths; keep the server quiet
 
     # -- plumbing ----------------------------------------------------------
-    def _send(self, status: int, payload: object) -> None:
+    def _send(self, status: int, payload: object, headers: dict[str, str] | None = None) -> None:
         self.server.audit.append({
             "at": round(time.time(), 3),
             "method": self.command,
@@ -143,8 +152,17 @@ class _Handler(BaseHTTPRequestHandler):
         self.send_header("Content-Type", "application/json")
         self.send_header("Content-Length", str(len(body)))
         self.send_header("Cache-Control", "no-store")
+        for name, value in (headers or {}).items():
+            self.send_header(name, value)
         self.end_headers()
-        self.wfile.write(body)
+        if self.command != "HEAD":
+            self.wfile.write(body)
+
+    def _refuse_unauthorized(self) -> None:
+        self._send(401, {"error": "a valid bearer token is required"}, {"WWW-Authenticate": "Bearer"})
+
+    def _method_not_allowed(self, allowed: str) -> None:
+        self._send(405, {"error": "method not allowed"}, {"Allow": allowed})
 
     def _authorized(self) -> bool:
         header = self.headers.get("Authorization", "")
@@ -182,7 +200,7 @@ class _Handler(BaseHTTPRequestHandler):
             self._send(200, {"status": "ok", "version": __version__, "plugins": len(self.server.registry.list())})
             return
         if not self._authorized():
-            self._send(401, {"error": "a valid bearer token is required"})
+            self._refuse_unauthorized()
             return
         if path == "/v1/inventory":
             result = scan_project_manifests(self.server.workspace_root)
@@ -191,13 +209,18 @@ class _Handler(BaseHTTPRequestHandler):
             self._send(200, {"plugins": self.server.registry.list(), "problems": self.server.registry.problems})
         elif path == "/v1/audit":
             self._send(200, {"entries": list(self.server.audit)})
+        elif _is_post_route(path):
+            self._method_not_allowed("POST")
         else:
             self._send(404, {"error": "not found"})
 
     def do_POST(self) -> None:  # noqa: N802
         path = self.path.split("?", 1)[0]
         if not self._authorized():
-            self._send(401, {"error": "a valid bearer token is required"})
+            self._refuse_unauthorized()
+            return
+        if path in _GET_ROUTES:
+            self._method_not_allowed("GET")
             return
         body = self._read_json()
         if body is None:
@@ -236,4 +259,13 @@ class _Handler(BaseHTTPRequestHandler):
         except PluginError as exc:
             self._send(404 if str(exc).startswith("no plugin") else 409, {"error": str(exc)})
             return
+        except Exception:  # noqa: BLE001 - whatever a plugin or the registry raises must not drop the connection or leak a trace
+            self._send(500, {"error": "internal error"})
+            return
         self._send(404, {"error": "not found"})
+
+    # Every other method is refused by name (the standard library would answer 501 with an HTML page).
+    def _other_method(self) -> None:
+        self._method_not_allowed("GET, POST")
+
+    do_PUT = do_PATCH = do_DELETE = do_HEAD = do_OPTIONS = _other_method  # noqa: N815

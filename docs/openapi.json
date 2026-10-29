@@ -20,14 +20,22 @@
     },
     "responses": {
       "Unauthorized": {
-        "description": "A valid bearer token is required.",
+        "description": "A valid bearer token is required. The answer carries WWW-Authenticate: Bearer.",
         "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } }
       },
       "Busy": {
         "description": "More requests than the server serves at the same time (32); try again after a second.",
         "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } }
       },
-      "NotFound": {
+      "MethodNotAllowed": {
+      "description": "The route exists for another method; the Allow header names it. Any method other than GET and POST is answered this way too (Allow: GET, POST).",
+      "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } }
+    },
+    "InternalError": {
+      "description": "The request failed inside the server; the body never carries a trace.",
+      "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } }
+    },
+    "NotFound": {
         "description": "No such route, or no such plugin.",
         "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } }
       },
@@ -45,6 +53,7 @@
         "security": [],
         "responses": {
           "200": { "description": "ok" },
+          "405": { "$ref": "#/components/responses/MethodNotAllowed" },
           "503": { "$ref": "#/components/responses/Busy" }
         }
       }
@@ -55,6 +64,7 @@
         "responses": {
           "200": { "description": "projects and issues" },
           "401": { "$ref": "#/components/responses/Unauthorized" },
+          "405": { "$ref": "#/components/responses/MethodNotAllowed" },
           "503": { "$ref": "#/components/responses/Busy" }
         }
       }
@@ -65,6 +75,7 @@
         "responses": {
           "200": { "description": "entries, oldest first" },
           "401": { "$ref": "#/components/responses/Unauthorized" },
+          "405": { "$ref": "#/components/responses/MethodNotAllowed" },
           "503": { "$ref": "#/components/responses/Busy" }
         }
       }
@@ -75,6 +86,7 @@
         "responses": {
           "200": { "description": "plugins and problems" },
           "401": { "$ref": "#/components/responses/Unauthorized" },
+          "405": { "$ref": "#/components/responses/MethodNotAllowed" },
           "503": { "$ref": "#/components/responses/Busy" }
         }
       }
@@ -85,6 +97,8 @@
         "responses": {
           "200": { "description": "plugins and problems" },
           "401": { "$ref": "#/components/responses/Unauthorized" },
+          "405": { "$ref": "#/components/responses/MethodNotAllowed" },
+          "500": { "$ref": "#/components/responses/InternalError" },
           "503": { "$ref": "#/components/responses/Busy" }
         }
       }
@@ -108,6 +122,8 @@
           "404": { "$ref": "#/components/responses/NotFound" },
           "409": { "description": "the plugin failed to load, or its digest is not the approved one" },
           "413": { "description": "the body is over 4096 bytes" },
+          "405": { "$ref": "#/components/responses/MethodNotAllowed" },
+          "500": { "$ref": "#/components/responses/InternalError" },
           "503": { "$ref": "#/components/responses/Busy" }
         }
       }
@@ -120,6 +136,8 @@
           "200": { "description": "the plugin, disabled" },
           "401": { "$ref": "#/components/responses/Unauthorized" },
           "404": { "$ref": "#/components/responses/NotFound" },
+          "405": { "$ref": "#/components/responses/MethodNotAllowed" },
+          "500": { "$ref": "#/components/responses/InternalError" },
           "503": { "$ref": "#/components/responses/Busy" }
         }
       }
@@ -136,6 +154,8 @@
           "401": { "$ref": "#/components/responses/Unauthorized" },
           "404": { "$ref": "#/components/responses/NotFound" },
           "409": { "$ref": "#/components/responses/Conflict" },
+          "405": { "$ref": "#/components/responses/MethodNotAllowed" },
+          "500": { "$ref": "#/components/responses/InternalError" },
           "503": { "$ref": "#/components/responses/Busy" }
         }
       }
@@ -152,6 +172,8 @@
           "401": { "$ref": "#/components/responses/Unauthorized" },
           "404": { "$ref": "#/components/responses/NotFound" },
           "409": { "$ref": "#/components/responses/Conflict" },
+          "405": { "$ref": "#/components/responses/MethodNotAllowed" },
+          "500": { "$ref": "#/components/responses/InternalError" },
           "503": { "$ref": "#/components/responses/Busy" }
         }
       }
@@ -172,6 +194,8 @@
           "401": { "$ref": "#/components/responses/Unauthorized" },
           "404": { "$ref": "#/components/responses/NotFound" },
           "409": { "$ref": "#/components/responses/Conflict" },
+          "405": { "$ref": "#/components/responses/MethodNotAllowed" },
+          "500": { "$ref": "#/components/responses/InternalError" },
           "503": { "$ref": "#/components/responses/Busy" }
         }
       }

@@ -107,6 +107,43 @@ class ApiTests(unittest.TestCase):
         self.assertEqual(self._call("GET", "/v1/nothing")[0], 404)
         self.assertEqual(self._call("POST", "/v1/nothing")[0], 404)
 
+    def _raw(self, method, path, token=TOKEN):
+        request = urllib.request.Request(self.base + path, method=method)
+        if token is not None:
+            request.add_header("Authorization", f"Bearer {token}")
+        try:
+            with urllib.request.urlopen(request, timeout=5) as response:
+                return response.status, response.headers, response.read()
+        except urllib.error.HTTPError as error:
+            return error.code, error.headers, error.read()
+
+    def test_the_right_route_with_the_wrong_method_is_405_and_names_the_method(self):
+        status, headers, body = self._raw("POST", "/v1/inventory")
+        self.assertEqual((status, headers["Allow"]), (405, "GET"))
+        self.assertEqual(json.loads(body), {"error": "method not allowed"})
+        for path in ("/v1/plugins/rescan", "/v1/plugins/demo/enable", "/v1/plugins/demo/checks/ping"):
+            status, headers, _ = self._raw("GET", path)
+            self.assertEqual((status, headers["Allow"]), (405, "POST"), path)
+        for method in ("PUT", "PATCH", "DELETE", "OPTIONS"):
+            status, headers, body = self._raw(method, "/v1/plugins")
+            self.assertEqual((status, headers["Allow"]), (405, "GET, POST"), method)
+            self.assertEqual(json.loads(body)["error"], "method not allowed")
+        status, headers, body = self._raw("HEAD", "/v1/health")
+        self.assertEqual((status, headers["Allow"], body), (405, "GET, POST", b""))
+
+    def test_a_missing_token_is_answered_with_the_bearer_challenge(self):
+        status, headers, _ = self._raw("GET", "/v1/inventory", token=None)
+        self.assertEqual((status, headers["WWW-Authenticate"]), (401, "Bearer"))
+
+    def test_a_failure_inside_the_server_is_a_500_without_a_trace(self):
+        def boom(*_args):
+            raise RuntimeError("secret detail /home/x")
+
+        self.server.registry.run_check = boom
+        status, body = self._call("POST", "/v1/plugins/demo/checks/ping")
+        self.assertEqual((status, body), (500, {"error": "internal error"}))
+        self.assertEqual(self._call("GET", "/v1/health", token=None)[0], 200)
+
     def test_rescan_picks_up_a_new_plugin(self):
         new = self.plugins / "second"
         new.mkdir()
