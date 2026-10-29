@@ -8,7 +8,7 @@ GPL-3.0-or-later - see LICENSE
 
 DS06 defines a provider seam and the safety contract around it. Only the
 **deterministic fake** provider ships. Which real provider to use
-(Claude, ChatGPT, a local model, ...) and its authorization, cost and
+(a hosted model, a local model, ...) and its authorization, cost and
 terms are a **user decision** - `ProviderConfig.kind` accepts `"fake"`
 and rejects everything else with a message that says so.
 

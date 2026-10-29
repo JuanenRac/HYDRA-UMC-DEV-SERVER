@@ -85,8 +85,8 @@ Windows is never assumed to work unchanged on ARM64.
 development task; an authorized executor prepares an isolated workspace,
 uses an available AI provider/client, runs allowed tests, and delivers
 results. Clicks on an editor UI are never automated as the basis for a
-reliable service. People or assistants from different providers (Claude,
-ChatGPT or others) may work this way, according to whichever integration
+reliable service. People or assistants from different providers (hosted or
+local) may work this way, according to whichever integration
 mechanism is actually available and authorized for each - an editor
 extension, a CLI client and an API are treated as distinct options with
 no assumed equivalence in capability, licensing or billing; ARM64

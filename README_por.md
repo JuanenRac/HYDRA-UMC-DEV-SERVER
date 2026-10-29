@@ -1,3 +1,9 @@
+<!-- =============================================================================
+HYDRA-UMC-DEV-SERVER - Reproducible development host
+Copyright (C) JuanenRac (Electro Hobby 3D) <electrohobby3d@gmail.com>
+GPL-3.0-or-later - see LICENSE
+============================================================================= -->
+
 <p align="center">
   <img src="images/HYDRA_UMC_BANNER.svg" alt="HYDRA-UMC-DEV-SERVER banner" width="100%">
 </p>
@@ -10,58 +16,22 @@
 
 <p align="center">
   <img src="https://img.shields.io/badge/License-GPL%203.0--or--later-blue.svg" alt="GPL 3.0 or later">
-  <img src="https://img.shields.io/badge/Language-Python%203.11%2B-blue.svg" alt="Python">
-  <img src="https://img.shields.io/badge/Core-stdlib%20only-brightgreen.svg" alt="stdlib-only core">
-  <img src="https://img.shields.io/badge/Entrega-DS01--DS10%20conclu%C3%ADda%20(funcional)-brightgreen.svg" alt="DS01-DS10 concluída, funcional">
+  <img src="https://img.shields.io/badge/Language-Python%203.11%2B-blue.svg" alt="Language">
+  <img src="https://img.shields.io/badge/Core-stdlib%20only-brightgreen.svg" alt="Core">
+  <img src="https://img.shields.io/badge/Tests-442%20passing-2ea44f.svg" alt="Tests">
+  <img src="https://img.shields.io/badge/Version-0.1.9-0f6cbd.svg" alt="Version">
+  <img src="https://img.shields.io/badge/Maturity-functional-0F6CBD.svg" alt="Maturity">
 </p>
-
-> **Estado: v0.1.9, funcional - as dez entregas de dez concluídas (construído e coberto por testes; ainda não verificado em hardware nem em serviços reais).** Um esquema de configuração testado
-> (`config validate`), descoberta de manifestos só de leitura (`inventory scan`),
-> um perfil de estação remota + verificação prévia do anfitrião + plano de aprovisionamento simulado
-> (`station …`), **migração conservadora** (`migrate …`) que planeia
-> cada classe de ficheiro para o seu próprio destino separado, o
-> **executor limitado** (`task …`) que corre **um** comando da lista de permitidos
-> num **espaço de trabalho isolado por tarefa** com um **ambiente depurado** (sem
-> `*_TOKEN` / `*_KEY` / `*_SECRET` herdados) com um limite de tempo que
-> **mata todo o grupo de processos**, e uma **fila durável em SQLite +
-> diário de execução** (`queue …`) onde um enfileiramento duplicado nunca é
-> um segundo trabalho, uma interrupção nunca um falso êxito, e uma base movida bloqueia a promoção. **A DS06 acrescenta um
-> fornecedor de IA intermutável por detrás de um contrato de segurança** (`provider suggest`) - só
-> o **simulado** determinístico é entregue (um real é uma decisão do utilizador): um tempo limite, uma saída
-> malformada ou o esgotamento da quota é um **resultado nomeado e limitado**, um orçamento
-> pára o passo, e a sugestão é **dado inerte** -
-> `grants_no_permissions` / `triggers_no_deploy` sempre verdadeiros, uma sugestão com ar de instrução
-> assinalada e nunca executada. **A DS07 acrescenta um
-> transporte autenticado de incidentes** para a ida e volta com o
-> HYDRA-UMC-OPS-AGENT (`incident verify`) - um objeto de protocolo real, não
-> uma queda de ficheiro: uma identidade não registada, uma assinatura má, um nó a
-> fazer-se passar por outro, um nonce repetido, uma marca temporal antiga, um emissor
-> sobrecarregado ou uma versão incompatível é **rejeitado com um
-> código nomeado**, e uma ligação caída deixa um estado **reconciliável**
-> (nada perdido, nada contado a dobrar). **A DS08 encadeia tudo num só ciclo
-> de reparação totalmente controlado** (`repair check-candidate`): reprodução →
-> incidente → correção → regressão → build-test → aprovação → instalação **isolada** →
-> verificação, com porta em cada passo - um candidato adulterado, ou um dirigido a outra
-> base/destino, é **bloqueado**; uma verificação falhada após a instalação **reverte**. **A DS09 acrescenta verificações de saúde de operação estável
-> e uma cópia de segurança/restauro verificados do estado** (`ops health` / `ops verify-backup`):
-> cada ficheiro da cópia leva um sha256, e um restauro é **recusado** para uma
-> cópia feita para outra instância ou esquema, ou cujos ficheiros já
-> não correspondem. **A DS10 fecha o plano com um pacote de entrega e uma
-> avaliação honesta de maturidade** (`deliver manifest` / `deliver
-> evaluate`): um sha256 para cada ficheiro entregue, cada uma das dez
-> entregas reportada contra prova real, sete limitações enunciadas
-> com clareza e uma `overall_maturity` que está **fixada no código como `functional`** - o código não tem nenhum ramo que possa afirmar mais. Continua a
-> não implementar nada. Veja
-> [docs/CLI_REFERENCE.md](docs/CLI_REFERENCE.md) para a superfície exata de comandos
-> que existe hoje.
 
 ---
 
-**Verificação de honestidade - o que realmente funciona hoje:** todos os vinte e dois módulos nomeados abaixo (`config.py`, `inventory.py`, `remote_station.py`, `preflight.py`, `provision.py`, `migration.py`, `workspace.py`, `recipe.py`, `runner.py`, `durable_queue.py`, `ai_provider.py`, `incident_transport.py`, `repair_cycle.py`, `operations.py`, `delivery.py`, `cli.py`, `api.py`, `plugins.py`, `sandbox.py`, `taskflow.py`, `worker.py`, `signing.py`) são código real, não esboços, e estão cobertos por uma suite de testes real (418 testes a passar em `tests/test_*.py`). O que esse código real fez de facto, em concreto: validou documentos JSON, planeou migrações em disco, executou um subprocesso real e limitado num espaço de trabalho isolado real com um ambiente depurado real, persistiu uma fila/diário SQLite real entre reinícios e exercitou uma ida e volta de incidentes real assinada com HMAC - tudo contra esta cópia local ou uma costura de teste injetável, nunca contra o hardware Raspberry Pi 5/CM5 de destino para que este projeto é construído. O `provider suggest` só chama o `FakeProvider` determinístico; ligar um fornecedor de IA real é uma decisão explícita do utilizador, ainda por tomar. O `station preflight`/`station plan` descrevem um anfitrião remoto através de um inspetor injetável e nunca correram contra uma máquina remota real. Nada neste repositório aprovisionou um anfitrião nem executou uma implementação, e o ciclo de trabalhador (`queue work`) só correu contra simulacros do lançador e do git, nunca num anfitrião real - o `overall_maturity: "functional"` fixado no código do `deliver evaluate` di-lo com clareza a partir de dentro do próprio código. Veja o `CHANGELOG.md` para saber exatamente o que foi entregue, entrega a entrega.
+**Verificação de honestidade - o que realmente funciona hoje:** todos os vinte e dois módulos nomeados abaixo (`config.py`, `inventory.py`, `remote_station.py`, `preflight.py`, `provision.py`, `migration.py`, `workspace.py`, `recipe.py`, `runner.py`, `durable_queue.py`, `ai_provider.py`, `incident_transport.py`, `repair_cycle.py`, `operations.py`, `delivery.py`, `cli.py`, `api.py`, `plugins.py`, `sandbox.py`, `taskflow.py`, `worker.py`, `signing.py`) são código real, não esboços, e estão cobertos por uma suite de testes real (442 testes a passar em `tests/test_*.py`). O que esse código real fez de facto, em concreto: validou documentos JSON, planeou migrações em disco, executou um subprocesso real e limitado num espaço de trabalho isolado real com um ambiente depurado real, persistiu uma fila/diário SQLite real entre reinícios e exercitou uma ida e volta de incidentes real assinada com HMAC - tudo contra esta cópia local ou uma costura de teste injetável, nunca contra o hardware Raspberry Pi 5/CM5 de destino para que este projeto é construído. O `provider suggest` só chama o `FakeProvider` determinístico; ligar um fornecedor de IA real é uma decisão explícita do utilizador, ainda por tomar. O `station preflight`/`station plan` descrevem um anfitrião remoto através de um inspetor injetável e nunca correram contra uma máquina remota real. Nada neste repositório aprovisionou um anfitrião nem executou uma implementação, e o ciclo de trabalhador (`queue work`) só correu contra simulacros do lançador e do git, nunca num anfitrião real - o `overall_maturity: "functional"` fixado no código do `deliver evaluate` di-lo com clareza a partir de dentro do próprio código. Veja o `CHANGELOG.md` para saber exatamente o que foi entregue, entrega a entrega.
 
 ---
 
 > **Estado de segurança (safety e security):** este ecossistema não é um sistema de segurança certificado. Ainda não existe um caminho de E-STOP por hardware, nem limites ou interlocks impostos pelo firmware, nem um comando de movimento verificado; as imagens de firmware são verificadas com CRC32 e um HMAC-SHA256 de chave partilhada, não com uma assinatura assimétrica; TLS e TLS mútuo são opcionais e estão desativados por defeito; nenhuma placa própria foi ainda montada ou testada. Leia a [base de segurança](https://github.com/JuanenRac/HYDRA-UMC-DOCS/blob/main/docs/SECURITY_BASELINE.md) e o [modelo de ameaças](https://github.com/JuanenRac/HYDRA-UMC-DOCS/blob/main/docs/THREAT_MODEL.md) antes de confiar em qualquer afirmação aqui para a segurança de uma pessoa.
+
+---
 
 ## 📋 Num relance
 
@@ -69,10 +39,12 @@
 |---|---|
 | Versão | `0.1.9` |
 | Maturidade | Funcional |
-| Testes | 347 |
+| Testes | 442 (`python -m pytest -q tests`) |
 | Tecnologia | Python 3.11+ / JSON Schema / systemd (host role, Linux only) / SQLite (durable task/state journal, from DS05 onward) |
 | Destino | Um servidor de desenvolvimento |
 | Em hardware real | Ainda não: não há registo de execução em hardware real para esta versão |
+
+**Ir para:** [Visão geral](#-visão-geral) · [Arquitetura](#-arquitetura) · [Início rápido](#-início-rápido) · [Testes](#-testes) · [Estrutura do repositório](#-estrutura-do-repositório) · [Projetos relacionados](#-projetos-relacionados)
 
 ## 🚦 Estado do projeto
 
@@ -83,11 +55,11 @@ Cada linha é uma parte deste repositório e a luz diz até onde chega hoje. É 
 | Área | Estado | O que significa aqui |
 |---|---|---|
 | Software | 🟡 | Funciona para o seu propósito principal; a verificação de honestidade acima lista o que ainda falta |
-| Testes | 🟢 | 347 testes automáticos, executados a cada alteração |
+| Testes | 🟢 | 442 testes automáticos, executados a cada alteração |
 | Hardware real | 🔴 | Ainda não: não há registo de execução em hardware real para esta versão |
 | Documentação | 🟢 | README em oito idiomas, verificado contra o manifesto a cada alteração |
 
-## 1. 🛠️ VISÃO TÉCNICA GERAL
+## 🎯 Visão geral
 
 O HYDRA-UMC-DEV-SERVER é infraestrutura de desenvolvimento para o ecossistema HYDRA-UMC/URTC:
 um anfitrião reproduzível (destino: um Raspberry Pi 5 ou Compute
@@ -225,7 +197,17 @@ completa de comandos.
 
 Mais dois comandos, `plugin list` e `serve`, cobrem o ciclo de vida dos plugins e uma API HTTP local autenticada (só loopback, token Bearer). Um plugin fica inerte até ser ativado contra o SHA-256 aprovado dos seus ficheiros e só pode acrescentar verificações, relatórios e geradores nomeados (declarados com `provides` em `plugin.json`, executados com `plugin run` ou pela API, cada um limitado por um tempo limite e um tamanho máximo); a API não executa nenhuma tarefa nem implementa nada. Veja [docs/CLI_REFERENCE.md](docs/CLI_REFERENCE.md) e [docs/PLUGINS.md](docs/PLUGINS.md). Além disso, o executor de tarefas envolve o comando numa sandbox bubblewrap ou systemd-run quando o equipamento a tem (sem home, sem rede a não ser que a política a abra, só a área de trabalho gravável), limita os argumentos de cada comando, obtém a revisão fixada, limita as tarefas em simultâneo e remove a área de trabalho no fim; os plugins correm por omissão no seu próprio processo. Nada disto correu ainda num equipamento real.
 
-## 2. 🧱 ARQUITETURA E DECISÕES DE DESENHO
+## 🧩 Papel no HYDRA-UMC
+
+O **HYDRA-UMC-DEV-SERVER** é o anfitrião de desenvolvimento do ecossistema: executa tarefas de compilação e de testes limitadas e permitidas em áreas de trabalho isoladas e coordena candidatos de reparação com o `HYDRA-UMC-OPS-AGENT`. Nunca aprova as suas próprias tarefas e não implanta nada; a entrega a um nó passa sempre pelo `HYDRA-UMC-UPDATER`.
+
+## 🏛️ Arquitetura
+
+<p align="center">
+  <img src="images/architecture.svg" alt="HYDRA-UMC-DEV-SERVER architecture" width="100%">
+</p>
+
+### ARQUITETURA E DECISÕES DE DESENHO
 
 - **As aprovações são assimétricas e ligadas ao patch.** Um ciclo de reparação verifica candidatos e aprovações apenas com chaves públicas Ed25519 (um segredo HMAC partilhado tem de estar também do lado que verifica, pelo que quem pudesse verificar poderia falsificar; `allow_symmetric_keys` mantém-no como opção voluntária). Uma aprovação nomeia o patch que aprova (`approved_patch_ref`) e traz uma validade (`expires_at`, UTC); ambos são assinados, e um ciclo recusa uma aprovação de outro patch, sem eles ou expirada.
 - **A sandbox foi executada num kernel real.** A sandbox `systemd-run` foi executada num anfitrião Linux com systemd (tests/test_sandbox_real_host.py): uma tarefa escreve no seu espaço de trabalho e em mais lado nenhum, não consegue ler a pasta pessoal do utilizador do serviço, não tem rede e é morta pelo kernel quando usa cinco vezes o seu `MemoryMax`. A execução descobriu duas falhas que os testes da linha de comandos não podiam ver: um espaço de trabalho em `/tmp` ou `/var/tmp` fazia a unidade falhar (estado 226) até ser montado com `BindPaths`, e um em `/home`, `/root` ou `/run/user` não é alcançável de todo, pelo que agora é recusado com o motivo antes de correr o que quer que seja. Os testes são ignorados, dizendo porquê, num anfitrião sem sandbox utilizável; o bubblewrap não foi executado. Se o pacote opcional `cryptography` estiver instalado, a derivação da chave pública e a assinatura passam por ele (tempo constante) em vez do código puro da RFC 8032; `signing_backend()` diz qual.
@@ -253,80 +235,23 @@ Mais dois comandos, `plugin list` e `serve`, cobrem o ciclo de vida dos plugins 
   nada.** Não há espaço de trabalho, execução de tarefas, fila nem
   chamada de rede em nenhum ponto deste repositório ainda.
 
-## 📂 ESTRUTURA DE DIRETÓRIOS
+## 🚀 Início rápido
 
-```
-HYDRA-UMC-DEV-SERVER/
-├── src/hydra_umc_dev_server/
-│   ├── __init__.py        # Versão do pacote
-│   ├── config.py          # Esquema + validação de HostProfile/ToolchainPolicy/TaskPolicy (DS01)
-│   ├── inventory.py       # Descoberta real, só de leitura, de hydra-umc.project.json (DS01)
-│   ├── remote_station.py  # RemoteStationProfile: identidade + acesso remoto + ferramentas (DS02)
-│   ├── preflight.py       # Verificação de prontidão do anfitrião, só de leitura, através de um inspetor injetável (DS02)
-│   ├── provision.py       # Plano de aprovisionamento simulado + texto da unidade systemd, nunca executado (DS02)
-│   ├── migration.py       # Inventário de migração conservadora + plano de destinos separados, não copia nada (DS03)
-│   ├── workspace.py       # Espaço de trabalho isolado por tarefa; recusa ../, absolutos e ligações simbólicas para fora (DS04)
-│   ├── recipe.py          # TaskRecipe: revisão fixa + comando da lista de permitidos (DS04)
-│   ├── runner.py          # Executor limitado: ambiente depurado, tempo limite, morte de todo o grupo de processos (DS04)
-│   ├── durable_queue.py   # Fila SQLite durável + concessões + diário de execução só de acrescento, sobrevive a um reinício (DS05)
-│   ├── ai_provider.py     # Costura de fornecedor de IA intermutável + contrato de segurança; só o simulado determinístico (DS06)
-│   ├── incident_transport.py  # Mensagens de incidente assinadas com HMAC + verificação + sessão completa de ida e volta (DS07)
-│   ├── repair_cycle.py    # Ciclo com portas reprodução→...→verificação com reversão + a porta do candidato (DS08)
-│   ├── operations.py      # Cópia de segurança/restauro verificados do estado + verificação de saúde operacional (DS09)
-│   ├── delivery.py        # Manifesto de entrega (sha256 por ficheiro entregue) + avaliação honesta de maturidade, nunca afirma de mais (DS10)
-│   ├── cli.py             # Ponto de entrada dos subcomandos config / inventory / station / migrate / task / queue / provider / incident / repair / ops / deliver
-│   ├── api.py             # Uma pequena API HTTP autenticada, só em loopback (todas as rotas exceto a de saúde pedem um token)
-│   ├── identifiers.py     # O único sítio que diz o aspeto que um nome (conta, caminho, id de tarefa ou de worker) pode ter
-│   ├── plugins.py         # Ciclo de vida dos plugins: descobrir, validar, ativar, executar, desativar
-│   ├── sandbox.py         # Isolamento ao nível do sistema operativo do executor de tarefas
-│   ├── signing.py         # Assinaturas Ed25519 para candidatos de reparação, aprovações e manifestos de cópia de segurança
-│   ├── taskflow.py        # O que rodeia a execução de uma tarefa: preparar o repositório na revisão fixada, o limite de concorrência e a vida da área de trabalho
-│   └── worker.py          # O ciclo do worker que leva uma tarefa do arrendamento ao resultado
-├── configs/
-│   ├── host-profile.example.json
-│   ├── toolchains.example.json
-│   ├── task-policy.example.json          # allow_deploy: false, entregue e testado assim
-│   ├── remote-station.example.json       # liga-se a 127.0.0.1, entregue e testado assim
-│   ├── migration-destinations.example.json   # quatro raízes demonstravelmente separadas
-│   ├── task-recipe.example.json          # revisão fixa + comando da lista de permitidos
-│   ├── ai-provider.example.json          # kind: fake, limite de tempo + orçamento de chamadas/tokens/custo
-│   └── incident-transport.example.json   # versão do contrato + janela de repetição + limite de taxa (sem segredos)
-│   # (os comandos de queue usam um caminho --db, não um ficheiro de configuração)
-├── tests/                # Testes reais para cada módulo acima, incluindo as configurações de exemplo entregues
-├── docs/
-│   ├── CLI_REFERENCE.md      # Cada subcomando, opções, códigos de saída
-│   ├── CONFIG_SCHEMA.md      # A forma JSON real dos três documentos de configuração
-│   ├── REMOTE_STATION.md     # O perfil de estação remota da DS02, verificação prévia e plano simulado
-│   ├── MIGRATION_FROM_PC.md  # O inventário de migração conservadora da DS03, classes e plano
-│   ├── WORKSPACE_AND_RUNNER.md  # A receita, o espaço de trabalho isolado e o executor limitado da DS04
-│   ├── DURABLE_QUEUE.md      # A fila durável, concessões e diário de execução da DS05
-│   ├── AI_PROVIDER.md        # A costura de fornecedor e o contrato de segurança da DS06 (só simulado)
-│   ├── INCIDENT_TRANSPORT.md # A mensagem assinada, verificações e sessão de ida e volta da DS07
-│   ├── REPAIR_CYCLE.md       # O ciclo de reparação com portas da DS08, as suas portas e a reversão
-│   ├── OPERATIONS.md         # A cópia de segurança/restauro verificados e verificação de saúde operacional da DS09
-│   ├── DELIVERY.md           # O manifesto de entrega e a avaliação honesta de maturidade da DS10
-│   ├── ARCHITECTURE.md       # Propósito, modos de funcionamento, âmbito inicial, disposição do disco
-│   ├── OPS_INTEGRATION.md    # O mapa das 17 relações + tabela de propriedade de estado
-│   ├── PLUGINS.md    # Manifesto do plugin, os três tipos, ciclo de vida e limites da sandbox
-│   ├── MATURITY_CRITERIA.md # Critérios de saída da maturidade (o que tem de ser verdade para subir de nível)
-│   └── openapi.json  # A descrição OpenAPI da API HTTP
-├── examples/plugins/      # Plugins de exemplo: um relatório e um gerador
-├── examples/              # plugins/: plugins de exemplo (host-report, readme-generator)
-├── images/                # Multimédia e ícones da aplicação
-├── tools/
-│   ├── build_test.py      # Verificação de compilação sem subir a versão
-│   ├── ci_validate.py     # Validação de manifesto/CHANGELOG/documentação usada pelo CI
-│   ├── _doc_policy.py     # Regras de documentação partilhadas pela família (cópia da de HYDRA-UMC-SDK, mantida em sincronia)
-│   ├── _readme_parity.py  # Verificação de que os oito README partilham a mesma estrutura (cópia da de HYDRA-UMC-SDK, mantida em sincronia)
-│   └── hydra_project_tool.py # Os mesmos comandos em todos os repositórios: validate, test, ci, version, status, bump
-├── build.sh / build.bat   # venv + instalação editável + verificação de compilação + testes
-├── build-test.sh / .bat   # Apenas validação de compilação sem alterações
-├── run.sh / run.bat       # Demonstração real de inventory scan + config validate (sem argumentos), ou reencaminha um comando real da CLI
-├── bump_version.py        # Subida de versão ao estilo conta-quilómetros (executada só pelo comando `bump` explícito)
-└── bump_manifest_version.py # Sincroniza a versão do hydra-umc.project.json com a nativa (--sync)
+Requer Python 3.11 ou superior.
+
+```bash
+./build.sh  # Linux, macOS (build.bat on Windows)
+./run.sh    # demo: inventory scan, then config validate
+./run.sh config validate configs/task-policy.example.json --kind task-policy
 ```
 
-## ⚙️ GUIA DE COMPILAÇÃO E EXECUÇÃO
+## 🧪 Testes
+
+442 testes automáticos correm com `python -m pytest -q tests`. Os testes da sandbox são saltados, a dizer porquê, num equipamento sem sandbox utilizável; nenhum precisa de hardware.
+
+A CI executa `HYDRA_UMC_CI=1 python tools/ci_validate.py`, que verifica o manifesto, os documentos, os oito README e as imagens.
+
+## 🏗️ Compilação e publicação
 
 ```bash
 chmod +x build.sh   # uma só vez
@@ -354,7 +279,66 @@ NÃO executa a suite de testes em si; execute `./build.sh`/`build.bat` (ou
   malformado ou sem um campo obrigatório - um diretório sem nenhum manifesto
   nunca é reportado como problema.
 
-## 🚀 ROTEIRO
+## 📂 Estrutura do repositório
+
+<p align="center">
+  <img src="images/repository-structure.svg" alt="Repository structure of HYDRA-UMC-DEV-SERVER" width="100%">
+</p>
+
+<details>
+<summary>Versão em texto da árvore</summary>
+
+```text
+HYDRA-UMC-DEV-SERVER/
+├── src/hydra_umc_dev_server/   código-fonte
+│   ├── __init__.py             Versão do pacote
+│   ├── config.py               Esquema + validação de HostProfile/ToolchainPolicy/TaskPolicy (DS01)
+│   ├── inventory.py            Descoberta real, só de leitura, de hydra-umc.project.json (DS01)
+│   ├── remote_station.py       RemoteStationProfile: identidade + acesso remoto + ferramentas (DS02)
+│   ├── preflight.py            Verificação de prontidão do anfitrião, só de leitura, através de um inspetor injetável (DS02)
+│   ├── provision.py            Plano de aprovisionamento simulado + texto da unidade systemd, nunca executado (DS02)
+│   ├── migration.py            Inventário de migração conservadora + plano de destinos separados, não copia nada (DS03)
+│   ├── workspace.py            Espaço de trabalho isolado por tarefa; recusa ../, absolutos e ligações simbólicas para fora (DS04)
+│   ├── recipe.py               TaskRecipe: revisão fixa + comando da lista de permitidos (DS04)
+│   ├── runner.py               Executor limitado: ambiente depurado, tempo limite, morte de todo o grupo de processos (DS04)
+│   ├── durable_queue.py        Fila SQLite durável + concessões + diário de execução só de acrescento, sobrevive a um reinício (DS05)
+│   ├── ai_provider.py          Costura de fornecedor de IA intermutável + contrato de segurança; só o simulado determinístico (DS06)
+│   ├── incident_transport.py   Mensagens de incidente assinadas com HMAC + verificação + sessão completa de ida e volta (DS07)
+│   ├── repair_cycle.py         Ciclo com portas reprodução→...→verificação com reversão + a porta do candidato (DS08)
+│   ├── operations.py           Cópia de segurança/restauro verificados do estado + verificação de saúde operacional (DS09)
+│   ├── delivery.py             Manifesto de entrega (sha256 por ficheiro entregue) + avaliação honesta de maturidade, nunca afirma de mais (DS10)
+│   ├── cli.py                  Ponto de entrada dos subcomandos config / inventory / station / migrate / task / queue / provider / incident / repair / ops / deliver
+│   ├── api.py                  Uma pequena API HTTP autenticada, só em loopback (todas as rotas exceto a de saúde pedem um token)
+│   ├── identifiers.py          O único sítio que diz o aspeto que um nome (conta, caminho, id de tarefa ou de worker) pode ter
+│   ├── plugins.py              Ciclo de vida dos plugins: descobrir, validar, ativar, executar, desativar
+│   ├── sandbox.py              Isolamento ao nível do sistema operativo do executor de tarefas
+│   ├── signing.py              Assinaturas Ed25519 para candidatos de reparação, aprovações e manifestos de cópia de segurança
+│   ├── taskflow.py             O que rodeia a execução de uma tarefa: preparar o repositório na revisão fixada, o limite de concorrência e a vida da área de trabalho
+│   └── worker.py               O ciclo do worker que leva uma tarefa do arrendamento ao resultado
+├── configs/                    documentos de configuração de exemplo
+├── tests/                      testes de cada módulo e das configurações de exemplo
+├── docs/                       documentos do projeto
+├── examples/plugins/           Plugins de exemplo: um relatório e um gerador
+├── examples/                   plugins/: plugins de exemplo (host-report, readme-generator)
+├── images/                     Multimédia e ícones da aplicação
+├── tools/                      ferramentas do projeto e verificações da CI
+├── .github/                    fluxo de CI e modelos de problemas
+├── build.sh / build.bat        venv + instalação editável + verificação de compilação + testes
+├── run.sh / run.bat            Demonstração real de inventory scan + config validate (sem argumentos), ou reencaminha um comando real da CLI
+├── bump_version.py             Subida de versão ao estilo conta-quilómetros (executada só pelo comando `bump` explícito)
+├── bump_manifest_version.py    Sincroniza a versão do hydra-umc.project.json com a nativa (--sync)
+├── CHANGELOG.md                o que mudou em cada versão
+├── build-test.sh               verificação de compilação sem alterações
+├── hydra-umc.project.json      manifesto: versão, maturidade, família
+├── pyproject.toml              metadados do pacote
+└── test.sh                     executa os testes
+```
+
+</details>
+
+## 🗺️ Roteiro e limites conhecidos
+
+**Limites conhecidos hoje**
 
 Esta versão entrega a DS01 até à DS10 - o plano de dez entregas está
 concluído. Cada entrega, por ordem:
@@ -413,7 +397,9 @@ lista `known_limitations` é a lista honesta de tarefas por fazer. Veja
 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) para o que cada entrega inclui
 e exclui explicitamente.
 
----
+## 🌍 Idiomas
+
+Este README e os documentos do repositório existem em oito idiomas: inglês, espanhol, alemão, francês, italiano, japonês, chinês e português (Portugal). São escritos em conjunto e a CI verifica que os oito ficheiros têm as mesmas secções e as mesmas ligações. Este repositório não tem ecrã nem catálogo de mensagens próprios, por isso não há textos de interface para traduzir.
 
 ## 🔗 Projetos relacionados
 
@@ -504,25 +490,30 @@ Este projeto faz parte do ecossistema de robótica HYDRA-UMC do mesmo autor (Jua
 - **[URTC-SMART-RACK](https://github.com/JuanenRac/URTC-SMART-RACK)** — firmware de um rack de montagem de placas com descodificação real do ID da ferramenta e lógica de pré-aquecimento Smart Idle.
 - **[URTC-VISION-TOOL](https://github.com/JuanenRac/URTC-VISION-TOOL)** — firmware mais um companheiro de visão em Python real para uma cabeça de ferramenta de inspeção térmica/RGB.
 
----
+## 📚 Documentação
 
-## 📚 Documentação e comunidade
+Onde ler mais:
 
-- **[docs/CLI_REFERENCE.md](docs/CLI_REFERENCE.md)** — cada subcomando, as suas opções e o contrato de códigos de saída.
-- **[docs/CONFIG_SCHEMA.md](docs/CONFIG_SCHEMA.md)** — a forma JSON real de `HostProfile`/`ToolchainPolicy`/`TaskPolicy`.
-- **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)** — propósito, os dois modos de funcionamento, âmbito inicial e disposição do disco.
-- **[docs/OPS_INTEGRATION.md](docs/OPS_INTEGRATION.md)** — o mapa completo das 17 relações e a tabela de propriedade de estado.
-- **[CONTRIBUTING.md](CONTRIBUTING.md)** — pilha tecnológica e diretrizes de código para um pull request.
-- **[CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)** — as normas de comportamento esperadas nesta comunidade.
-- **[SECURITY.md](SECURITY.md)** — como comunicar uma vulnerabilidade e as áreas de segurança em que este projeto se concentra.
-- **[SUPPORT.md](SUPPORT.md)** — onde fazer perguntas e comunicar erros.
+* **[docs/CLI_REFERENCE.md](docs/CLI_REFERENCE.md)** — cada subcomando, as suas opções e o contrato de códigos de saída.
+* **[docs/CONFIG_SCHEMA.md](docs/CONFIG_SCHEMA.md)** — a forma JSON real de `HostProfile`/`ToolchainPolicy`/`TaskPolicy`.
+* **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)** — propósito, os dois modos de funcionamento, âmbito inicial e disposição do disco.
+* **[docs/OPS_INTEGRATION.md](docs/OPS_INTEGRATION.md)** — o mapa completo das 17 relações e a tabela de propriedade de estado.
+* [Base de segurança do ecossistema](https://github.com/JuanenRac/HYDRA-UMC-DOCS/blob/main/docs/SECURITY_BASELINE.md)
+* [Modelo de ameaças do ecossistema](https://github.com/JuanenRac/HYDRA-UMC-DOCS/blob/main/docs/THREAT_MODEL.md)
+* [Registo de alterações deste repositório](CHANGELOG.md)
+* [Licença deste repositório](LICENSE.md)
+
+## 🤝 Contribuir e comunidade
+
+* Antes de um pull request execute `HYDRA_UMC_CI=1 py -3 tools/ci_validate.py` (ou `HYDRA_UMC_CI=1 python3 tools/ci_validate.py`): tem de imprimir `CI_VALIDATION=PASS`. Não execute `build.sh` nem `build.bat` para esta verificação; compilar não é verificar.
+* Os oito README são escritos a partir de uma única fonte em HYDRA-UMC-DOCS; não os edite à mão. Altere a fonte e escreva-os de novo com `tools/make_readmes.py`.
+* Não afirme num README o que não foi executado: diga «simulado» ou «não testado em hardware» quando for a verdade.
+* Consulte [CONTRIBUTING.md](CONTRIBUTING.md), o [código de conduta](CODE_OF_CONDUCT.md), [SECURITY.md](SECURITY.md) e [SUPPORT.md](SUPPORT.md).
 
 ## 👤 AUTOR
-**JuanenRac** (Electro Hobby 3D)
-📧 electrohobby3d@gmail.com
-📺 [youtube.com/@electrohobby3d](https://youtube.com/@electrohobby3d)
+
+**JuanenRac (Electro Hobby 3D)** · electrohobby3d@gmail.com
 
 ## 📜 LICENÇA
 
-GPL-3.0-or-later (software) / CC BY-SA 4.0 (documentação) - veja [LICENSE.md](LICENSE.md).
-
+GPL-3.0-or-later - [LICENSE](LICENSE).

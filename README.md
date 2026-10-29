@@ -1,3 +1,9 @@
+<!-- =============================================================================
+HYDRA-UMC-DEV-SERVER - Reproducible development host
+Copyright (C) JuanenRac (Electro Hobby 3D) <electrohobby3d@gmail.com>
+GPL-3.0-or-later - see LICENSE
+============================================================================= -->
+
 <p align="center">
   <img src="images/HYDRA_UMC_BANNER.svg" alt="HYDRA-UMC-DEV-SERVER banner" width="100%">
 </p>
@@ -10,61 +16,22 @@
 
 <p align="center">
   <img src="https://img.shields.io/badge/License-GPL%203.0--or--later-blue.svg" alt="GPL 3.0 or later">
-  <img src="https://img.shields.io/badge/Language-Python%203.11%2B-blue.svg" alt="Python">
-  <img src="https://img.shields.io/badge/Core-stdlib%20only-brightgreen.svg" alt="stdlib-only core">
-  <img src="https://img.shields.io/badge/Delivery-DS01--DS10%20complete%20(functional)-brightgreen.svg" alt="DS01-DS10 complete, functional">
+  <img src="https://img.shields.io/badge/Language-Python%203.11%2B-blue.svg" alt="Language">
+  <img src="https://img.shields.io/badge/Core-stdlib%20only-brightgreen.svg" alt="Core">
+  <img src="https://img.shields.io/badge/Tests-442%20passing-2ea44f.svg" alt="Tests">
+  <img src="https://img.shields.io/badge/Version-0.1.9-0f6cbd.svg" alt="Version">
+  <img src="https://img.shields.io/badge/Maturity-functional-0F6CBD.svg" alt="Maturity">
 </p>
-
-> **Status: v0.1.9, functional - all ten of ten shipped (built and covered by tests; not yet verified on real hardware or services).** A tested
-> configuration schema
-> (`config validate`), read-only manifest discovery (`inventory scan`),
-> a remote-station profile + host preflight + dry-run provisioning plan
-> (`station …`), **conservative migration** (`migrate …`) that plans
-> each file class into its own separate destination, the **bounded
-> runner** (`task …`) that runs **one** allow-listed command in a
-> **per-task isolated workspace** with a **scrubbed environment** (no
-> inherited `*_TOKEN` / `*_KEY` / `*_SECRET`) under a timeout that
-> **kills the whole process group**, and a **durable SQLite queue +
-> execution journal** (`queue …`) where a duplicate enqueue is never a
-> second job, an interruption never a false success, and a moved base
-> blocks promotion. **DS06 adds an interchangeable AI provider behind a
-> safety contract** (`provider suggest`) - only the deterministic
-> **fake** ships (a real one is a user decision): a timeout, malformed
-> output or quota exhaustion is a **bounded named outcome**, a budget
-> stops the step, and the suggestion is **inert data** -
-> `grants_no_permissions` / `triggers_no_deploy` always true, an
-> instruction-like suggestion flagged and never acted on. **DS07 adds an
-> authenticated incident transport** for the round trip with
-> HYDRA-UMC-OPS-AGENT (`incident verify`) - a real protocol object, not
-> a file drop: an unregistered identity, a bad signature, a node
-> impersonating another, a replayed nonce, a stale timestamp, an
-> overloaded sender or an incompatible version is **rejected with a
-> named code**, and a dropped connection leaves a **reconcilable** state
-> (nothing lost, nothing double-counted). **DS08 chains it all into one
-> fully controlled repair cycle** (`repair check-candidate`): repro →
-> incident → patch → regression → build-test → approval → **isolated**
-> install → verify, gated at every step - a tampered candidate, or one
-> aimed at another base/target, is **blocked**; a failed post-install
-> check **rolls back**. **DS09 adds stable-operation health checks and a
-> verified state backup/restore** (`ops health` / `ops verify-backup`):
-> every backup file carries a sha256, and a restore is **refused** for a
-> backup taken for another instance or schema, or one whose files no
-> longer match. **DS10 closes the plan with a delivery package and an
-> honest maturity evaluation** (`deliver manifest` / `deliver
-> evaluate`): a sha256 for every shipped file, each of the ten
-> deliveries reported against real evidence, seven plainly-stated
-> limitations, and an `overall_maturity` that is **hard-coded `functional`** - the code has no branch that can claim more. It still
-> deploys nothing. See
-> [docs/CLI_REFERENCE.md](docs/CLI_REFERENCE.md) for the exact command
-> surface that exists today.
 
 ---
 
-**Honesty check - what actually runs today:** all twenty-two modules named below (`config.py`, `inventory.py`, `remote_station.py`, `preflight.py`, `provision.py`, `migration.py`, `workspace.py`, `recipe.py`, `runner.py`, `durable_queue.py`, `ai_provider.py`, `incident_transport.py`, `repair_cycle.py`, `operations.py`, `delivery.py`, `cli.py`, `api.py`, `plugins.py`, `sandbox.py`, `taskflow.py`, `worker.py`, `signing.py`) are real code, not stubs, and are covered by a real test suite (418 tests passing across `tests/test_*.py`). What that real code has actually done, concretely: validated JSON documents, planned migrations on-disk, run a real bounded subprocess in a real isolated workspace with a real scrubbed environment, persisted a real SQLite queue/journal across restarts, and exercised a real HMAC-signed incident round trip - all against this local checkout or an injectable test seam, never against the target Raspberry Pi 5/CM5 hardware this project is built for. `provider suggest` only ever calls the deterministic `FakeProvider`; wiring in a real AI provider is an explicit, undone user decision. `station preflight`/`station plan` describe a remote host through an injectable inspector and have never run against a real remote machine. Nothing in this repository has provisioned a host or executed a deploy, and the worker loop (`queue work`) has only run against fakes of the launcher and of git, never on a real host - `deliver evaluate`'s own hard-coded `overall_maturity: "functional"` says this plainly from inside the code itself. See `CHANGELOG.md` for exactly what has shipped, delivery by delivery.
+**Honesty check - what actually runs today:** all twenty-two modules named below (`config.py`, `inventory.py`, `remote_station.py`, `preflight.py`, `provision.py`, `migration.py`, `workspace.py`, `recipe.py`, `runner.py`, `durable_queue.py`, `ai_provider.py`, `incident_transport.py`, `repair_cycle.py`, `operations.py`, `delivery.py`, `cli.py`, `api.py`, `plugins.py`, `sandbox.py`, `taskflow.py`, `worker.py`, `signing.py`) are real code, not stubs, and are covered by a real test suite (442 tests passing across `tests/test_*.py`). What that real code has actually done, concretely: validated JSON documents, planned migrations on-disk, run a real bounded subprocess in a real isolated workspace with a real scrubbed environment, persisted a real SQLite queue/journal across restarts, and exercised a real HMAC-signed incident round trip - all against this local checkout or an injectable test seam, never against the target Raspberry Pi 5/CM5 hardware this project is built for. `provider suggest` only ever calls the deterministic `FakeProvider`; wiring in a real AI provider is an explicit, undone user decision. `station preflight`/`station plan` describe a remote host through an injectable inspector and have never run against a real remote machine. Nothing in this repository has provisioned a host or executed a deploy, and the worker loop (`queue work`) has only run against fakes of the launcher and of git, never on a real host - `deliver evaluate`'s own hard-coded `overall_maturity: "functional"` says this plainly from inside the code itself. See `CHANGELOG.md` for exactly what has shipped, delivery by delivery.
 
 ---
 
 > **Safety and security status:** this ecosystem is not a certified safety system. There is no hardware E-STOP path, no firmware-enforced limits or interlocks and no verified motion command yet; firmware images are checked with CRC32 and a shared-key HMAC-SHA256, not with an asymmetric signature; TLS and mutual TLS are optional and off by default; no custom board has been populated or tested yet. Read the [security baseline](https://github.com/JuanenRac/HYDRA-UMC-DOCS/blob/main/docs/SECURITY_BASELINE.md) and the [threat model](https://github.com/JuanenRac/HYDRA-UMC-DOCS/blob/main/docs/THREAT_MODEL.md) before relying on any statement here for the safety of a person.
+
+---
 
 ## 📋 At a glance
 
@@ -72,10 +39,12 @@
 |---|---|
 | Version | `0.1.9` |
 | Maturity | Functional |
-| Tests | 347 |
+| Tests | 442 (`python -m pytest -q tests`) |
 | Stack | Python 3.11+ / JSON Schema / systemd (host role, Linux only) / SQLite (durable task/state journal, from DS05 onward) |
 | Target | A development server |
 | On real hardware | Not yet: no run on real hardware is recorded for this version |
+
+**Jump to:** [Overview](#-overview) · [Architecture](#-architecture) · [Quick start](#-quick-start) · [Testing](#-testing) · [Repository Structure](#-repository-structure) · [Related Projects](#-related-projects)
 
 ## 🚦 Project status
 
@@ -86,11 +55,11 @@ Each line is one part of this repository and the light says how far it is today.
 | Area | State | What it means here |
 |---|---|---|
 | Software | 🟡 | Works for its main purpose; the honesty check above lists what is still missing |
-| Tests | 🟢 | 347 automated tests, run on every change |
+| Tests | 🟢 | 442 automated tests, run on every change |
 | Real hardware | 🔴 | Not yet: no run on real hardware is recorded for this version |
 | Documentation | 🟢 | README in eight languages, checked against the manifest on every change |
 
-## 1. 🛠️ TECHNICAL OVERVIEW
+## 🎯 Overview
 
 HYDRA-UMC-DEV-SERVER is development infrastructure for the HYDRA-UMC/URTC
 ecosystem: a reproducible host (target: a Raspberry Pi 5 or Compute
@@ -229,7 +198,17 @@ surface.
 
 Two more commands, `plugin list` and `serve`, cover the plugin lifecycle and an authenticated local HTTP API (loopback only, bearer token). A plugin stays inert until it is enabled against the approved SHA-256 of its files and can only add named checks, reports and generators (declared with `provides` in `plugin.json`, run by `plugin run` or over the API, each bounded by a timeout and a size limit); the API runs no task and deploys nothing. See [docs/CLI_REFERENCE.md](docs/CLI_REFERENCE.md) and [docs/PLUGINS.md](docs/PLUGINS.md). Since then the task runner wraps the command in a bubblewrap or systemd-run sandbox when the host has one (no home, no network unless the policy opens it, only the workspace writable), limits the arguments of each command, fetches the pinned revision, limits the tasks that run at once and removes the workspace afterwards, and plugins run in their own process by default. None of this has run on a real host yet.
 
-## 2. 🧱 ARCHITECTURE & DESIGN DECISIONS
+## 🧩 Role in HYDRA-UMC
+
+**HYDRA-UMC-DEV-SERVER** is the development host of the ecosystem: it runs bounded, allow-listed build and test tasks in isolated workspaces and coordinates repair candidates with `HYDRA-UMC-OPS-AGENT`. It never approves its own tasks and deploys nothing; delivery to a node always goes through `HYDRA-UMC-UPDATER`.
+
+## 🏛️ Architecture
+
+<p align="center">
+  <img src="images/architecture.svg" alt="HYDRA-UMC-DEV-SERVER architecture" width="100%">
+</p>
+
+### ARCHITECTURE & DESIGN DECISIONS
 
 - **Approvals are asymmetric and bound to the patch.** A repair cycle verifies candidates and approvals with Ed25519 public keys only (a shared HMAC secret has to be on the verifying side too, so whoever could verify could also forge; `allow_symmetric_keys` keeps it as an opt-in). An approval names the patch it approves (`approved_patch_ref`) and carries an expiry (`expires_at`, UTC); both are signed, and a cycle refuses an approval for another patch, without them, or expired.
 - **The sandbox was run on a real kernel.** The `systemd-run` sandbox has been run on a Linux host with systemd (tests/test_sandbox_real_host.py): a task writes in its workspace and nowhere else, cannot read the home of the service user, has no network, and is killed by the kernel when it takes five times its `MemoryMax`. Running it found two faults that the command-line tests could not: a workspace under `/tmp` or `/var/tmp` made the unit fail (status 226) until it is bound in (`BindPaths`), and one under `/home`, `/root` or `/run/user` cannot be reached at all, so it is now refused with the reason before anything runs. The tests skip, saying why, on a host without a usable sandbox; bubblewrap has not been run. When the optional `cryptography` package is installed, deriving the public key and signing go through it (constant-time) instead of the pure RFC 8032 code; `signing_backend()` says which.
@@ -258,80 +237,23 @@ Two more commands, `plugin list` and `serve`, cover the plugin lifecycle and an 
   the queue is a local SQLite file, and the only network calls are the optional git fetch of a pinned revision and the local API on loopback.
   No task has permission to deploy, and nothing has run on the target Raspberry Pi 5/CM5 yet.
 
-## 📂 DIRECTORY STRUCTURE
+## 🚀 Quick start
 
-```
-HYDRA-UMC-DEV-SERVER/
-├── src/hydra_umc_dev_server/
-│   ├── __init__.py        # Package version
-│   ├── config.py          # HostProfile/ToolchainPolicy/TaskPolicy schema + validation (DS01)
-│   ├── inventory.py       # Real, read-only hydra-umc.project.json discovery (DS01)
-│   ├── remote_station.py  # RemoteStationProfile: identity + remote access + tools (DS02)
-│   ├── preflight.py       # Read-only host readiness check via an injectable inspector (DS02)
-│   ├── provision.py       # Dry-run provisioning plan + systemd unit text, never executed (DS02)
-│   ├── migration.py       # Conservative-migration inventory + separate-destination plan, copies nothing (DS03)
-│   ├── workspace.py       # Per-task isolated workspace; refuses ../, absolute, out-of-workspace symlink (DS04)
-│   ├── recipe.py          # TaskRecipe: pinned revision + allow-listed command (DS04)
-│   ├── runner.py          # Bounded runner: scrubbed env, timeout, whole-process-group kill (DS04)
-│   ├── durable_queue.py   # SQLite durable queue + leases + append-only execution journal, survives a restart (DS05)
-│   ├── ai_provider.py     # Interchangeable AI provider seam + safety contract; deterministic fake only (DS06)
-│   ├── incident_transport.py  # HMAC-signed incident messages + verify + full round-trip session (DS07)
-│   ├── repair_cycle.py    # Gated repro→...→verify cycle with rollback + the candidate gate (DS08)
-│   ├── operations.py      # Verified state backup/restore + operational health check (DS09)
-│   ├── delivery.py        # Delivery manifest (sha256 per shipped file) + honest maturity evaluation, never over-claims (DS10)
-│   ├── cli.py             # config / inventory / station / migrate / task / queue / provider / incident / repair / ops / deliver subcommand entry point
-│   ├── api.py             # A small authenticated HTTP API, loopback only (every route but health needs a bearer token)
-│   ├── identifiers.py     # The one place that says what a name (account, path, task or worker id) may look like
-│   ├── plugins.py         # Plugin lifecycle: discover, validate, enable, run, disable
-│   ├── sandbox.py         # Operating-system isolation of the task runner
-│   ├── signing.py         # Ed25519 signatures for repair candidates, approvals and backup manifests
-│   ├── taskflow.py        # What surrounds a task run: staging the repository at its pinned revision, the concurrency limit and the life of the workspace
-│   └── worker.py          # The worker loop that carries a task from lease to result
-├── configs/
-│   ├── host-profile.example.json
-│   ├── toolchains.example.json
-│   ├── task-policy.example.json          # allow_deploy: false, shipped and tested that way
-│   ├── remote-station.example.json       # binds 127.0.0.1, shipped and tested that way
-│   ├── migration-destinations.example.json   # four provably-separate roots
-│   ├── task-recipe.example.json          # pinned revision + allow-listed command
-│   ├── ai-provider.example.json          # kind: fake, timeout + calls/tokens/cost budget
-│   └── incident-transport.example.json   # contract version + replay window + rate limit (no secrets)
-│   # (queue commands take a --db path, no config file)
-├── tests/                # Real tests for every module above, incl. the shipped example configs
-├── docs/
-│   ├── CLI_REFERENCE.md      # Every subcommand, flags, exit codes
-│   ├── CONFIG_SCHEMA.md      # The real JSON shape of all three configuration documents
-│   ├── REMOTE_STATION.md     # The DS02 remote-station profile, preflight and dry-run plan
-│   ├── MIGRATION_FROM_PC.md  # The DS03 conservative-migration inventory, classes and plan
-│   ├── WORKSPACE_AND_RUNNER.md  # The DS04 recipe, isolated workspace and bounded runner
-│   ├── DURABLE_QUEUE.md      # The DS05 durable queue, leases and execution journal
-│   ├── AI_PROVIDER.md        # The DS06 provider seam and safety contract (fake only)
-│   ├── INCIDENT_TRANSPORT.md # The DS07 signed message, verify checks and round-trip session
-│   ├── REPAIR_CYCLE.md       # The DS08 gated repair cycle, its gates and rollback
-│   ├── OPERATIONS.md         # The DS09 verified backup/restore and operational health check
-│   ├── DELIVERY.md           # The DS10 delivery manifest and honest maturity evaluation
-│   ├── ARCHITECTURE.md       # Purpose, working modes, initial scope, disk layout
-│   ├── OPS_INTEGRATION.md    # The 17-relationship map + state-ownership table
-│   ├── PLUGINS.md    # Plugin manifest, the three kinds, lifecycle and sandbox limits
-│   ├── MATURITY_CRITERIA.md # Maturity exit criteria (what must be true to move up a level)
-│   └── openapi.json  # The OpenAPI description of the HTTP API
-├── examples/plugins/      # Example plugins: one report, one generator
-├── examples/              # plugins/: example plugins (host-report, readme-generator)
-├── images/                # Media and app icons
-├── tools/
-│   ├── build_test.py      # Non-versioning build/compile check
-│   ├── ci_validate.py     # Manifest/CHANGELOG/docs validation used by CI
-│   ├── _doc_policy.py     # Documentation rules shared by the family (a copy of HYDRA-UMC-SDK's, kept in sync)
-│   ├── _readme_parity.py  # Check that the eight READMEs share one structure (a copy of HYDRA-UMC-SDK's, kept in sync)
-│   └── hydra_project_tool.py # The same commands in every repository: validate, test, ci, version, status, bump
-├── build.sh / build.bat   # venv + editable install + compile-check + tests
-├── build-test.sh / .bat   # Non-mutating build validation only
-├── run.sh / run.bat       # Real inventory scan + config validate demo (no arguments), or forwards a real CLI command
-├── bump_version.py        # Odometer-style version bump (run only by the explicit `bump` command)
-└── bump_manifest_version.py # Syncs hydra-umc.project.json's version to the native one (--sync)
+Requires Python 3.11 or newer.
+
+```bash
+./build.sh  # Linux, macOS (build.bat on Windows)
+./run.sh    # demo: inventory scan, then config validate
+./run.sh config validate configs/task-policy.example.json --kind task-policy
 ```
 
-## ⚙️ BUILD & RUN GUIDE
+## 🧪 Testing
+
+442 automated tests run with `python -m pytest -q tests`. The sandbox tests skip, saying why, on a host without a usable sandbox; none of them needs hardware.
+
+The CI runs `HYDRA_UMC_CI=1 python tools/ci_validate.py`, which checks the manifest, the documents, the eight READMEs and the pictures.
+
+## 🏗️ Build & Release
 
 ```bash
 chmod +x build.sh   # one-time
@@ -361,7 +283,66 @@ local test suite.
   but unreadable, malformed, or missing a required field - a directory
   with no manifest at all is never reported as an issue.
 
-## 🚀 ROADMAP
+## 📂 Repository Structure
+
+<p align="center">
+  <img src="images/repository-structure.svg" alt="Repository structure of HYDRA-UMC-DEV-SERVER" width="100%">
+</p>
+
+<details>
+<summary>Text version of the tree</summary>
+
+```text
+HYDRA-UMC-DEV-SERVER/
+├── src/hydra_umc_dev_server/   source code
+│   ├── __init__.py             Package version
+│   ├── config.py               HostProfile/ToolchainPolicy/TaskPolicy schema + validation (DS01)
+│   ├── inventory.py            Real, read-only hydra-umc.project.json discovery (DS01)
+│   ├── remote_station.py       RemoteStationProfile: identity + remote access + tools (DS02)
+│   ├── preflight.py            Read-only host readiness check via an injectable inspector (DS02)
+│   ├── provision.py            Dry-run provisioning plan + systemd unit text, never executed (DS02)
+│   ├── migration.py            Conservative-migration inventory + separate-destination plan, copies nothing (DS03)
+│   ├── workspace.py            Per-task isolated workspace; refuses ../, absolute, out-of-workspace symlink (DS04)
+│   ├── recipe.py               TaskRecipe: pinned revision + allow-listed command (DS04)
+│   ├── runner.py               Bounded runner: scrubbed env, timeout, whole-process-group kill (DS04)
+│   ├── durable_queue.py        SQLite durable queue + leases + append-only execution journal, survives a restart (DS05)
+│   ├── ai_provider.py          Interchangeable AI provider seam + safety contract; deterministic fake only (DS06)
+│   ├── incident_transport.py   HMAC-signed incident messages + verify + full round-trip session (DS07)
+│   ├── repair_cycle.py         Gated repro→...→verify cycle with rollback + the candidate gate (DS08)
+│   ├── operations.py           Verified state backup/restore + operational health check (DS09)
+│   ├── delivery.py             Delivery manifest (sha256 per shipped file) + honest maturity evaluation, never over-claims (DS10)
+│   ├── cli.py                  config / inventory / station / migrate / task / queue / provider / incident / repair / ops / deliver subcommand entry point
+│   ├── api.py                  A small authenticated HTTP API, loopback only (every route but health needs a bearer token)
+│   ├── identifiers.py          The one place that says what a name (account, path, task or worker id) may look like
+│   ├── plugins.py              Plugin lifecycle: discover, validate, enable, run, disable
+│   ├── sandbox.py              Operating-system isolation of the task runner
+│   ├── signing.py              Ed25519 signatures for repair candidates, approvals and backup manifests
+│   ├── taskflow.py             What surrounds a task run: staging the repository at its pinned revision, the concurrency limit and the life of the workspace
+│   └── worker.py               The worker loop that carries a task from lease to result
+├── configs/                    example configuration documents
+├── tests/                      tests for every module and the example configurations
+├── docs/                       documents of the project
+├── examples/plugins/           Example plugins: one report, one generator
+├── examples/                   plugins/: example plugins (host-report, readme-generator)
+├── images/                     Media and app icons
+├── tools/                      project tools and CI checks
+├── .github/                    CI workflow and issue templates
+├── build.sh / build.bat        venv + editable install + compile-check + tests
+├── run.sh / run.bat            Real inventory scan + config validate demo (no arguments), or forwards a real CLI command
+├── bump_version.py             explicit version bump
+├── bump_manifest_version.py    Syncs hydra-umc.project.json's version to the native one (--sync)
+├── CHANGELOG.md                what changed in each version
+├── build-test.sh               non-mutating build check
+├── hydra-umc.project.json      manifest: version, maturity, family
+├── pyproject.toml              package metadata
+└── test.sh                     runs the tests
+```
+
+</details>
+
+## 🗺️ Roadmap & Known limits
+
+**Known limits today**
 
 This version ships DS01 through DS10 - the ten-delivery plan is
 complete. Each delivery, in order:
@@ -420,6 +401,10 @@ target hardware. `deliver evaluate` says exactly this, and its
 `known_limitations` list is the honest to-do. See
 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for what each delivery is
 scoped to include and explicitly exclude.
+
+## 🌍 Languages
+
+This README and the documents of the repository exist in eight languages: English, Spanish, German, French, Italian, Japanese, Chinese and Portuguese (Portugal). They are written together and checked in the CI so that the eight files have the same sections and the same links. This repository has no screen or message catalogue of its own, so there are no interface strings to translate.
 
 ## 🔗 Related Projects
 
@@ -510,24 +495,30 @@ This project is part of the HYDRA-UMC robotics ecosystem by the same author (Jua
 - **[URTC-SMART-RACK](https://github.com/JuanenRac/URTC-SMART-RACK)** — firmware for a board-mounting rack with real tool-ID decoding and Smart Idle pre-heating logic.
 - **[URTC-VISION-TOOL](https://github.com/JuanenRac/URTC-VISION-TOOL)** — firmware plus a real Python vision companion for a thermal/RGB inspection tool head.
 
----
+## 📚 Documentation
 
-## 📚 Documentation & Community
+Where to read more:
 
-- **[docs/CLI_REFERENCE.md](docs/CLI_REFERENCE.md)** — every subcommand, its flags, and the exit-code contract.
-- **[docs/CONFIG_SCHEMA.md](docs/CONFIG_SCHEMA.md)** — the real JSON shape of `HostProfile`/`ToolchainPolicy`/`TaskPolicy`.
-- **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)** — purpose, the two working modes, initial scope, and disk layout.
-- **[docs/OPS_INTEGRATION.md](docs/OPS_INTEGRATION.md)** — the full 17-relationship map and state-ownership table.
-- **[CONTRIBUTING.md](CONTRIBUTING.md)** — tech stack and coding guidelines for a pull request.
-- **[CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)** — the standards of behavior expected in this community.
-- **[SECURITY.md](SECURITY.md)** — how to report a vulnerability, and this project's own real security focus areas.
-- **[SUPPORT.md](SUPPORT.md)** — where to ask questions and report bugs.
+* **[docs/CLI_REFERENCE.md](docs/CLI_REFERENCE.md)** — every subcommand, its flags, and the exit-code contract.
+* **[docs/CONFIG_SCHEMA.md](docs/CONFIG_SCHEMA.md)** — the real JSON shape of `HostProfile`/`ToolchainPolicy`/`TaskPolicy`.
+* **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)** — purpose, the two working modes, initial scope, and disk layout.
+* **[docs/OPS_INTEGRATION.md](docs/OPS_INTEGRATION.md)** — the full 17-relationship map and state-ownership table.
+* [Security baseline of the ecosystem](https://github.com/JuanenRac/HYDRA-UMC-DOCS/blob/main/docs/SECURITY_BASELINE.md)
+* [Threat model of the ecosystem](https://github.com/JuanenRac/HYDRA-UMC-DOCS/blob/main/docs/THREAT_MODEL.md)
+* [Changelog of this repository](CHANGELOG.md)
+* [License of this repository](LICENSE.md)
+
+## 🤝 Contributing & Community
+
+* Before a pull request run `HYDRA_UMC_CI=1 py -3 tools/ci_validate.py` (or `HYDRA_UMC_CI=1 python3 tools/ci_validate.py`): it must print `CI_VALIDATION=PASS`. Do not run `build.sh` or `build.bat` for this check; building is not a check.
+* The eight READMEs are written from one source in HYDRA-UMC-DOCS; do not edit them by hand. Change the source and write them again with `tools/make_readmes.py`.
+* Do not state in a README what has not run: say "simulated" or "not tried on hardware" where that is the truth.
+* See [CONTRIBUTING.md](CONTRIBUTING.md), the [code of conduct](CODE_OF_CONDUCT.md), [SECURITY.md](SECURITY.md) and [SUPPORT.md](SUPPORT.md).
 
 ## 👤 AUTHOR
-**JuanenRac** (Electro Hobby 3D)
-📧 electrohobby3d@gmail.com
-📺 [youtube.com/@electrohobby3d](https://youtube.com/@electrohobby3d)
+
+**JuanenRac (Electro Hobby 3D)** · electrohobby3d@gmail.com
 
 ## 📜 LICENSE
 
-GPL-3.0-or-later (software) / CC BY-SA 4.0 (documentation) - see [LICENSE.md](LICENSE.md).
+GPL-3.0-or-later - [LICENSE](LICENSE).

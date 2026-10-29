@@ -1,0 +1,150 @@
+{
+  "repo": "HYDRA-UMC-DEV-SERVER",
+  "ecosystem": "hydra",
+  "tagline": "A bounded runner, a durable queue and a gated repair cycle, with nothing deployed.",
+  "description": "HYDRA-UMC-DEV-SERVER runs one allow-listed command in an isolated workspace with a scrubbed environment, keeps tasks in a durable SQLite queue and chains a gated repair cycle that coordinates with the ops agent.",
+  "columns": [
+    "WHO USES IT",
+    "THIS REPOSITORY",
+    "WHAT IT TALKS TO"
+  ],
+  "nodes": [
+    {
+      "id": "user",
+      "column": 0,
+      "level": "external",
+      "title": "People and assistants",
+      "lines": [
+        "ask for a build or a test",
+        "through the CLI or the API"
+      ]
+    },
+    {
+      "id": "ops",
+      "column": 0,
+      "level": "external",
+      "title": "OPS-AGENT",
+      "lines": [
+        "sends incidents, receives",
+        "signed repair candidates"
+      ]
+    },
+    {
+      "id": "sand",
+      "column": 2,
+      "level": "config",
+      "title": "Sandbox",
+      "lines": [
+        "bubblewrap or systemd-run",
+        "when the host has one"
+      ],
+      "code": [
+        "src/hydra_umc_dev_server/sandbox.py"
+      ]
+    },
+    {
+      "id": "git",
+      "column": 2,
+      "level": "external",
+      "title": "Pinned git revision",
+      "lines": [
+        "fetched into a per-task",
+        "workspace"
+      ]
+    },
+    {
+      "id": "cli",
+      "column": 1,
+      "level": "tested",
+      "title": "cli.py / api.py",
+      "lines": [
+        "subcommands and a loopback API",
+        "with a bearer token"
+      ],
+      "code": [
+        "src/hydra_umc_dev_server/cli.py",
+        "src/hydra_umc_dev_server/api.py"
+      ]
+    },
+    {
+      "id": "queue",
+      "column": 1,
+      "level": "tested",
+      "title": "durable_queue.py",
+      "lines": [
+        "SQLite queue and journal,",
+        "survives a restart"
+      ],
+      "code": [
+        "src/hydra_umc_dev_server/durable_queue.py"
+      ]
+    },
+    {
+      "id": "repair",
+      "column": 1,
+      "level": "tested",
+      "title": "repair_cycle.py",
+      "lines": [
+        "gated cycle with rollback;",
+        "signed approvals"
+      ],
+      "code": [
+        "src/hydra_umc_dev_server/repair_cycle.py"
+      ]
+    },
+    {
+      "id": "run",
+      "column": 1,
+      "level": "tested",
+      "title": "runner.py",
+      "lines": [
+        "one allow-listed command,",
+        "scrubbed env, timeout"
+      ],
+      "code": [
+        "src/hydra_umc_dev_server/runner.py"
+      ]
+    }
+  ],
+  "edges": [
+    {
+      "from": "user",
+      "to": "cli",
+      "level": "tested",
+      "label": "request"
+    },
+    {
+      "from": "ops",
+      "to": "repair",
+      "level": "tested",
+      "label": "incident"
+    },
+    {
+      "from": "cli",
+      "to": "queue",
+      "level": "tested"
+    },
+    {
+      "from": "queue",
+      "to": "run",
+      "level": "tested"
+    },
+    {
+      "from": "run",
+      "to": "sand",
+      "level": "config"
+    },
+    {
+      "from": "run",
+      "to": "git",
+      "level": "tested",
+      "label": "fetch"
+    },
+    {
+      "from": "cli",
+      "to": "repair",
+      "level": "tested"
+    }
+  ],
+  "footer": "Nothing here has run on the Raspberry Pi 5 / CM5 it is built for."
+}

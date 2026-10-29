@@ -1,0 +1,964 @@
+{
+  "repo": "HYDRA-UMC-DEV-SERVER",
+  "ecosystem": "hydra",
+  "svg": "en",
+  "exempt": [
+    "CODE_OF_CONDUCT.md",
+    "CONTRIBUTING.md",
+    "SECURITY.md",
+    "SUPPORT.md",
+    "LICENSE",
+    "LICENSE.md",
+    "build-test.bat",
+    "test.bat"
+  ],
+  "cards": [
+    {
+      "name": "src/hydra_umc_dev_server/",
+      "span": 3,
+      "accent": "a",
+      "rows": [
+        {
+          "name": "__init__.py",
+          "desc": {
+            "en": "Package version",
+            "es": "Versión del paquete",
+            "de": "Paketversion",
+            "fr": "Version du paquet",
+            "it": "Versione del pacchetto",
+            "ja": "パッケージバージョン",
+            "zh": "包版本",
+            "pt": "Versão do pacote"
+          },
+          "tree_desc": {
+            "en": "Package version",
+            "es": "Versión del paquete",
+            "de": "Paketversion",
+            "fr": "Version du paquet",
+            "it": "Versione del pacchetto",
+            "ja": "パッケージバージョン",
+            "zh": "包版本",
+            "pt": "Versão do pacote"
+          }
+        },
+        {
+          "name": "config.py",
+          "desc": {
+            "en": "HostProfile/ToolchainPolicy/TaskPolicy",
+            "es": "Esquema y validación de",
+            "de": "Schema und Validierung von",
+            "fr": "Schéma et validation de",
+            "it": "Schema e validazione di",
+            "ja": "HostProfile/ToolchainP",
+            "zh": "HostProfile/ToolchainP",
+            "pt": "Esquema + validação de"
+          },
+          "tree_desc": {
+            "en": "HostProfile/ToolchainPolicy/TaskPolicy schema + validation (DS01)",
+            "es": "Esquema y validación de HostProfile/ToolchainPolicy/TaskPolicy (DS01)",
+            "de": "Schema und Validierung von HostProfile/ToolchainPolicy/TaskPolicy (DS01)",
+            "fr": "Schéma et validation de HostProfile/ToolchainPolicy/TaskPolicy (DS01)",
+            "it": "Schema e validazione di HostProfile/ToolchainPolicy/TaskPolicy (DS01)",
+            "ja": "HostProfile/ToolchainPolicy/TaskPolicyのスキーマと検証（DS01）",
+            "zh": "HostProfile/ToolchainPolicy/TaskPolicy 的模式与校验（DS01）",
+            "pt": "Esquema + validação de HostProfile/ToolchainPolicy/TaskPolicy (DS01)"
+          }
+        },
+        {
+          "name": "inventory.py",
+          "desc": {
+            "en": "Real, read-only hydra-umc.project.json",
+            "es": "Descubrimiento real y de solo lectura de",
+            "de": "Reale, schreibgeschützte Erkennung von",
+            "fr": "Découverte réelle en lecture seule de",
+            "it": "Scoperta reale e in sola lettura di",
+            "ja": "hydra-umc.project.json",
+            "zh": "真实的、只读的 hydra-umc.proj",
+            "pt": "Descoberta real"
+          },
+          "tree_desc": {
+            "en": "Real, read-only hydra-umc.project.json discovery (DS01)",
+            "es": "Descubrimiento real y de solo lectura de hydra-umc.project.json (DS01)",
+            "de": "Reale, schreibgeschützte Erkennung von hydra-umc.project.json (DS01)",
+            "fr": "Découverte réelle en lecture seule de hydra-umc.project.json (DS01)",
+            "it": "Scoperta reale e in sola lettura di hydra-umc.project.json (DS01)",
+            "ja": "hydra-umc.project.jsonの実際の読み取り専用発見（DS01）",
+            "zh": "真实的、只读的 hydra-umc.project.json 发现（DS01）",
+            "pt": "Descoberta real, só de leitura, de hydra-umc.project.json (DS01)"
+          }
+        },
+        {
+          "name": "remote_station.py",
+          "desc": {
+            "en": "RemoteStationProfile",
+            "es": "RemoteStationProfile",
+            "de": "RemoteStationProfile",
+            "fr": "RemoteStationProfile",
+            "it": "RemoteStationProfile",
+            "ja": "RemoteStationProfile",
+            "zh": "RemoteStationProfile",
+            "pt": "RemoteStationProfile"
+          },
+          "tree_desc": {
+            "en": "RemoteStationProfile: identity + remote access + tools (DS02)",
+            "es": "RemoteStationProfile: identidad + acceso remoto + herramientas (DS02)",
+            "de": "RemoteStationProfile: Identität + Remote-Zugriff + Werkzeuge (DS02)",
+            "fr": "RemoteStationProfile : identité + accès distant + outils (DS02)",
+            "it": "RemoteStationProfile: identità + accesso remoto + strumenti (DS02)",
+            "ja": "RemoteStationProfile: アイデンティティ + リモートアクセス + ツール（DS02）",
+            "zh": "RemoteStationProfile：身份 + 远程访问 + 工具（DS02）",
+            "pt": "RemoteStationProfile: identidade + acesso remoto + ferramentas (DS02)"
+          }
+        },
+        {
+          "name": "preflight.py",
+          "desc": {
+            "en": "Read-only host readiness check via an",
+            "es": "Comprobación de solo lectura del host vía",
+            "de": "Schreibgeschützte Host-Prüfung über einen",
+            "fr": "Vérification de l'hôte en lecture seule via",
+            "it": "Controllo dell'host in sola lettura tramite",
+            "ja": "注入可能なインスペクタ経由のホストの読み取り",
+            "zh": "通过可注入的检查器对主机进行只读检查",
+            "pt": "Verificação de prontidão do anfitrião"
+          },
+          "tree_desc": {
+            "en": "Read-only host readiness check via an injectable inspector (DS02)",
+            "es": "Comprobación de solo lectura del host vía un inspector inyectable (DS02)",
+            "de": "Schreibgeschützte Host-Prüfung über einen injizierbaren Inspektor (DS02)",
+            "fr": "Vérification de l'hôte en lecture seule via un inspecteur injectable (DS02)",
+            "it": "Controllo dell'host in sola lettura tramite un ispettore iniettabile (DS02)",
+            "ja": "注入可能なインスペクタ経由のホストの読み取り専用チェック（DS02）",
+            "zh": "通过可注入的检查器对主机进行只读检查（DS02）",
+            "pt": "Verificação de prontidão do anfitrião, só de leitura, através de um inspetor injetável (DS02)"
+          }
+        },
+        {
+          "name": "provision.py",
+          "desc": {
+            "en": "Dry-run provisioning plan + systemd unit",
+            "es": "Plan de aprovisionamiento en seco + texto",
+            "de": "Trockenlauf-Provisionierungsplan + Unit-Text",
+            "fr": "Plan de provisionnement à blanc + texte de",
+            "it": "Piano di provisioning a secco + testo della",
+            "ja": "ドライランのプロビジョニング計画 + uni",
+            "zh": "空跑置备计划 + unit 文本，从不执行",
+            "pt": "Plano de aprovisionamento simulado + texto"
+          },
+          "tree_desc": {
+            "en": "Dry-run provisioning plan + systemd unit text, never executed (DS02)",
+            "es": "Plan de aprovisionamiento en seco + texto de la unit, nunca ejecutado (DS02)",
+            "de": "Trockenlauf-Provisionierungsplan + Unit-Text, nie ausgeführt (DS02)",
+            "fr": "Plan de provisionnement à blanc + texte de l'unité, jamais exécuté (DS02)",
+            "it": "Piano di provisioning a secco + testo della unit, mai eseguito (DS02)",
+            "ja": "ドライランのプロビジョニング計画 + unitテキスト、決して実行しない（DS02）",
+            "zh": "空跑置备计划 + unit 文本，从不执行（DS02）",
+            "pt": "Plano de aprovisionamento simulado + texto da unidade systemd, nunca executado (DS02)"
+          }
+        },
+        {
+          "name": "migration.py",
+          "desc": {
+            "en": "Conservative-migration inventory +",
+            "es": "Inventario de migración conservadora + plan",
+            "de": "Konservatives Migrations-Inventar + Plan zu",
+            "fr": "Inventaire de migration conservatrice +",
+            "it": "Inventario di migrazione conservativa +",
+            "ja": "保守的な移行のインベントリ + 分離した宛先",
+            "zh": "保守迁移的清单 + 分离目标计划",
+            "pt": "Inventário de migração conservadora + plano"
+          },
+          "tree_desc": {
+            "en": "Conservative-migration inventory + separate-destination plan, copies nothing (DS03)",
+            "es": "Inventario de migración conservadora + plan a destinos separados, no copia nada (DS03)",
+            "de": "Konservatives Migrations-Inventar + Plan zu getrennten Zielen, kopiert nichts (DS03)",
+            "fr": "Inventaire de migration conservatrice + plan vers des destinations distinctes, ne copie rien (DS03)",
+            "it": "Inventario di migrazione conservativa + piano verso destinazioni separate, non copia nulla (DS03)",
+            "ja": "保守的な移行のインベントリ + 分離した宛先への計画、何もコピーしない（DS03）",
+            "zh": "保守迁移的清单 + 分离目标计划，不复制任何内容（DS03）",
+            "pt": "Inventário de migração conservadora + plano de destinos separados, não copia nada (DS03)"
+          }
+        },
+        {
+          "name": "workspace.py",
+          "desc": {
+            "en": "Per-task isolated workspace",
+            "es": "Workspace aislado por tarea",
+            "de": "Pro-Task isolierter Workspace",
+            "fr": "Espace de travail isolé par tâche",
+            "it": "Workspace isolato per task",
+            "ja": "タスクごとに隔離されたワークスペース",
+            "zh": "按任务隔离的工作区；拒绝 ../",
+            "pt": "Espaço de trabalho isolado por tarefa"
+          },
+          "tree_desc": {
+            "en": "Per-task isolated workspace; refuses ../, absolute, out-of-workspace symlink (DS04)",
+            "es": "Workspace aislado por tarea; rechaza ../, absoluta, symlink fuera del workspace (DS04)",
+            "de": "Pro-Task isolierter Workspace; lehnt ../, absolut, Symlink aus dem Workspace ab (DS04)",
+            "fr": "Espace de travail isolé par tâche ; refuse ../, absolu, symlink hors de l'espace (DS04)",
+            "it": "Workspace isolato per task; rifiuta ../, assoluto, symlink fuori dal workspace (DS04)",
+            "ja": "タスクごとに隔離されたワークスペース; ../、絶対パス、ワークスペース外へのsymlinkを拒否(DS04)",
+            "zh": "按任务隔离的工作区；拒绝 ../、绝对路径、指向工作区之外的 symlink（DS04）",
+            "pt": "Espaço de trabalho isolado por tarefa; recusa ../, absolutos e ligações simbólicas para fora (DS04)"
+          }
+        },
+        {
+          "name": "recipe.py",
+          "desc": {
+            "en": "TaskRecipe: pinned revision + allow-listed",
+            "es": "TaskRecipe: revisión fijada + comando de",
+            "de": "TaskRecipe: fixierte Revision + Befehl aus",
+            "fr": "TaskRecipe : révision fixée + commande de",
+            "it": "TaskRecipe: revisione fissata + comando di",
+            "ja": "TaskRecipe: 固定されたrevis",
+            "zh": "TaskRecipe：固定的 revisio",
+            "pt": "TaskRecipe: revisão fixa + comando da lista"
+          },
+          "tree_desc": {
+            "en": "TaskRecipe: pinned revision + allow-listed command (DS04)",
+            "es": "TaskRecipe: revisión fijada + comando de lista blanca (DS04)",
+            "de": "TaskRecipe: fixierte Revision + Befehl aus der Allow-Liste (DS04)",
+            "fr": "TaskRecipe : révision fixée + commande de liste blanche (DS04)",
+            "it": "TaskRecipe: revisione fissata + comando di lista consentita (DS04)",
+            "ja": "TaskRecipe: 固定されたrevision + 許可リストのコマンド(DS04)",
+            "zh": "TaskRecipe：固定的 revision + 白名单命令（DS04）",
+            "pt": "TaskRecipe: revisão fixa + comando da lista de permitidos (DS04)"
+          }
+        },
+        {
+          "name": "runner.py",
+          "desc": {
+            "en": "Bounded runner",
+            "es": "Runner acotado",
+            "de": "Begrenzter Runner",
+            "fr": "Exécuteur borné",
+            "it": "Esecutore limitato",
+            "ja": "境界付きランナー: サニタイズされた環境",
+            "zh": "受限执行器：已清理的环境、超时、杀死整个进程",
+            "pt": "Executor limitado"
+          },
+          "tree_desc": {
+            "en": "Bounded runner: scrubbed env, timeout, whole-process-group kill (DS04)",
+            "es": "Runner acotado: entorno saneado, timeout, mata todo el grupo de procesos (DS04)",
+            "de": "Begrenzter Runner: bereinigte Umgebung, Timeout, killt die ganze Prozessgruppe (DS04)",
+            "fr": "Exécuteur borné : environnement expurgé, délai, tue tout le groupe de processus (DS04)",
+            "it": "Esecutore limitato: ambiente ripulito, timeout, uccide l'intero gruppo di processi (DS04)",
+            "ja": "境界付きランナー: サニタイズされた環境、タイムアウト、プロセスグループ全体をkill(DS04)",
+            "zh": "受限执行器：已清理的环境、超时、杀死整个进程组（DS04）",
+            "pt": "Executor limitado: ambiente depurado, tempo limite, morte de todo o grupo de processos (DS04)"
+          }
+        },
+        {
+          "name": "durable_queue.py",
+          "desc": {
+            "en": "SQLite durable queue + leases + append-only",
+            "es": "Cola durable SQLite + leases + diario de",
+            "de": "Dauerhafte SQLite-Warteschlange + Leases +",
+            "fr": "File durable SQLite + baux + journal",
+            "it": "Coda durevole SQLite + lease + diario di",
+            "ja": "SQLite永続キュー + リース + ap",
+            "zh": "SQLite 持久队列 + 租约 + app",
+            "pt": "Fila SQLite durável + concessões + diário"
+          },
+          "tree_desc": {
+            "en": "SQLite durable queue + leases + append-only execution journal, survives a restart (DS05)",
+            "es": "Cola durable SQLite + leases + diario de ejecucion append-only, sobrevive a un reinicio (DS05)",
+            "de": "Dauerhafte SQLite-Warteschlange + Leases + Append-only-Ausführungsjournal, übersteht einen Neustart (DS05)",
+            "fr": "File durable SQLite + baux + journal d'exécution append-only, survit à un redémarrage (DS05)",
+            "it": "Coda durevole SQLite + lease + diario di esecuzione append-only, sopravvive a un riavvio (DS05)",
+            "ja": "SQLite永続キュー + リース + append-only実行ジャーナル、再起動を生き延びる(DS05)",
+            "zh": "SQLite 持久队列 + 租约 + append-only 执行日志，可在重启后存活（DS05）",
+            "pt": "Fila SQLite durável + concessões + diário de execução só de acrescento, sobrevive a um reinício (DS05)"
+          }
+        },
+        {
+          "name": "ai_provider.py",
+          "desc": {
+            "en": "Interchangeable AI provider seam + safety",
+            "es": "Seam de proveedor de IA intercambiable +",
+            "de": "Austauschbarer KI-Provider-Seam +",
+            "fr": "Seam de fournisseur d'IA interchangeable +",
+            "it": "Seam di provider IA intercambiabile +",
+            "ja": "交換可能なAIプロバイダーseam + セキ",
+            "zh": "可替换 AI 提供方 seam + 安全契约",
+            "pt": "Costura de fornecedor de IA intermutável +"
+          },
+          "tree_desc": {
+            "en": "Interchangeable AI provider seam + safety contract; deterministic fake only (DS06)",
+            "es": "Seam de proveedor de IA intercambiable + contrato de seguridad; solo fake determinista (DS06)",
+            "de": "Austauschbarer KI-Provider-Seam + Sicherheitsvertrag; nur deterministischer Fake (DS06)",
+            "fr": "Seam de fournisseur d'IA interchangeable + contrat de sécurité ; fake déterministe seulement (DS06)",
+            "it": "Seam di provider IA intercambiabile + contratto di sicurezza; solo fake deterministico (DS06)",
+            "ja": "交換可能なAIプロバイダーseam + セキュリティ契約; 決定論的フェイクのみ(DS06)",
+            "zh": "可替换 AI 提供方 seam + 安全契约；仅确定性假提供方（DS06）",
+            "pt": "Costura de fornecedor de IA intermutável + contrato de segurança; só o simulado determinístico (DS06)"
+          }
+        },
+        {
+          "name": "incident_transport.py",
+          "desc": {
+            "en": "HMAC-signed incident messages + verify +",
+            "es": "Mensajes de incidente firmados con HMAC +",
+            "de": "HMAC-signierte Incident-Nachrichten +",
+            "fr": "Messages d'incident signés HMAC + verify +",
+            "it": "Messaggi di incidente firmati HMAC + verify",
+            "ja": "HMAC署名されたインシデントメッセージ +",
+            "zh": "HMAC 签名的事件消息 + verify",
+            "pt": "Mensagens de incidente assinadas com HMAC +"
+          },
+          "tree_desc": {
+            "en": "HMAC-signed incident messages + verify + full round-trip session (DS07)",
+            "es": "Mensajes de incidente firmados con HMAC + verify + sesion de ida y vuelta completa (DS07)",
+            "de": "HMAC-signierte Incident-Nachrichten + verify + vollständige Round-Trip-Session (DS07)",
+            "fr": "Messages d'incident signés HMAC + verify + session aller-retour complète (DS07)",
+            "it": "Messaggi di incidente firmati HMAC + verify + sessione di andata e ritorno completa (DS07)",
+            "ja": "HMAC署名されたインシデントメッセージ + verify + 完全な往復セッション(DS07)",
+            "zh": "HMAC 签名的事件消息 + verify + 完整的往返会话（DS07）",
+            "pt": "Mensagens de incidente assinadas com HMAC + verificação + sessão completa de ida e volta (DS07)"
+          }
+        },
+        {
+          "name": "repair_cycle.py",
+          "desc": {
+            "en": "Gated repro→...→verify cycle with rollback",
+            "es": "Ciclo repro->...->verify con puertas y",
+            "de": "Gated repro->...->verify-Zyklus mit",
+            "fr": "Cycle repro->...->verify à barrières avec",
+            "it": "Ciclo repro->...->verify a cancelli con",
+            "ja": "ゲート付きの repro->...->ver",
+            "zh": "带门禁与回滚的 repro->...->ve",
+            "pt": "Ciclo com portas reprodução→...→verificação"
+          },
+          "tree_desc": {
+            "en": "Gated repro→...→verify cycle with rollback + the candidate gate (DS08)",
+            "es": "Ciclo repro->...->verify con puertas y rollback + la puerta de candidato (DS08)",
+            "de": "Gated repro->...->verify-Zyklus mit Rollback + das Kandidaten-Gate (DS08)",
+            "fr": "Cycle repro->...->verify à barrières avec rollback + la barrière de candidat (DS08)",
+            "it": "Ciclo repro->...->verify a cancelli con rollback + il cancello del candidato (DS08)",
+            "ja": "ゲート付きの repro->...->verify サイクルとロールバック + 候補ゲート(DS08)",
+            "zh": "带门禁与回滚的 repro->...->verify 周期 + 候选门禁（DS08）",
+            "pt": "Ciclo com portas reprodução→...→verificação com reversão + a porta do candidato (DS08)"
+          }
+        },
+        {
+          "name": "operations.py",
+          "desc": {
+            "en": "Verified state backup/restore + operational",
+            "es": "Backup/restore de estado verificado +",
+            "de": "Verifiziertes Zustands-Backup/Restore +",
+            "fr": "Sauvegarde/restauration d'état vérifiée +",
+            "it": "Backup/restore di stato verificato +",
+            "ja": "検証済みの状態バックアップ/リストア + 運",
+            "zh": "经校验的状态备份/恢复 + 运行健康检查",
+            "pt": "Cópia de segurança/restauro verificados do"
+          },
+          "tree_desc": {
+            "en": "Verified state backup/restore + operational health check (DS09)",
+            "es": "Backup/restore de estado verificado + comprobacion de salud operativa (DS09)",
+            "de": "Verifiziertes Zustands-Backup/Restore + operativer Health-Check (DS09)",
+            "fr": "Sauvegarde/restauration d'état vérifiée + vérification de santé opérationnelle (DS09)",
+            "it": "Backup/restore di stato verificato + controllo di salute operativa (DS09)",
+            "ja": "検証済みの状態バックアップ/リストア + 運用ヘルスチェック(DS09)",
+            "zh": "经校验的状态备份/恢复 + 运行健康检查（DS09）",
+            "pt": "Cópia de segurança/restauro verificados do estado + verificação de saúde operacional (DS09)"
+          }
+        },
+        {
+          "name": "delivery.py",
+          "desc": {
+            "en": "Delivery manifest",
+            "es": "Manifiesto de entrega",
+            "de": "Liefermanifest",
+            "fr": "Manifeste de livraison",
+            "it": "Manifesto di consegna",
+            "ja": "配布マニフェスト(ファイルごとのsha256",
+            "zh": "交付清单（每个文件一个 sha256）+ 诚",
+            "pt": "Manifesto de entrega"
+          },
+          "tree_desc": {
+            "en": "Delivery manifest (sha256 per shipped file) + honest maturity evaluation, never over-claims (DS10)",
+            "es": "Manifiesto de entrega (sha256 por archivo) + evaluacion honesta de madurez, nunca sobreafirma (DS10)",
+            "de": "Liefermanifest (sha256 pro Datei) + ehrliche Reifegradbewertung, überschätzt nie (DS10)",
+            "fr": "Manifeste de livraison (sha256 par fichier) + évaluation honnête de la maturité, ne surestime jamais (DS10)",
+            "it": "Manifesto di consegna (sha256 per file) + valutazione onesta della maturità, non sopravvaluta mai (DS10)",
+            "ja": "配布マニフェスト(ファイルごとのsha256) + 正直な成熟度評価、決して過大評価しない(DS10)",
+            "zh": "交付清单（每个文件一个 sha256）+ 诚实的成熟度评估，绝不夸大（DS10）",
+            "pt": "Manifesto de entrega (sha256 por ficheiro entregue) + avaliação honesta de maturidade, nunca afirma de mais (DS10)"
+          }
+        },
+        {
+          "name": "cli.py",
+          "desc": {
+            "en": "config / inventory / station / migrate /",
+            "es": "Punto de entrada de los subcomandos config",
+            "de": "Einstiegspunkt der Unterbefehle config /",
+            "fr": "Point d'entrée des sous-commandes config /",
+            "it": "Entry point dei sottocomandi config /",
+            "ja": "config / inventory / s",
+            "zh": "config / inventory / s",
+            "pt": "Ponto de entrada dos subcomandos config /"
+          },
+          "tree_desc": {
+            "en": "config / inventory / station / migrate / task / queue / provider / incident / repair / ops / deliver subcommand entry point",
+            "es": "Punto de entrada de los subcomandos config / inventory / station / migrate / task / queue / provider / incident / repair / ops / deliver",
+            "de": "Einstiegspunkt der Unterbefehle config / inventory / station / migrate / task / queue / provider / incident / repair / ops / deliver",
+            "fr": "Point d'entrée des sous-commandes config / inventory / station / migrate / task / queue / provider / incident / repair / ops / deliver",
+            "it": "Entry point dei sottocomandi config / inventory / station / migrate / task / queue / provider / incident / repair / ops / deliver",
+            "ja": "config / inventory / station / migrate / task / queue / provider / incident / repair / ops / deliver サブコマンドのエントリポイント",
+            "zh": "config / inventory / station / migrate / task / queue / provider / incident / repair / ops / deliver 子命令入口",
+            "pt": "Ponto de entrada dos subcomandos config / inventory / station / migrate / task / queue / provider / incident / repair / ops / deliver"
+          }
+        },
+        {
+          "name": "api.py",
+          "desc": {
+            "en": "A small authenticated HTTP API",
+            "es": "Una pequeña API HTTP autenticada",
+            "de": "Eine kleine authentifizierte HTTP-API",
+            "fr": "Une petite API HTTP authentifiée",
+            "it": "Una piccola API HTTP autenticata",
+            "ja": "小さな認証付き HTTP API",
+            "zh": "小型带认证的 HTTP API,仅限本机回环",
+            "pt": "Uma pequena API HTTP autenticada"
+          },
+          "tree_desc": {
+            "en": "A small authenticated HTTP API, loopback only (every route but health needs a bearer token)",
+            "es": "Una pequeña API HTTP autenticada, solo en loopback (todas las rutas salvo la de salud piden un token)",
+            "de": "Eine kleine authentifizierte HTTP-API, nur Loopback (jede Route außer Health braucht ein Bearer-Token)",
+            "fr": "Une petite API HTTP authentifiée, en boucle locale seulement (toute route sauf la santé exige un jeton)",
+            "it": "Una piccola API HTTP autenticata, solo loopback (ogni percorso tranne la salute richiede un token)",
+            "ja": "小さな認証付き HTTP API (ループバックのみ。ヘルス以外のルートはトークンが必要)",
+            "zh": "小型带认证的 HTTP API,仅限本机回环 (除健康检查外每条路由都需要令牌)",
+            "pt": "Uma pequena API HTTP autenticada, só em loopback (todas as rotas exceto a de saúde pedem um token)"
+          }
+        },
+        {
+          "name": "identifiers.py",
+          "desc": {
+            "en": "The one place that says what a name",
+            "es": "El único sitio que dice qué aspecto puede",
+            "de": "Die eine Stelle, die festlegt, wie ein Name",
+            "fr": "Le seul endroit qui dit à quoi peut",
+            "it": "L'unico posto che dice che aspetto può",
+            "ja": "名前 (アカウント、パス、タスクやワーカーの",
+            "zh": "唯一规定名称 (账户、路径、任务或工作进程",
+            "pt": "O único sítio que diz o aspeto que um nome"
+          },
+          "tree_desc": {
+            "en": "The one place that says what a name (account, path, task or worker id) may look like",
+            "es": "El único sitio que dice qué aspecto puede tener un nombre (cuenta, ruta, id de tarea o de worker)",
+            "de": "Die eine Stelle, die festlegt, wie ein Name (Konto, Pfad, Task- oder Worker-ID) aussehen darf",
+            "fr": "Le seul endroit qui dit à quoi peut ressembler un nom (compte, chemin, id de tâche ou de worker)",
+            "it": "L'unico posto che dice che aspetto può avere un nome (account, percorso, id di task o di worker)",
+            "ja": "名前 (アカウント、パス、タスクやワーカーの ID) の形を定める唯一の場所",
+            "zh": "唯一规定名称 (账户、路径、任务或工作进程 ID) 形式的地方",
+            "pt": "O único sítio que diz o aspeto que um nome (conta, caminho, id de tarefa ou de worker) pode ter"
+          }
+        },
+        {
+          "name": "plugins.py",
+          "desc": {
+            "en": "Plugin lifecycle",
+            "es": "Ciclo de vida de los plugins",
+            "de": "Lebenszyklus der Plugins",
+            "fr": "Cycle de vie des plugins",
+            "it": "Ciclo di vita dei plugin",
+            "ja": "プラグインのライフサイクル: 検出",
+            "zh": "插件生命周期: 发现、校验、启用、运行、停用",
+            "pt": "Ciclo de vida dos plugins"
+          },
+          "tree_desc": {
+            "en": "Plugin lifecycle: discover, validate, enable, run, disable",
+            "es": "Ciclo de vida de los plugins: descubrir, validar, activar, ejecutar, desactivar",
+            "de": "Lebenszyklus der Plugins: finden, prüfen, aktivieren, ausführen, deaktivieren",
+            "fr": "Cycle de vie des plugins : découvrir, valider, activer, exécuter, désactiver",
+            "it": "Ciclo di vita dei plugin: scoprire, validare, attivare, eseguire, disattivare",
+            "ja": "プラグインのライフサイクル: 検出、検証、有効化、実行、無効化",
+            "zh": "插件生命周期: 发现、校验、启用、运行、停用",
+            "pt": "Ciclo de vida dos plugins: descobrir, validar, ativar, executar, desativar"
+          }
+        },
+        {
+          "name": "sandbox.py",
+          "desc": {
+            "en": "Operating-system isolation of the task",
+            "es": "Aislamiento del ejecutor de tareas a nivel",
+            "de": "Isolation des Task-Runners auf",
+            "fr": "Isolation du lanceur de tâches au niveau du",
+            "it": "Isolamento a livello di sistema operativo",
+            "ja": "タスク実行部の OS レベルの分離",
+            "zh": "任务运行器的操作系统级隔离",
+            "pt": "Isolamento ao nível do sistema operativo do"
+          },
+          "tree_desc": {
+            "en": "Operating-system isolation of the task runner",
+            "es": "Aislamiento del ejecutor de tareas a nivel de sistema operativo",
+            "de": "Isolation des Task-Runners auf Betriebssystemebene",
+            "fr": "Isolation du lanceur de tâches au niveau du système d'exploitation",
+            "it": "Isolamento a livello di sistema operativo dell'esecutore di task",
+            "ja": "タスク実行部の OS レベルの分離",
+            "zh": "任务运行器的操作系统级隔离",
+            "pt": "Isolamento ao nível do sistema operativo do executor de tarefas"
+          }
+        },
+        {
+          "name": "signing.py",
+          "desc": {
+            "en": "Ed25519 signatures for repair candidates",
+            "es": "Firmas Ed25519 para candidatos de reparación",
+            "de": "Ed25519-Signaturen für Reparaturkandidaten",
+            "fr": "Signatures Ed25519 pour les candidats de",
+            "it": "Firme Ed25519 per i candidati di riparazione",
+            "ja": "修復候補、承認、バックアップマニフェストの",
+            "zh": "用于修复候选、批准和备份清单的 Ed2551",
+            "pt": "Assinaturas Ed25519 para candidatos de"
+          },
+          "tree_desc": {
+            "en": "Ed25519 signatures for repair candidates, approvals and backup manifests",
+            "es": "Firmas Ed25519 para candidatos de reparación, aprobaciones y manifiestos de copia de seguridad",
+            "de": "Ed25519-Signaturen für Reparaturkandidaten, Freigaben und Backup-Manifeste",
+            "fr": "Signatures Ed25519 pour les candidats de réparation, les approbations et les manifestes de sauvegarde",
+            "it": "Firme Ed25519 per i candidati di riparazione, le approvazioni e i manifesti di backup",
+            "ja": "修復候補、承認、バックアップマニフェストの Ed25519 署名",
+            "zh": "用于修复候选、批准和备份清单的 Ed25519 签名",
+            "pt": "Assinaturas Ed25519 para candidatos de reparação, aprovações e manifestos de cópia de segurança"
+          }
+        },
+        {
+          "name": "taskflow.py",
+          "desc": {
+            "en": "What surrounds a task run",
+            "es": "Lo que rodea una ejecución de tarea",
+            "de": "Was eine Task-Ausführung umgibt",
+            "fr": "Ce qui entoure l'exécution d'une tâche",
+            "it": "Ciò che circonda l'esecuzione di un task",
+            "ja": "タスク実行の周辺: 固定リビジョンでのリポジ",
+            "zh": "任务运行的周边工作: 按固定版本准备仓库",
+            "pt": "O que rodeia a execução de uma tarefa"
+          },
+          "tree_desc": {
+            "en": "What surrounds a task run: staging the repository at its pinned revision, the concurrency limit and the life of the workspace",
+            "es": "Lo que rodea una ejecución de tarea: preparar el repositorio en su revisión fijada, el límite de concurrencia y la vida del espacio de trabajo",
+            "de": "Was eine Task-Ausführung umgibt: das Repository in der festgelegten Revision bereitstellen, die Nebenläufigkeitsgrenze und die Lebensdauer des Arbeitsbereichs",
+            "fr": "Ce qui entoure l'exécution d'une tâche : mise en place du dépôt à sa révision épinglée, limite de concurrence et vie de l'espace de travail",
+            "it": "Ciò che circonda l'esecuzione di un task: preparare il repository alla revisione fissata, il limite di concorrenza e la vita dell'area di lavoro",
+            "ja": "タスク実行の周辺: 固定リビジョンでのリポジトリ準備、同時実行の上限、作業領域の寿命",
+            "zh": "任务运行的周边工作: 按固定版本准备仓库、并发上限以及工作区的生命周期",
+            "pt": "O que rodeia a execução de uma tarefa: preparar o repositório na revisão fixada, o limite de concorrência e a vida da área de trabalho"
+          }
+        },
+        {
+          "name": "worker.py",
+          "desc": {
+            "en": "The worker loop that carries a task from",
+            "es": "El bucle del worker que lleva una tarea",
+            "de": "Die Worker-Schleife",
+            "fr": "La boucle du worker qui mène une tâche du",
+            "it": "Il ciclo del worker che porta un task dal",
+            "ja": "タスクをリースから結果まで運ぶワーカーのルー",
+            "zh": "把任务从租约带到结果的工作循环",
+            "pt": "O ciclo do worker que leva uma tarefa do"
+          },
+          "tree_desc": {
+            "en": "The worker loop that carries a task from lease to result",
+            "es": "El bucle del worker que lleva una tarea desde el arrendamiento hasta el resultado",
+            "de": "Die Worker-Schleife, die einen Task von der Lease bis zum Ergebnis führt",
+            "fr": "La boucle du worker qui mène une tâche du bail jusqu'au résultat",
+            "it": "Il ciclo del worker che porta un task dal lease al risultato",
+            "ja": "タスクをリースから結果まで運ぶワーカーのループ",
+            "zh": "把任务从租约带到结果的工作循环",
+            "pt": "O ciclo do worker que leva uma tarefa do arrendamento ao resultado"
+          }
+        }
+      ],
+      "tree_head": {
+        "en": "source code",
+        "es": "código fuente",
+        "de": "Quellcode",
+        "fr": "code source",
+        "it": "codice sorgente",
+        "ja": "ソースコード",
+        "zh": "源代码",
+        "pt": "código-fonte"
+      },
+      "sub": {
+        "en": "source code",
+        "es": "código fuente",
+        "de": "Quellcode",
+        "fr": "code source",
+        "it": "codice sorgente",
+        "ja": "ソースコード",
+        "zh": "源代码",
+        "pt": "código-fonte"
+      },
+      "columns": 2
+    },
+    {
+      "name": {
+        "en": "folders",
+        "es": "carpetas",
+        "de": "Ordner",
+        "fr": "dossiers",
+        "it": "cartelle",
+        "ja": "フォルダ",
+        "zh": "文件夹",
+        "pt": "pastas"
+      },
+      "kind": "group",
+      "span": 3,
+      "accent": "b",
+      "columns": 2,
+      "rows": [
+        {
+          "name": "configs/",
+          "desc": {
+            "en": "example configuration documents",
+            "es": "documentos de configuración de ejemplo",
+            "de": "Beispiel-Konfigurationsdokumente",
+            "fr": "documents de configuration d'exemple",
+            "it": "documenti di configurazione di esempio",
+            "ja": "設定ドキュメントの例",
+            "zh": "示例配置文档",
+            "pt": "documentos de configuração de exemplo"
+          },
+          "tree_desc": {
+            "en": "example configuration documents",
+            "es": "documentos de configuración de ejemplo",
+            "de": "Beispiel-Konfigurationsdokumente",
+            "fr": "documents de configuration d'exemple",
+            "it": "documenti di configurazione di esempio",
+            "ja": "設定ドキュメントの例",
+            "zh": "示例配置文档",
+            "pt": "documentos de configuração de exemplo"
+          }
+        },
+        {
+          "name": "tests/",
+          "desc": {
+            "en": "tests for every module and the example",
+            "es": "pruebas de cada módulo y de las",
+            "de": "Tests für jedes Modul und die",
+            "fr": "tests de chaque module et des",
+            "it": "test di ogni modulo e delle configurazioni",
+            "ja": "各モジュールと設定例のテスト",
+            "zh": "每个模块和示例配置的测试",
+            "pt": "testes de cada módulo e das configurações"
+          },
+          "tree_desc": {
+            "en": "tests for every module and the example configurations",
+            "es": "pruebas de cada módulo y de las configuraciones de ejemplo",
+            "de": "Tests für jedes Modul und die Beispielkonfigurationen",
+            "fr": "tests de chaque module et des configurations d'exemple",
+            "it": "test di ogni modulo e delle configurazioni di esempio",
+            "ja": "各モジュールと設定例のテスト",
+            "zh": "每个模块和示例配置的测试",
+            "pt": "testes de cada módulo e das configurações de exemplo"
+          }
+        },
+        {
+          "name": "docs/",
+          "desc": {
+            "en": "documents of the project",
+            "es": "documentos del proyecto",
+            "de": "Dokumente des Projekts",
+            "fr": "documents du projet",
+            "it": "documenti del progetto",
+            "ja": "プロジェクトの文書",
+            "zh": "项目文档",
+            "pt": "documentos do projeto"
+          },
+          "tree_desc": {
+            "en": "documents of the project",
+            "es": "documentos del proyecto",
+            "de": "Dokumente des Projekts",
+            "fr": "documents du projet",
+            "it": "documenti del progetto",
+            "ja": "プロジェクトの文書",
+            "zh": "项目文档",
+            "pt": "documentos do projeto"
+          }
+        },
+        {
+          "name": "examples/plugins/",
+          "desc": {
+            "en": "Example plugins: one report, one generator",
+            "es": "Plugins de ejemplo",
+            "de": "Beispiel-Plugins: ein Bericht, ein Generator",
+            "fr": "Plugins d'exemple",
+            "it": "Plugin di esempio: un report e un generatore",
+            "ja": "サンプルプラグイン：レポート 1 つとジェネ",
+            "zh": "示例插件：一个报告和一个生成器",
+            "pt": "Plugins de exemplo"
+          },
+          "tree_desc": {
+            "en": "Example plugins: one report, one generator",
+            "es": "Plugins de ejemplo: un informe y un generador",
+            "de": "Beispiel-Plugins: ein Bericht, ein Generator",
+            "fr": "Plugins d'exemple : un rapport et un générateur",
+            "it": "Plugin di esempio: un report e un generatore",
+            "ja": "サンプルプラグイン：レポート 1 つとジェネレーター 1 つ",
+            "zh": "示例插件：一个报告和一个生成器",
+            "pt": "Plugins de exemplo: um relatório e um gerador"
+          }
+        },
+        {
+          "name": "examples/",
+          "desc": {
+            "en": "plugins/: example plugins",
+            "es": "plugins/: plugins de ejemplo",
+            "de": "plugins/: Beispiel-Plugins",
+            "fr": "plugins/ : plugins d'exemple",
+            "it": "plugins/: plugin di esempio",
+            "ja": "plugins/: サンプルプラグイン",
+            "zh": "plugins/: 示例插件",
+            "pt": "plugins/: plugins de exemplo"
+          },
+          "tree_desc": {
+            "en": "plugins/: example plugins (host-report, readme-generator)",
+            "es": "plugins/: plugins de ejemplo (host-report, readme-generator)",
+            "de": "plugins/: Beispiel-Plugins (host-report, readme-generator)",
+            "fr": "plugins/ : plugins d'exemple (host-report, readme-generator)",
+            "it": "plugins/: plugin di esempio (host-report, readme-generator)",
+            "ja": "plugins/: サンプルプラグイン (host-report、readme-generator)",
+            "zh": "plugins/: 示例插件 (host-report、readme-generator)",
+            "pt": "plugins/: plugins de exemplo (host-report, readme-generator)"
+          }
+        },
+        {
+          "name": "images/",
+          "desc": {
+            "en": "Media and app icons",
+            "es": "Medios e iconos de la app",
+            "de": "Medien und App-Icons",
+            "fr": "Médias et icônes de l'application",
+            "it": "Media e icone dell'app",
+            "ja": "メディアとアプリアイコン",
+            "zh": "媒体与应用图标",
+            "pt": "Multimédia e ícones da aplicação"
+          },
+          "tree_desc": {
+            "en": "Media and app icons",
+            "es": "Medios e iconos de la app",
+            "de": "Medien und App-Icons",
+            "fr": "Médias et icônes de l'application",
+            "it": "Media e icone dell'app",
+            "ja": "メディアとアプリアイコン",
+            "zh": "媒体与应用图标",
+            "pt": "Multimédia e ícones da aplicação"
+          }
+        },
+        {
+          "name": "tools/",
+          "desc": {
+            "en": "project tools and CI checks",
+            "es": "herramientas del proyecto y comprobaciones",
+            "de": "Projektwerkzeuge und CI-Prüfungen",
+            "fr": "outils du projet et vérifications de la CI",
+            "it": "strumenti del progetto e controlli della CI",
+            "ja": "プロジェクトのツールと CI の検査",
+            "zh": "项目工具和 CI 检查",
+            "pt": "ferramentas do projeto e verificações da CI"
+          },
+          "tree_desc": {
+            "en": "project tools and CI checks",
+            "es": "herramientas del proyecto y comprobaciones del CI",
+            "de": "Projektwerkzeuge und CI-Prüfungen",
+            "fr": "outils du projet et vérifications de la CI",
+            "it": "strumenti del progetto e controlli della CI",
+            "ja": "プロジェクトのツールと CI の検査",
+            "zh": "项目工具和 CI 检查",
+            "pt": "ferramentas do projeto e verificações da CI"
+          }
+        },
+        {
+          "name": ".github/",
+          "desc": {
+            "en": "CI workflow and issue templates",
+            "es": "flujo de CI y plantillas de incidencias",
+            "de": "CI-Workflow und Issue-Vorlagen",
+            "fr": "workflow de CI et modèles de tickets",
+            "it": "workflow di CI e modelli di segnalazione",
+            "ja": "CI ワークフローと Issue テンプレート",
+            "zh": "CI 工作流和 Issue 模板",
+            "pt": "fluxo de CI e modelos de problemas"
+          }
+        }
+      ]
+    },
+    {
+      "name": {
+        "en": "project files",
+        "es": "ficheros del proyecto",
+        "de": "Projektdateien",
+        "fr": "fichiers du projet",
+        "it": "file del progetto",
+        "ja": "プロジェクトのファイル",
+        "zh": "项目文件",
+        "pt": "ficheiros do projeto"
+      },
+      "kind": "group",
+      "span": 3,
+      "accent": "c",
+      "columns": 2,
+      "rows": [
+        {
+          "name": "build.sh / build.bat",
+          "desc": {
+            "en": "venv + editable install + compile-check +",
+            "es": "venv + instalación editable + comprobación",
+            "de": "venv + editierbare Installation + Prüfung +",
+            "fr": "venv + installation éditable + vérification",
+            "it": "venv + installazione editabile + controllo",
+            "ja": "venv + 編集可能インストール + チェ",
+            "zh": "venv + 可编辑安装 + 检查 + 测试",
+            "pt": "venv + instalação editável + verificação de"
+          },
+          "tree_desc": {
+            "en": "venv + editable install + compile-check + tests",
+            "es": "venv + instalación editable + comprobación + pruebas",
+            "de": "venv + editierbare Installation + Prüfung + Tests",
+            "fr": "venv + installation éditable + vérification + tests",
+            "it": "venv + installazione editabile + controllo + test",
+            "ja": "venv + 編集可能インストール + チェック + テスト",
+            "zh": "venv + 可编辑安装 + 检查 + 测试",
+            "pt": "venv + instalação editável + verificação de compilação + testes"
+          }
+        },
+        {
+          "name": "run.sh / run.bat",
+          "desc": {
+            "en": "Real inventory scan + config validate demo",
+            "es": "Demo real de inventory scan + config",
+            "de": "Reale Demo inventory scan + config validate",
+            "fr": "Démo réelle inventory scan + config validate",
+            "it": "Demo reale inventory scan + config validate",
+            "ja": "引数なしの場合は実際のinventory s",
+            "zh": "真实的 inventory scan + c",
+            "pt": "Demonstração real de inventory scan +"
+          },
+          "tree_desc": {
+            "en": "Real inventory scan + config validate demo (no arguments), or forwards a real CLI command",
+            "es": "Demo real de inventory scan + config validate (sin argumentos), o reenvía un comando CLI real",
+            "de": "Reale Demo inventory scan + config validate (ohne Argumente), oder leitet einen echten CLI-Befehl weiter",
+            "fr": "Démo réelle inventory scan + config validate (sans arguments), ou relaie une commande CLI réelle",
+            "it": "Demo reale inventory scan + config validate (senza argomenti), o inoltra un comando CLI reale",
+            "ja": "引数なしの場合は実際のinventory scan + config validateデモ、それ以外は実際のCLIコマンドを転送",
+            "zh": "真实的 inventory scan + config validate 演示（无参数时），或转发一条真实的 CLI 命令",
+            "pt": "Demonstração real de inventory scan + config validate (sem argumentos), ou reencaminha um comando real da CLI"
+          }
+        },
+        {
+          "name": "bump_version.py",
+          "desc": {
+            "en": "explicit version bump",
+            "es": "Incremento de versión tipo cuentakilómetros",
+            "de": "ausdrückliche Versionserhöhung",
+            "fr": "Incrément de version type compteur",
+            "it": "Incremento di versione stile contachilometri",
+            "ja": "明示的なバージョン更新",
+            "zh": "显式提升版本",
+            "pt": "Subida de versão ao estilo conta-quilómetros"
+          },
+          "tree_desc": {
+            "en": "explicit version bump",
+            "es": "Incremento de versión tipo cuentakilómetros (solo lo ejecuta el comando `bump` explícito)",
+            "de": "ausdrückliche Versionserhöhung",
+            "fr": "Incrément de version type compteur kilométrique (exécuté seulement par la commande `bump` explicite)",
+            "it": "Incremento di versione stile contachilometri (eseguito solo dal comando `bump` esplicito)",
+            "ja": "明示的なバージョン更新",
+            "zh": "显式提升版本",
+            "pt": "Subida de versão ao estilo conta-quilómetros (executada só pelo comando `bump` explícito)"
+          }
+        },
+        {
+          "name": "bump_manifest_version.py",
+          "desc": {
+            "en": "Syncs hydra-umc.project.json's version to",
+            "es": "Sincroniza la versión de",
+            "de": "Synchronisiert die Version von",
+            "fr": "Synchronise la version de",
+            "it": "Sincronizza la versione di",
+            "ja": "hydra-umc.project.json",
+            "zh": "将 hydra-umc.project.js",
+            "pt": "Sincroniza a versão do"
+          },
+          "tree_desc": {
+            "en": "Syncs hydra-umc.project.json's version to the native one (--sync)",
+            "es": "Sincroniza la versión de hydra-umc.project.json con la nativa (--sync)",
+            "de": "Synchronisiert die Version von hydra-umc.project.json mit der nativen (--sync)",
+            "fr": "Synchronise la version de hydra-umc.project.json avec la version native (--sync)",
+            "it": "Sincronizza la versione di hydra-umc.project.json con quella nativa (--sync)",
+            "ja": "hydra-umc.project.jsonのバージョンをネイティブのものと同期（--sync）",
+            "zh": "将 hydra-umc.project.json 的版本与原生版本同步（--sync）",
+            "pt": "Sincroniza a versão do hydra-umc.project.json com a nativa (--sync)"
+          }
+        },
+        {
+          "name": "CHANGELOG.md",
+          "desc": {
+            "en": "what changed in each version",
+            "es": "qué cambió en cada versión",
+            "de": "was sich in jeder Version geändert hat",
+            "fr": "ce qui a changé à chaque version",
+            "it": "cosa è cambiato in ogni versione",
+            "ja": "各バージョンの変更点",
+            "zh": "每个版本的变更",
+            "pt": "o que mudou em cada versão"
+          }
+        },
+        {
+          "name": "build-test.sh",
+          "desc": {
+            "en": "non-mutating build check",
+            "es": "comprobación de compilación sin cambios",
+            "de": "Build-Prüfung ohne Änderungen",
+            "fr": "vérification de build sans modification",
+            "it": "controllo di build senza modifiche",
+            "ja": "変更を伴わないビルド確認",
+            "zh": "不修改内容的构建检查",
+            "pt": "verificação de compilação sem alterações"
+          }
+        },
+        {
+          "name": "hydra-umc.project.json",
+          "desc": {
+            "en": "manifest: version, maturity, family",
+            "es": "manifiesto: versión, madurez, familia",
+            "de": "Manifest: Version, Reifegrad, Familie",
+            "fr": "manifeste : version, maturité, famille",
+            "it": "manifesto: versione, maturità, famiglia",
+            "ja": "マニフェスト：バージョン、成熟度、ファミリー",
+            "zh": "清单：版本、成熟度、系列",
+            "pt": "manifesto: versão, maturidade, família"
+          }
+        },
+        {
+          "name": "pyproject.toml",
+          "desc": {
+            "en": "package metadata",
+            "es": "metadatos del paquete",
+            "de": "Paketmetadaten",
+            "fr": "métadonnées du paquet",
+            "it": "metadati del pacchetto",
+            "ja": "パッケージのメタデータ",
+            "zh": "包的元数据",
+            "pt": "metadados do pacote"
+          }
+        },
+        {
+          "name": "test.sh",
+          "desc": {
+            "en": "runs the tests",
+            "es": "ejecuta las pruebas",
+            "de": "führt die Tests aus",
+            "fr": "lance les tests",
+            "it": "esegue i test",
+            "ja": "テストを実行",
+            "zh": "运行测试",
+            "pt": "executa os testes"
+          }
+        }
+      ]
+    }
+  ]
+}

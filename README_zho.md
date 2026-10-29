@@ -1,5 +1,11 @@
+<!-- =============================================================================
+HYDRA-UMC-DEV-SERVER - Reproducible development host
+Copyright (C) JuanenRac (Electro Hobby 3D) <electrohobby3d@gmail.com>
+GPL-3.0-or-later - see LICENSE
+============================================================================= -->
+
 <p align="center">
-  <img src="images/HYDRA_UMC_BANNER.svg" alt="HYDRA-UMC-DEV-SERVER 横幅" width="100%">
+  <img src="images/HYDRA_UMC_BANNER.svg" alt="HYDRA-UMC-DEV-SERVER banner" width="100%">
 </p>
 
 # 🖥️ HYDRA-UMC-DEV-SERVER
@@ -9,29 +15,23 @@
 ### 🏗️ 面向整个生态系统的可复现开发服务器
 
 <p align="center">
-  <img src="https://img.shields.io/badge/许可证-GPL%203.0--or--later-blue.svg" alt="GPL 3.0 or later">
-  <img src="https://img.shields.io/badge/语言-Python%203.11%2B-blue.svg" alt="Python">
-  <img src="https://img.shields.io/badge/核心-仅标准库-brightgreen.svg" alt="仅标准库核心">
-  <img src="https://img.shields.io/badge/交付-DS01--DS10%20已完成%20(功能阶段)-brightgreen.svg" alt="DS01-DS10 已完成，功能阶段">
+  <img src="https://img.shields.io/badge/License-GPL%203.0--or--later-blue.svg" alt="GPL 3.0 or later">
+  <img src="https://img.shields.io/badge/Language-Python%203.11%2B-blue.svg" alt="Language">
+  <img src="https://img.shields.io/badge/Core-stdlib%20only-brightgreen.svg" alt="Core">
+  <img src="https://img.shields.io/badge/Tests-442%20passing-2ea44f.svg" alt="Tests">
+  <img src="https://img.shields.io/badge/Version-0.1.9-0f6cbd.svg" alt="Version">
+  <img src="https://img.shields.io/badge/Maturity-functional-0F6CBD.svg" alt="Maturity">
 </p>
-
-> **状态：v0.1.9，功能阶段（functional）- 十次交付已全部完成（已构建并由测试覆盖；尚未在真实硬件或服务上验证）。**
-> 一套真实、经过测试的配置模式(`config validate`)，其默认策略**不向任何任务授予部署权限**；
-> 以及只读的清单发现功能(`inventory scan`)，可找到本生态系统自身的
-> `hydra-umc.project.json` 文件——包括本仓库自己的那份。
-> DS02 新增一个经校验的远程站点配置(`station validate`)、一项**只读**的主机预检——
-> 它仅报告某台主机是否就绪(`station preflight`，不改变任何东西)，
-> 以及一份**空跑**的置备计划(`station plan`，从不执行任何步骤)。DS03 新增**保守迁移**（`migrate inventory` / `migrate plan`）：它对源 checkout 中的每个文件计算哈希并分类，并将每一类——干净、本地已修改、未跟踪、私有——规划到它**各自独立的目标**，若某个私有文件会落到任何可共享的位置则拒绝。它不复制任何内容，也从不触碰源。以上都只读取与描述。**DS04 新增受限执行器**（`task validate` / `task run`）：它在**按任务隔离的工作区**中运行**一个**白名单命令（`..`、绝对路径或指向工作区之外的 symlink 都会被拒绝；两个任务永不共享同一个），使用**已清理的环境**（不继承 `*_TOKEN` / `*_KEY` / `*_SECRET`），并在有界超时后**杀死整个进程组**。**DS05 新增一个持久的 SQLite 队列 + 执行日志**（`queue …`），可在重启后存活：重复的 `enqueue` 绝不是第二个作业；崩溃 worker 的租约会过期，`reconcile` 将任务退回 `queued`；来自不再持有租约的 worker 的结果会被**拒绝，而非标记为已完成**；自入队以来发生变化的基线**即使退出码为 0 也会阻止晋级**。它仍然不部署任何内容。
-> DS06 新增位于安全契约之后的确定性假 AI 提供方；真实提供方由用户决定。
-> 完整、真实的命令界面见 [docs/CLI_REFERENCE.md](docs/CLI_REFERENCE.md)。
 
 ---
 
-**诚实核查 - 今天真正能运行的部分：** 下面列出的二十二个模块(`config.py`、`inventory.py`、`remote_station.py`、`preflight.py`、`provision.py`、`migration.py`、`workspace.py`、`recipe.py`、`runner.py`、`durable_queue.py`、`ai_provider.py`、`incident_transport.py`、`repair_cycle.py`、`operations.py`、`delivery.py`、`cli.py`, `api.py`, `plugins.py`, `sandbox.py`, `taskflow.py`, `worker.py`, `signing.py`)都是真实代码，而非占位符，并且由真实的测试套件覆盖(418 个测试在 `tests/test_*.py` 中全部通过)。这些真实代码具体做到了什么：验证 JSON 文档、在磁盘上规划迁移、在一个真实隔离工作区内以真实的净化环境运行一个真实的受限子进程、让一个真实的 SQLite 队列/日志在重启后依然持久、并执行了一次真实的 HMAC 签名事件往返 - 所有这些都只是针对本地检出或可注入的测试替身进行的，从未针对该项目真正面向的目标硬件 Raspberry Pi 5/CM5 运行过。`provider suggest` 始终只调用确定性的 `FakeProvider`；接入真实的 AI 提供方仍是一个明确尚未做出的用户决定。`station preflight`/`station plan` 通过可注入的检查器描述远程主机，从未针对真实的远程机器运行过。本仓库中没有任何东西真正部署过主机、执行过部署，而工作循环(`queue work`)只针对启动器和 git 的替身运行过，从未在真实主机上运行 - `deliver evaluate` 自身硬编码的 `overall_maturity: "functional"` 就是代码本身给出的明确说明。具体每一项交付的内容请见 `CHANGELOG.md`。
+**诚实核查 - 今天真正能运行的部分：** 下面列出的二十二个模块(`config.py`、`inventory.py`、`remote_station.py`、`preflight.py`、`provision.py`、`migration.py`、`workspace.py`、`recipe.py`、`runner.py`、`durable_queue.py`、`ai_provider.py`、`incident_transport.py`、`repair_cycle.py`、`operations.py`、`delivery.py`、`cli.py`, `api.py`, `plugins.py`, `sandbox.py`, `taskflow.py`, `worker.py`, `signing.py`)都是真实代码，而非占位符，并且由真实的测试套件覆盖(442 个测试在 `tests/test_*.py` 中全部通过)。这些真实代码具体做到了什么：验证 JSON 文档、在磁盘上规划迁移、在一个真实隔离工作区内以真实的净化环境运行一个真实的受限子进程、让一个真实的 SQLite 队列/日志在重启后依然持久、并执行了一次真实的 HMAC 签名事件往返 - 所有这些都只是针对本地检出或可注入的测试替身进行的，从未针对该项目真正面向的目标硬件 Raspberry Pi 5/CM5 运行过。`provider suggest` 始终只调用确定性的 `FakeProvider`；接入真实的 AI 提供方仍是一个明确尚未做出的用户决定。`station preflight`/`station plan` 通过可注入的检查器描述远程主机，从未针对真实的远程机器运行过。本仓库中没有任何东西真正部署过主机、执行过部署，而工作循环(`queue work`)只针对启动器和 git 的替身运行过，从未在真实主机上运行 - `deliver evaluate` 自身硬编码的 `overall_maturity: "functional"` 就是代码本身给出的明确说明。具体每一项交付的内容请见 `CHANGELOG.md`。
 
 ---
 
 > **安全与安防现状:**本生态系统不是经认证的安全系统。目前尚无硬件 E-STOP 通路,没有由固件强制执行的限位或联锁,也没有经过验证的运动指令;固件映像使用 CRC32 和共享密钥的 HMAC-SHA256 校验,而非非对称签名;TLS 与双向 TLS 均为可选项,默认关闭;自制电路板尚未组装或测试。在依赖此处任何说法来保障人身安全之前,请先阅读[安全基线](https://github.com/JuanenRac/HYDRA-UMC-DOCS/blob/main/docs/SECURITY_BASELINE.md)和[威胁模型](https://github.com/JuanenRac/HYDRA-UMC-DOCS/blob/main/docs/THREAT_MODEL.md)。
+
+---
 
 ## 📋 速览
 
@@ -39,10 +39,12 @@
 |---|---|
 | 版本 | `0.1.9` |
 | 成熟度 | 可用 |
-| 测试 | 347 |
+| 测试 | 442 (`python -m pytest -q tests`) |
 | 技术栈 | Python 3.11+ / JSON Schema / systemd (host role, Linux only) / SQLite (durable task/state journal, from DS05 onward) |
 | 目标 | 开发服务器 |
 | 真实硬件 | 尚未：此版本没有在真实硬件上运行的记录 |
+
+**跳转：** [概述](#-概述) · [架构](#-架构) · [快速开始](#-快速开始) · [测试](#-测试) · [仓库结构](#-仓库结构) · [相关项目](#-相关项目)
 
 ## 🚦 项目状态
 
@@ -53,11 +55,11 @@
 | 领域 | 状态 | 在这里的含义 |
 |---|---|---|
 | 软件 | 🟡 | 主要用途可用；上面的诚实性检查列出了仍然缺少的内容 |
-| 测试 | 🟢 | 347 项自动测试，每次变更都会运行 |
+| 测试 | 🟢 | 442 项自动测试，每次变更都会运行 |
 | 真实硬件 | 🔴 | 尚未：此版本没有在真实硬件上运行的记录 |
 | 文档 | 🟢 | 八种语言的 README，每次变更都会与清单核对 |
 
-## 1. 🛠️ 技术概览
+## 🎯 概述
 
 HYDRA-UMC-DEV-SERVER 是 HYDRA-UMC/URTC 生态系统的开发基础设施：一台可复现的主机
 （目标平台：从 NVMe 启动的 Raspberry Pi 5 或 Compute Module 5，8GB），
@@ -131,7 +133,17 @@ $ hydra-umc-dev-server inventory scan --root ..
 
 另外两个命令 `plugin list` 和 `serve` 负责插件生命周期以及带认证的本地 HTTP API（仅限回环地址，Bearer 令牌）。插件在以其文件已批准的 SHA-256 启用之前保持惰性，并且只能添加具名的检查、报告和生成器（在 `plugin.json` 中用 `provides` 声明，通过 `plugin run` 或 API 运行，各自受超时和大小上限限制）；该 API 不运行任何任务，也不部署任何内容。详见 [docs/CLI_REFERENCE.md](docs/CLI_REFERENCE.md) 和 [docs/PLUGINS.md](docs/PLUGINS.md)。 此外，当主机具备 bubblewrap 或 systemd-run 时，任务运行器会把命令放进沙箱（无主目录，除非策略开放否则无网络，只有工作区可写），限制每个命令的参数，拉取固定的修订版本，限制同时运行的任务数并在结束后删除工作区；插件默认在各自的进程中运行。以上内容尚未在真实主机上运行过。
 
-## 2. 🧱 架构与设计决策
+## 🧩 在 HYDRA-UMC 中的角色
+
+**HYDRA-UMC-DEV-SERVER** 是生态系统的开发主机：它在隔离的工作区中运行受限的、在允许列表内的构建和测试任务，并与 `HYDRA-UMC-OPS-AGENT` 协调修复候选。它从不批准自己的任务，也不部署任何东西；向节点交付始终经过 `HYDRA-UMC-UPDATER`。
+
+## 🏛️ 架构
+
+<p align="center">
+  <img src="images/architecture.svg" alt="HYDRA-UMC-DEV-SERVER architecture" width="100%">
+</p>
+
+### 架构与设计决策
 
 - **批准采用非对称签名并绑定到补丁。** 修复周期只用 Ed25519 公钥验证候选补丁和批准（共享的 HMAC 密钥也必须放在验证一侧，因此能验证的人也能伪造；`allow_symmetric_keys` 将其保留为可选的兼容模式）。批准会写明它批准的补丁（`approved_patch_ref`）并带有过期时间（`expires_at`，UTC）；二者都被签名，周期会拒绝针对其他补丁、缺少这些字段或已过期的批准。
 - **沙箱已在真实内核上运行。** `systemd-run` 沙箱已在带 systemd 的 Linux 主机上运行(tests/test_sandbox_real_host.py):任务只能写入自己的工作区,读不到服务用户的主目录,没有网络,用到 `MemoryMax` 的五倍时会被内核杀掉。运行发现了命令行测试看不到的两个缺陷:位于 `/tmp` 或 `/var/tmp` 下的工作区会让单元启动失败(状态 226),需要用 `BindPaths` 绑定进去;位于 `/home`、`/root` 或 `/run/user` 下的工作区根本无法访问,所以现在会在运行任何东西之前带着原因被拒绝。在没有可用沙箱的主机上,测试会说明原因并跳过;bubblewrap 尚未运行。安装了可选的 `cryptography` 包时,导出公钥和签名会改走它(恒定时间),而不是纯 RFC 8032 代码;`signing_backend()` 会说明用的是哪一个。
@@ -154,80 +166,23 @@ $ hydra-umc-dev-server inventory scan --root ..
 - **本次交付只做校验与发现——尚未运行任何东西。** 本仓库中目前
   没有工作区、没有任务执行、没有队列，也没有任何网络调用。
 
-## 📂 目录结构
+## 🚀 快速开始
 
-```
-HYDRA-UMC-DEV-SERVER/
-├── src/hydra_umc_dev_server/
-│   ├── __init__.py        # 包版本
-│   ├── config.py          # HostProfile/ToolchainPolicy/TaskPolicy 的模式与校验（DS01）
-│   ├── inventory.py       # 真实的、只读的 hydra-umc.project.json 发现（DS01）
-│   ├── remote_station.py  # RemoteStationProfile：身份 + 远程访问 + 工具（DS02）
-│   ├── preflight.py       # 通过可注入的检查器对主机进行只读检查（DS02）
-│   ├── provision.py       # 空跑置备计划 + unit 文本，从不执行（DS02）
-│   ├── migration.py       # 保守迁移的清单 + 分离目标计划，不复制任何内容（DS03）
-│   ├── workspace.py       # 按任务隔离的工作区；拒绝 ../、绝对路径、指向工作区之外的 symlink（DS04）
-│   ├── recipe.py          # TaskRecipe：固定的 revision + 白名单命令（DS04）
-│   ├── runner.py          # 受限执行器：已清理的环境、超时、杀死整个进程组（DS04）
-│   ├── durable_queue.py   # SQLite 持久队列 + 租约 + append-only 执行日志，可在重启后存活（DS05）
-│   ├── ai_provider.py     # 可替换 AI 提供方 seam + 安全契约；仅确定性假提供方（DS06）
-│   ├── incident_transport.py  # HMAC 签名的事件消息 + verify + 完整的往返会话（DS07）
-│   ├── repair_cycle.py    # 带门禁与回滚的 repro->...->verify 周期 + 候选门禁（DS08）
-│   ├── operations.py      # 经校验的状态备份/恢复 + 运行健康检查（DS09）
-│   ├── delivery.py        # 交付清单（每个文件一个 sha256）+ 诚实的成熟度评估，绝不夸大（DS10）
-│   ├── cli.py             # config / inventory / station / migrate / task / queue / provider / incident / repair / ops / deliver 子命令入口
-│   ├── api.py             # 小型带认证的 HTTP API,仅限本机回环 (除健康检查外每条路由都需要令牌)
-│   ├── identifiers.py     # 唯一规定名称 (账户、路径、任务或工作进程 ID) 形式的地方
-│   ├── plugins.py         # 插件生命周期: 发现、校验、启用、运行、停用
-│   ├── sandbox.py         # 任务运行器的操作系统级隔离
-│   ├── signing.py         # 用于修复候选、批准和备份清单的 Ed25519 签名
-│   ├── taskflow.py        # 任务运行的周边工作: 按固定版本准备仓库、并发上限以及工作区的生命周期
-│   └── worker.py          # 把任务从租约带到结果的工作循环
-├── configs/
-│   ├── host-profile.example.json
-│   ├── toolchains.example.json
-│   ├── task-policy.example.json      # allow_deploy: false，以此形式发布并测试
-│   ├── remote-station.example.json   # 绑定 127.0.0.1，以此形式发布并测试
-│   ├── migration-destinations.example.json   # 四个可证明彼此分离的根
-│   ├── task-recipe.example.json          # 固定的 revision + 白名单命令
-│   ├── ai-provider.example.json          # kind: fake,超时 + 调用/令牌/成本预算
-│   └── incident-transport.example.json   # 契约版本 + 重放窗口 + 速率限制 (不含机密)
-│   # (queue 命令使用 --db 路径,不使用配置文件)
-├── tests/                # 上述每个模块的真实测试，包括所发布的示例配置
-├── docs/
-│   ├── CLI_REFERENCE.md    # 每个子命令、其参数与退出码契约
-│   ├── CONFIG_SCHEMA.md    # 三份配置文档的真实 JSON 结构
-│   ├── REMOTE_STATION.md   # DS02 远程站点配置、预检与空跑计划
-│   ├── MIGRATION_FROM_PC.md  # DS03 保守迁移的清单、类别与计划
-│   ├── WORKSPACE_AND_RUNNER.md  # DS04 的配方、隔离工作区与受限执行器
-│   ├── DURABLE_QUEUE.md      # DS05 的持久队列、租约与执行日志
-│   ├── AI_PROVIDER.md        # DS06 的提供方 seam 与安全契约（仅假）
-│   ├── INCIDENT_TRANSPORT.md # DS07 的签名消息、校验与往返会话
-│   ├── REPAIR_CYCLE.md       # DS08 的带门禁修复周期、其控制与回滚
-│   ├── OPERATIONS.md         # DS09 的经校验备份/恢复与运行健康检查
-│   ├── DELIVERY.md           # DS10 的交付清单与诚实的成熟度评估
-│   ├── ARCHITECTURE.md     # 目的、工作模式、初始范围、磁盘布局
-│   ├── OPS_INTEGRATION.md  # 17 项关系图谱 + 归属表
-│   ├── PLUGINS.md  # 插件清单、三种类型、生命周期与沙箱限制
-│   ├── MATURITY_CRITERIA.md # 成熟度退出标准 (升一级必须满足的条件)
-│   └── openapi.json # HTTP API 的 OpenAPI 描述
-├── examples/plugins/      # 示例插件：一个报告和一个生成器
-├── examples/              # plugins/: 示例插件 (host-report、readme-generator)
-├── images/                # 媒体与应用图标
-├── tools/
-│   ├── build_test.py      # 非版本变更的构建/编译检查
-│   ├── ci_validate.py     # CI 使用的清单/CHANGELOG/文档校验
-│   ├── _doc_policy.py     # 家族共享的文档规则 (HYDRA-UMC-SDK 的副本,保持同步)
-│   ├── _readme_parity.py  # 检查八个 README 结构一致 (HYDRA-UMC-SDK 的副本,保持同步)
-│   └── hydra_project_tool.py # 每个仓库相同的命令: validate、test、ci、version、status、bump
-├── build.sh / build.bat   # venv + 可编辑安装 + 检查 + 测试
-├── build-test.sh / .bat   # 仅非变更式构建校验
-├── run.sh / run.bat       # 真实的 inventory scan + config validate 演示（无参数时），或转发一条真实的 CLI 命令
-├── bump_version.py        # 里程表式版本递增（仅由显式 `bump` 命令运行）
-└── bump_manifest_version.py # 将 hydra-umc.project.json 的版本与原生版本同步（--sync）
+需要 Python 3.11 或更高版本。
+
+```bash
+./build.sh  # Linux, macOS (build.bat on Windows)
+./run.sh    # demo: inventory scan, then config validate
+./run.sh config validate configs/task-policy.example.json --kind task-policy
 ```
 
-## ⚙️ 构建与运行指南
+## 🧪 测试
+
+运行 `python -m pytest -q tests` 会执行 442 个自动测试。 在没有可用沙箱的主机上，沙箱测试会说明原因并跳过；没有任何测试需要硬件。
+
+CI 运行 `HYDRA_UMC_CI=1 python tools/ci_validate.py`，检查清单、文档、八个 README 和图片。
+
+## 🏗️ 构建与发布
 
 ```bash
 chmod +x build.sh   # 一次性
@@ -253,7 +208,66 @@ chmod +x build.sh   # 一次性
   `hydra-umc.project.json`，但它不可读、格式错误，或缺少必需字段——
   完全没有清单的目录从不会被报告为问题。
 
-## 🚀 路线图
+## 📂 仓库结构
+
+<p align="center">
+  <img src="images/repository-structure.svg" alt="Repository structure of HYDRA-UMC-DEV-SERVER" width="100%">
+</p>
+
+<details>
+<summary>目录树的文本版本</summary>
+
+```text
+HYDRA-UMC-DEV-SERVER/
+├── src/hydra_umc_dev_server/   源代码
+│   ├── __init__.py             包版本
+│   ├── config.py               HostProfile/ToolchainPolicy/TaskPolicy 的模式与校验（DS01）
+│   ├── inventory.py            真实的、只读的 hydra-umc.project.json 发现（DS01）
+│   ├── remote_station.py       RemoteStationProfile：身份 + 远程访问 + 工具（DS02）
+│   ├── preflight.py            通过可注入的检查器对主机进行只读检查（DS02）
+│   ├── provision.py            空跑置备计划 + unit 文本，从不执行（DS02）
+│   ├── migration.py            保守迁移的清单 + 分离目标计划，不复制任何内容（DS03）
+│   ├── workspace.py            按任务隔离的工作区；拒绝 ../、绝对路径、指向工作区之外的 symlink（DS04）
+│   ├── recipe.py               TaskRecipe：固定的 revision + 白名单命令（DS04）
+│   ├── runner.py               受限执行器：已清理的环境、超时、杀死整个进程组（DS04）
+│   ├── durable_queue.py        SQLite 持久队列 + 租约 + append-only 执行日志，可在重启后存活（DS05）
+│   ├── ai_provider.py          可替换 AI 提供方 seam + 安全契约；仅确定性假提供方（DS06）
+│   ├── incident_transport.py   HMAC 签名的事件消息 + verify + 完整的往返会话（DS07）
+│   ├── repair_cycle.py         带门禁与回滚的 repro->...->verify 周期 + 候选门禁（DS08）
+│   ├── operations.py           经校验的状态备份/恢复 + 运行健康检查（DS09）
+│   ├── delivery.py             交付清单（每个文件一个 sha256）+ 诚实的成熟度评估，绝不夸大（DS10）
+│   ├── cli.py                  config / inventory / station / migrate / task / queue / provider / incident / repair / ops / deliver 子命令入口
+│   ├── api.py                  小型带认证的 HTTP API,仅限本机回环 (除健康检查外每条路由都需要令牌)
+│   ├── identifiers.py          唯一规定名称 (账户、路径、任务或工作进程 ID) 形式的地方
+│   ├── plugins.py              插件生命周期: 发现、校验、启用、运行、停用
+│   ├── sandbox.py              任务运行器的操作系统级隔离
+│   ├── signing.py              用于修复候选、批准和备份清单的 Ed25519 签名
+│   ├── taskflow.py             任务运行的周边工作: 按固定版本准备仓库、并发上限以及工作区的生命周期
+│   └── worker.py               把任务从租约带到结果的工作循环
+├── configs/                    示例配置文档
+├── tests/                      每个模块和示例配置的测试
+├── docs/                       项目文档
+├── examples/plugins/           示例插件：一个报告和一个生成器
+├── examples/                   plugins/: 示例插件 (host-report、readme-generator)
+├── images/                     媒体与应用图标
+├── tools/                      项目工具和 CI 检查
+├── .github/                    CI 工作流和 Issue 模板
+├── build.sh / build.bat        venv + 可编辑安装 + 检查 + 测试
+├── run.sh / run.bat            真实的 inventory scan + config validate 演示（无参数时），或转发一条真实的 CLI 命令
+├── bump_version.py             显式提升版本
+├── bump_manifest_version.py    将 hydra-umc.project.json 的版本与原生版本同步（--sync）
+├── CHANGELOG.md                每个版本的变更
+├── build-test.sh               不修改内容的构建检查
+├── hydra-umc.project.json      清单：版本、成熟度、系列
+├── pyproject.toml              包的元数据
+└── test.sh                     运行测试
+```
+
+</details>
+
+## 🗺️ 路线图与已知限制
+
+**当前已知限制**
 
 本版本交付 DS01 至 DS10：十次交付的计划已完成。按交付顺序，各次交付为：
 
@@ -277,6 +291,10 @@ chmod +x build.sh   # 一次性
 接成一个工作循环，或触碰过真实硬件。`deliver evaluate` 正是这样说的，其
 `known_limitations` 列表就是诚实的待办事项。每次交付明确包含与排除的内容，
 见 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)。
+
+## 🌍 语言
+
+本 README 和仓库文档提供八种语言：英语、西班牙语、德语、法语、意大利语、日语、中文和葡萄牙语（葡萄牙）。它们同时编写，并由 CI 检查八个文件拥有相同的章节和相同的链接。 本仓库没有自己的界面或消息目录，因此没有需要翻译的界面文字。
 
 ## 🔗 相关项目
 
@@ -367,24 +385,30 @@ chmod +x build.sh   # 一次性
 - **[URTC-SMART-RACK](https://github.com/JuanenRac/URTC-SMART-RACK)** — 用于板卡安装机架的固件，具有真实的工具 ID 解码与 Smart Idle 预热逻辑。
 - **[URTC-VISION-TOOL](https://github.com/JuanenRac/URTC-VISION-TOOL)** — 固件加上一个真实的 Python 视觉伴侣程序，用于热成像/RGB 检测工具头。
 
----
+## 📚 文档
 
-## 📚 文档与社区
+更多阅读：
 
-- **[docs/CLI_REFERENCE.md](docs/CLI_REFERENCE.md)** — 每个子命令、其参数以及退出码契约。
-- **[docs/CONFIG_SCHEMA.md](docs/CONFIG_SCHEMA.md)** — `HostProfile`/`ToolchainPolicy`/`TaskPolicy` 的真实 JSON 结构。
-- **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)** — 目的、两种工作模式、初始范围与磁盘布局。
-- **[docs/OPS_INTEGRATION.md](docs/OPS_INTEGRATION.md)** — 完整的 17 项关系图谱与状态归属表。
-- **[CONTRIBUTING.md](CONTRIBUTING.md)** — 提交 Pull Request 所需的技术栈与编码规范。
-- **[CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)** — 本社区期望遵守的行为准则。
-- **[SECURITY.md](SECURITY.md)** — 如何报告漏洞，以及本项目真实的安全关注重点。
-- **[SUPPORT.md](SUPPORT.md)** — 在哪里提问与报告缺陷。
+* **[docs/CLI_REFERENCE.md](docs/CLI_REFERENCE.md)** — 每个子命令、其参数以及退出码契约。
+* **[docs/CONFIG_SCHEMA.md](docs/CONFIG_SCHEMA.md)** — `HostProfile`/`ToolchainPolicy`/`TaskPolicy` 的真实 JSON 结构。
+* **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)** — 目的、两种工作模式、初始范围与磁盘布局。
+* **[docs/OPS_INTEGRATION.md](docs/OPS_INTEGRATION.md)** — 完整的 17 项关系图谱与状态归属表。
+* [生态系统的安全基线](https://github.com/JuanenRac/HYDRA-UMC-DOCS/blob/main/docs/SECURITY_BASELINE.md)
+* [生态系统的威胁模型](https://github.com/JuanenRac/HYDRA-UMC-DOCS/blob/main/docs/THREAT_MODEL.md)
+* [本仓库的更新日志](CHANGELOG.md)
+* [本仓库的许可证](LICENSE.md)
+
+## 🤝 参与贡献与社区
+
+* 提交 pull request 之前，请运行 `HYDRA_UMC_CI=1 py -3 tools/ci_validate.py`（或 `HYDRA_UMC_CI=1 python3 tools/ci_validate.py`）：它必须输出 `CI_VALIDATION=PASS`。此检查不要运行 `build.sh` 或 `build.bat`；构建不是检查。
+* 八个 README 由 HYDRA-UMC-DOCS 中的同一个源生成；请勿手工编辑。修改源文件，再用 `tools/make_readmes.py` 重新生成。
+* 不要在 README 中声称尚未运行过的内容：属实时请写“仅模拟”或“尚未在硬件上试过”。
+* 请参阅 [CONTRIBUTING.md](CONTRIBUTING.md)、[行为准则](CODE_OF_CONDUCT.md)、[SECURITY.md](SECURITY.md) 和 [SUPPORT.md](SUPPORT.md)。
 
 ## 👤 作者
-**JuanenRac**（Electro Hobby 3D）
-📧 electrohobby3d@gmail.com
-📺 [youtube.com/@electrohobby3d](https://youtube.com/@electrohobby3d)
+
+**JuanenRac (Electro Hobby 3D)** · electrohobby3d@gmail.com
 
 ## 📜 许可证
 
-GPL-3.0-or-later（软件）/ CC BY-SA 4.0（文档）- 详见 [LICENSE.md](LICENSE.md)。
+GPL-3.0-or-later - [LICENSE](LICENSE).

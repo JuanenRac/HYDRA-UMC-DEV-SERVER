@@ -1,5 +1,11 @@
+<!-- =============================================================================
+HYDRA-UMC-DEV-SERVER - Reproducible development host
+Copyright (C) JuanenRac (Electro Hobby 3D) <electrohobby3d@gmail.com>
+GPL-3.0-or-later - see LICENSE
+============================================================================= -->
+
 <p align="center">
-  <img src="images/HYDRA_UMC_BANNER.svg" alt="HYDRA-UMC-DEV-SERVER バナー" width="100%">
+  <img src="images/HYDRA_UMC_BANNER.svg" alt="HYDRA-UMC-DEV-SERVER banner" width="100%">
 </p>
 
 # 🖥️ HYDRA-UMC-DEV-SERVER
@@ -9,33 +15,23 @@
 ### 🏗️ エコシステム全体のための再現可能な開発サーバー
 
 <p align="center">
-  <img src="https://img.shields.io/badge/ライセンス-GPL%203.0--or--later-blue.svg" alt="GPL 3.0 or later">
-  <img src="https://img.shields.io/badge/言語-Python%203.11%2B-blue.svg" alt="Python">
-  <img src="https://img.shields.io/badge/コア-stdlibのみ-brightgreen.svg" alt="stdlibのみのコア">
-  <img src="https://img.shields.io/badge/デリバリー-DS01--DS10%20完了%20(機能段階)-brightgreen.svg" alt="DS01-DS10 完了、機能段階">
+  <img src="https://img.shields.io/badge/License-GPL%203.0--or--later-blue.svg" alt="GPL 3.0 or later">
+  <img src="https://img.shields.io/badge/Language-Python%203.11%2B-blue.svg" alt="Language">
+  <img src="https://img.shields.io/badge/Core-stdlib%20only-brightgreen.svg" alt="Core">
+  <img src="https://img.shields.io/badge/Tests-442%20passing-2ea44f.svg" alt="Tests">
+  <img src="https://img.shields.io/badge/Version-0.1.9-0f6cbd.svg" alt="Version">
+  <img src="https://img.shields.io/badge/Maturity-functional-0F6CBD.svg" alt="Maturity">
 </p>
-
-> **状態: v0.1.9、機能段階（functional） - 全10回すべて提供済み（構築済みでテストによりカバーされているが、実機や実サービスでの検証はまだ）。**
-> 実在してテスト済みの設定スキーマ(`config validate`)は、デフォルトポリシーで
-> **どのタスクにもデプロイ権限を与えない**。また読み取り専用のマニフェスト発見機能
-> (`inventory scan`)は、このエコシステム自身の `hydra-umc.project.json` を
-> 発見できる - この本リポジトリ自身のものも含めて。DS02は、検証済みの
-> リモートステーションプロファイル(`station validate`)、ホストが準備できて
-> いるかを報告するだけの**読み取り専用**の事前チェック(`station preflight`、
-> 何も変更しない)、および**ドライラン**のプロビジョニング計画(`station plan`、
-> 一切のステップを実行しない)を追加する。DS03は**保守的な移行**(`migrate inventory` / `migrate plan`)を追加する: ソースのチェックアウト内の各ファイルをハッシュ化して分類し、各クラス — クリーン、ローカル変更、未追跡、プライベート — を**それぞれ独立した宛先**に計画し、プライベートファイルが共有可能な場所に着地するなら拒否する。何もコピーせず、ソースには決して触れない。以上はすべて読み取り記述のみ。**DS04は境界付きランナーを追加する**(`task validate` / `task run`): **タスクごとに隔離されたワークスペース**内で**1つの**許可リストのコマンドを実行し(`..`、絶対パス、ワークスペース外へのsymlinkは拒否される。2つのタスクが1つを共有することはない)、**サニタイズされた環境**(継承された `*_TOKEN` / `*_KEY` / `*_SECRET` はなし)で、境界のあるタイムアウトのもとで**プロセスグループ全体をkill**する。**DS05は永続的なSQLiteキュー + 実行ジャーナル**(`queue …`)を追加する。これらはプロセス再起動を生き延びる: 重複した `enqueue` は決して2つ目のジョブにならない。クラッシュしたワーカーのリースは期限切れになり、`reconcile` がタスクを `queued` に戻す。リースをもう保持していないワーカーからの結果は**拒否され、完了とはマークされない**。エンキュー以降に変わったベースは**終了コードが0でも昇格をブロックする**。依然として何もデプロイしない。まだ
-> 永続キュー、AIプロバイダー連携は存在しない - それらはDS05、DS06という
-> 今後の提供物である。
-> 今日存在する正確なコマンド面については
-> [docs/CLI_REFERENCE.md](docs/CLI_REFERENCE.md) を参照。
 
 ---
 
-**正直な現状確認 - 今日実際に動くもの:** 以下に挙げる 22 個のモジュール(`config.py`、`inventory.py`、`remote_station.py`、`preflight.py`、`provision.py`、`migration.py`、`workspace.py`、`recipe.py`、`runner.py`、`durable_queue.py`、`ai_provider.py`、`incident_transport.py`、`repair_cycle.py`、`operations.py`、`delivery.py`、`cli.py`, `api.py`, `plugins.py`, `sandbox.py`, `taskflow.py`, `worker.py`, `signing.py`)はすべてスタブではなく本物のコードであり、本物のテストスイート(`tests/test_*.py` 全体で 418 件のテストが成功)によってカバーされている。この本物のコードが実際に行ったこと: JSON ドキュメントの検証、ディスク上でのマイグレーション計画、実際の隔離ワークスペース内で実際に浄化された環境を使った本物の制限付きサブプロセスの実行、再起動をまたいだ本物の SQLite キュー/ジャーナルの永続化、本物の HMAC 署名インシデントの往復のテスト - これらすべてはこのローカルチェックアウトまたは注入可能なテスト用シームに対してのみ行われており、このプロジェクトが実際に対象とする Raspberry Pi 5/CM5 の実機に対しては一度も実行されていない。`provider suggest` は決定論的な `FakeProvider` のみを常に呼び出す。本物の AI プロバイダーを組み込むことは、まだ行われていない明示的なユーザー判断のままである。`station preflight`/`station plan` は注入可能なインスペクターを通じてリモートホストを記述するだけで、実際のリモートマシンに対して実行されたことは一度もない。このリポジトリの中で、ホストをプロビジョニングしたり、デプロイを実行したりしたものは何もなく、ワーカーループ(`queue work`)もランチャーと git の代用品に対してしか動いたことがなく、実際のホストでは一度も動いていない - `deliver evaluate` 自身がハードコードしている `overall_maturity: "functional"` が、コード自体からそれを率直に物語っている。これまでに何が納品されたかは `CHANGELOG.md` を参照。
+**正直な現状確認 - 今日実際に動くもの:** 以下に挙げる 22 個のモジュール(`config.py`、`inventory.py`、`remote_station.py`、`preflight.py`、`provision.py`、`migration.py`、`workspace.py`、`recipe.py`、`runner.py`、`durable_queue.py`、`ai_provider.py`、`incident_transport.py`、`repair_cycle.py`、`operations.py`、`delivery.py`、`cli.py`, `api.py`, `plugins.py`, `sandbox.py`, `taskflow.py`, `worker.py`, `signing.py`)はすべてスタブではなく本物のコードであり、本物のテストスイート(`tests/test_*.py` 全体で 442 件のテストが成功)によってカバーされている。この本物のコードが実際に行ったこと: JSON ドキュメントの検証、ディスク上でのマイグレーション計画、実際の隔離ワークスペース内で実際に浄化された環境を使った本物の制限付きサブプロセスの実行、再起動をまたいだ本物の SQLite キュー/ジャーナルの永続化、本物の HMAC 署名インシデントの往復のテスト - これらすべてはこのローカルチェックアウトまたは注入可能なテスト用シームに対してのみ行われており、このプロジェクトが実際に対象とする Raspberry Pi 5/CM5 の実機に対しては一度も実行されていない。`provider suggest` は決定論的な `FakeProvider` のみを常に呼び出す。本物の AI プロバイダーを組み込むことは、まだ行われていない明示的なユーザー判断のままである。`station preflight`/`station plan` は注入可能なインスペクターを通じてリモートホストを記述するだけで、実際のリモートマシンに対して実行されたことは一度もない。このリポジトリの中で、ホストをプロビジョニングしたり、デプロイを実行したりしたものは何もなく、ワーカーループ(`queue work`)もランチャーと git の代用品に対してしか動いたことがなく、実際のホストでは一度も動いていない - `deliver evaluate` 自身がハードコードしている `overall_maturity: "functional"` が、コード自体からそれを率直に物語っている。これまでに何が納品されたかは `CHANGELOG.md` を参照。
 
 ---
 
 > **安全性とセキュリティの現状:** このエコシステムは認証された安全システムではありません。ハードウェアの E-STOP 経路、ファームウェアが強制する制限やインターロック、検証済みの動作コマンドはまだありません。ファームウェアイメージは CRC32 と共有鍵の HMAC-SHA256 で検査しており、非対称署名ではありません。TLS と相互 TLS は任意で、既定では無効です。独自基板はまだ実装も試験もされていません。ここに書かれた内容を人の安全のために頼る前に、[セキュリティベースライン](https://github.com/JuanenRac/HYDRA-UMC-DOCS/blob/main/docs/SECURITY_BASELINE.md)と[脅威モデル](https://github.com/JuanenRac/HYDRA-UMC-DOCS/blob/main/docs/THREAT_MODEL.md)をお読みください。
+
+---
 
 ## 📋 ひと目で
 
@@ -43,10 +39,12 @@
 |---|---|
 | バージョン | `0.1.9` |
 | 成熟度 | 機能する |
-| テスト | 347 |
+| テスト | 442 (`python -m pytest -q tests`) |
 | 技術 | Python 3.11+ / JSON Schema / systemd (host role, Linux only) / SQLite (durable task/state journal, from DS05 onward) |
 | 対象 | 開発用サーバー |
 | 実機での確認 | まだです：このバージョンについて実機での動作記録はありません |
+
+**移動：** [概要](#-概要) · [アーキテクチャ](#-アーキテクチャ) · [クイックスタート](#-クイックスタート) · [テスト](#-テスト) · [リポジトリの構成](#-リポジトリの構成) · [関連プロジェクト](#-関連プロジェクト)
 
 ## 🚦 プロジェクトの状況
 
@@ -57,11 +55,11 @@
 | 領域 | 状態 | ここでの意味 |
 |---|---|---|
 | ソフトウェア | 🟡 | 主な目的では動作します。足りない点は上の正直さの確認に書かれています |
-| テスト | 🟢 | 自動テスト 347 件。変更のたびに実行されます |
+| テスト | 🟢 | 自動テスト 442 件。変更のたびに実行されます |
 | 実機 | 🔴 | まだです：このバージョンについて実機での動作記録はありません |
 | ドキュメント | 🟢 | 8 言語の README。変更のたびにマニフェストと照合されます |
 
-## 1. 🛠️ 技術概要
+## 🎯 概要
 
 HYDRA-UMC-DEV-SERVERはHYDRA-UMC/URTCエコシステムのための開発インフラである。
 再現可能なホスト（対象: NVMeから起動するRaspberry Pi 5またはCompute Module 5、
@@ -146,7 +144,17 @@ $ hydra-umc-dev-server inventory scan --root ..
 
 さらに 2 つのコマンド `plugin list` と `serve` が、プラグインのライフサイクルと認証付きローカル HTTP API（ループバックのみ、Bearer トークン）を扱います。プラグインは、ファイルの承認済み SHA-256 で有効化されるまで動作せず、名前付きのチェック、レポート、ジェネレーターを追加することしかできません（`plugin.json` の `provides` で宣言し、`plugin run` または API で実行し、それぞれタイムアウトとサイズ上限があります）。API はタスクを実行せず、何もデプロイしません。詳しくは [docs/CLI_REFERENCE.md](docs/CLI_REFERENCE.md)、[docs/PLUGINS.md](docs/PLUGINS.md) を参照してください。 さらに、タスクランナーはホストに bubblewrap または systemd-run があればコマンドをサンドボックスで包み(ホームなし、ポリシーが許可しない限りネットワークなし、書き込み可能なのは作業領域のみ)、各コマンドの引数を制限し、固定されたリビジョンを取得し、同時実行数を制限し、終了後に作業領域を削除します。プラグインは既定で独自のプロセスで動きます。これらはまだ実機で実行されていません。
 
-## 2. 🧱 アーキテクチャと設計判断
+## 🧩 HYDRA-UMC での役割
+
+**HYDRA-UMC-DEV-SERVER** はエコシステムの開発ホストです。許可リストにある範囲限定のビルドとテストのタスクを隔離されたワークスペースで実行し、修復候補を `HYDRA-UMC-OPS-AGENT` と調整します。自分のタスクを自分で承認することはなく、何もデプロイしません。ノードへの配信は常に `HYDRA-UMC-UPDATER` を通ります。
+
+## 🏛️ アーキテクチャ
+
+<p align="center">
+  <img src="images/architecture.svg" alt="HYDRA-UMC-DEV-SERVER architecture" width="100%">
+</p>
+
+### アーキテクチャと設計判断
 
 - **承認は非対称で、パッチに結び付けられます。** 修復サイクルは、候補と承認を Ed25519 の公開鍵だけで検証します（共有 HMAC 秘密は検証側にも置く必要があり、検証できる者は偽造もできるため。`allow_symmetric_keys` で任意の互換モードとして残せます）。承認は承認するパッチ（`approved_patch_ref`）と有効期限（`expires_at`、UTC）を持ち、どちらも署名されます。別のパッチへの承認、これらのない承認、期限切れの承認はサイクルが拒否します。
 - **サンドボックスを実際のカーネルで実行しました。** `systemd-run` サンドボックスを systemd のある Linux ホストで実行しました(tests/test_sandbox_real_host.py)。タスクは自分のワークスペースにだけ書き込め、サービスユーザーのホームは読めず、ネットワークもなく、`MemoryMax` の 5 倍を使うとカーネルに終了させられます。実行によって、コマンドラインのテストでは見えない 2 つの不具合が見つかりました。`/tmp` や `/var/tmp` の下のワークスペースは `BindPaths` で取り込むまでユニットが失敗し(状態 226)、`/home`・`/root`・`/run/user` の下のワークスペースにはそもそも到達できないため、何かを実行する前に理由付きで拒否されるようになりました。使えるサンドボックスのないホストではテストは理由を示してスキップされます。bubblewrap は実行していません。任意パッケージ `cryptography` がインストールされていれば、公開鍵の導出と署名は純粋な RFC 8032 のコードの代わりにそれ(定数時間)を通ります。どちらかは `signing_backend()` が示します。
@@ -174,80 +182,23 @@ $ hydra-umc-dev-server inventory scan --root ..
   キューはローカルの SQLite ファイルで、ネットワーク呼び出しは固定リビジョンの任意の git 取得とループバック上のローカル API だけ。
   どのタスクにもデプロイの権限はなく、対象の Raspberry Pi 5/CM5 ではまだ何も実行されていない。
 
-## 📂 ディレクトリ構造
+## 🚀 クイックスタート
 
-```
-HYDRA-UMC-DEV-SERVER/
-├── src/hydra_umc_dev_server/
-│   ├── __init__.py        # パッケージバージョン
-│   ├── config.py          # HostProfile/ToolchainPolicy/TaskPolicyのスキーマと検証（DS01）
-│   ├── inventory.py       # hydra-umc.project.jsonの実際の読み取り専用発見（DS01）
-│   ├── remote_station.py  # RemoteStationProfile: アイデンティティ + リモートアクセス + ツール（DS02）
-│   ├── preflight.py       # 注入可能なインスペクタ経由のホストの読み取り専用チェック（DS02）
-│   ├── provision.py       # ドライランのプロビジョニング計画 + unitテキスト、決して実行しない（DS02）
-│   ├── migration.py       # 保守的な移行のインベントリ + 分離した宛先への計画、何もコピーしない（DS03）
-│   ├── workspace.py       # タスクごとに隔離されたワークスペース; ../、絶対パス、ワークスペース外へのsymlinkを拒否(DS04)
-│   ├── recipe.py          # TaskRecipe: 固定されたrevision + 許可リストのコマンド(DS04)
-│   ├── runner.py          # 境界付きランナー: サニタイズされた環境、タイムアウト、プロセスグループ全体をkill(DS04)
-│   ├── durable_queue.py   # SQLite永続キュー + リース + append-only実行ジャーナル、再起動を生き延びる(DS05)
-│   ├── ai_provider.py     # 交換可能なAIプロバイダーseam + セキュリティ契約; 決定論的フェイクのみ(DS06)
-│   ├── incident_transport.py  # HMAC署名されたインシデントメッセージ + verify + 完全な往復セッション(DS07)
-│   ├── repair_cycle.py    # ゲート付きの repro->...->verify サイクルとロールバック + 候補ゲート(DS08)
-│   ├── operations.py      # 検証済みの状態バックアップ/リストア + 運用ヘルスチェック(DS09)
-│   ├── delivery.py        # 配布マニフェスト(ファイルごとのsha256) + 正直な成熟度評価、決して過大評価しない(DS10)
-│   ├── cli.py             # config / inventory / station / migrate / task / queue / provider / incident / repair / ops / deliver サブコマンドのエントリポイント
-│   ├── api.py             # 小さな認証付き HTTP API (ループバックのみ。ヘルス以外のルートはトークンが必要)
-│   ├── identifiers.py     # 名前 (アカウント、パス、タスクやワーカーの ID) の形を定める唯一の場所
-│   ├── plugins.py         # プラグインのライフサイクル: 検出、検証、有効化、実行、無効化
-│   ├── sandbox.py         # タスク実行部の OS レベルの分離
-│   ├── signing.py         # 修復候補、承認、バックアップマニフェストの Ed25519 署名
-│   ├── taskflow.py        # タスク実行の周辺: 固定リビジョンでのリポジトリ準備、同時実行の上限、作業領域の寿命
-│   └── worker.py          # タスクをリースから結果まで運ぶワーカーのループ
-├── configs/
-│   ├── host-profile.example.json
-│   ├── toolchains.example.json
-│   ├── task-policy.example.json      # allow_deploy: false、この形で公開・テスト済み
-│   ├── remote-station.example.json   # 127.0.0.1 にバインド、この形で公開・テスト済み
-│   ├── migration-destinations.example.json   # 証明可能に分離された4つのルート
-│   ├── task-recipe.example.json          # 固定されたrevision + 許可リストのコマンド
-│   ├── ai-provider.example.json          # kind: fake、タイムアウト + 呼び出し/トークン/コストの予算
-│   └── incident-transport.example.json   # コントラクトのバージョン + リプレイ窓 + レート制限 (秘密情報なし)
-│   # (queue コマンドは --db パスを取り、設定ファイルは使わない)
-├── tests/                # 上記各モジュールの実際のテスト、公開されているサンプル設定を含む
-├── docs/
-│   ├── CLI_REFERENCE.md    # 各サブコマンド、そのフラグ、終了コード契約
-│   ├── CONFIG_SCHEMA.md    # 3つの設定文書の実際のJSON形状
-│   ├── REMOTE_STATION.md   # DS02のリモートステーションプロファイル、事前チェック、ドライラン計画
-│   ├── MIGRATION_FROM_PC.md  # DS03の保守的な移行のインベントリ、クラス、計画
-│   ├── WORKSPACE_AND_RUNNER.md  # DS04のレシピ、隔離ワークスペース、境界付きランナー
-│   ├── DURABLE_QUEUE.md      # DS05の永続キュー、リース、実行ジャーナル
-│   ├── AI_PROVIDER.md        # DS06のプロバイダーseamとセキュリティ契約(フェイクのみ)
-│   ├── INCIDENT_TRANSPORT.md # DS07の署名メッセージ、検証、往復セッション
-│   ├── REPAIR_CYCLE.md       # DS08のゲート付き修復サイクル、その制御とロールバック
-│   ├── OPERATIONS.md         # DS09の検証済みバックアップ/リストアと運用ヘルスチェック
-│   ├── DELIVERY.md           # DS10の配布マニフェストと正直な成熟度評価
-│   ├── ARCHITECTURE.md     # 目的、作業モード、初期範囲、ディスク
-│   ├── OPS_INTEGRATION.md  # 17関係マップ＋所有権表
-│   ├── PLUGINS.md  # プラグインのマニフェスト、3 種類、ライフサイクル、サンドボックスの上限
-│   ├── MATURITY_CRITERIA.md # 成熟度の終了基準 (一段上がるために満たすべき条件)
-│   └── openapi.json # HTTP API の OpenAPI 記述
-├── examples/plugins/      # サンプルプラグイン：レポート 1 つとジェネレーター 1 つ
-├── examples/              # plugins/: サンプルプラグイン (host-report、readme-generator)
-├── images/                # メディアとアプリアイコン
-├── tools/
-│   ├── build_test.py      # バージョン変更を伴わないビルド/コンパイルチェック
-│   ├── ci_validate.py     # CIが使用するマニフェスト/CHANGELOG/ドキュメント検証
-│   ├── _doc_policy.py     # ファミリー共通のドキュメント規則 (HYDRA-UMC-SDK のコピーで、同期を維持)
-│   ├── _readme_parity.py  # 8つの README が同じ構造であることの検査 (HYDRA-UMC-SDK のコピーで、同期を維持)
-│   └── hydra_project_tool.py # すべてのリポジトリで共通のコマンド: validate、test、ci、version、status、bump
-├── build.sh / build.bat   # venv + 編集可能インストール + チェック + テスト
-├── build-test.sh / .bat   # 変更を伴わないビルド検証のみ
-├── run.sh / run.bat       # 引数なしの場合は実際のinventory scan + config validateデモ、それ以外は実際のCLIコマンドを転送
-├── bump_version.py        # オドメーター式バージョンインクリメント（明示的な `bump` コマンドのみが実行）
-└── bump_manifest_version.py # hydra-umc.project.jsonのバージョンをネイティブのものと同期（--sync）
+Python 3.11 以上が必要です。
+
+```bash
+./build.sh  # Linux, macOS (build.bat on Windows)
+./run.sh    # demo: inventory scan, then config validate
+./run.sh config validate configs/task-policy.example.json --kind task-policy
 ```
 
-## ⚙️ ビルドと実行ガイド
+## 🧪 テスト
+
+`python -m pytest -q tests` で自動テスト 442 件を実行します。 サンドボックスのテストは、使えるサンドボックスがないホストでは理由を示してスキップされます。ハードウェアが必要なテストはありません。
+
+CI は `HYDRA_UMC_CI=1 python tools/ci_validate.py` を実行し、マニフェスト、文書、8 つの README、図を検査します。
+
+## 🏗️ ビルドとリリース
 
 ```bash
 chmod +x build.sh   # 一度だけ
@@ -277,7 +228,66 @@ CHANGELOGには一切触れない - これ自体はテストスイートを実�
   フィールドが欠落した `hydra-umc.project.json` がある - マニフェストが
   全く存在しないディレクトリが問題として報告されることは決してない。
 
-## 🚀 ロードマップ
+## 📂 リポジトリの構成
+
+<p align="center">
+  <img src="images/repository-structure.svg" alt="Repository structure of HYDRA-UMC-DEV-SERVER" width="100%">
+</p>
+
+<details>
+<summary>ツリーのテキスト版</summary>
+
+```text
+HYDRA-UMC-DEV-SERVER/
+├── src/hydra_umc_dev_server/   ソースコード
+│   ├── __init__.py             パッケージバージョン
+│   ├── config.py               HostProfile/ToolchainPolicy/TaskPolicyのスキーマと検証（DS01）
+│   ├── inventory.py            hydra-umc.project.jsonの実際の読み取り専用発見（DS01）
+│   ├── remote_station.py       RemoteStationProfile: アイデンティティ + リモートアクセス + ツール（DS02）
+│   ├── preflight.py            注入可能なインスペクタ経由のホストの読み取り専用チェック（DS02）
+│   ├── provision.py            ドライランのプロビジョニング計画 + unitテキスト、決して実行しない（DS02）
+│   ├── migration.py            保守的な移行のインベントリ + 分離した宛先への計画、何もコピーしない（DS03）
+│   ├── workspace.py            タスクごとに隔離されたワークスペース; ../、絶対パス、ワークスペース外へのsymlinkを拒否(DS04)
+│   ├── recipe.py               TaskRecipe: 固定されたrevision + 許可リストのコマンド(DS04)
+│   ├── runner.py               境界付きランナー: サニタイズされた環境、タイムアウト、プロセスグループ全体をkill(DS04)
+│   ├── durable_queue.py        SQLite永続キュー + リース + append-only実行ジャーナル、再起動を生き延びる(DS05)
+│   ├── ai_provider.py          交換可能なAIプロバイダーseam + セキュリティ契約; 決定論的フェイクのみ(DS06)
+│   ├── incident_transport.py   HMAC署名されたインシデントメッセージ + verify + 完全な往復セッション(DS07)
+│   ├── repair_cycle.py         ゲート付きの repro->...->verify サイクルとロールバック + 候補ゲート(DS08)
+│   ├── operations.py           検証済みの状態バックアップ/リストア + 運用ヘルスチェック(DS09)
+│   ├── delivery.py             配布マニフェスト(ファイルごとのsha256) + 正直な成熟度評価、決して過大評価しない(DS10)
+│   ├── cli.py                  config / inventory / station / migrate / task / queue / provider / incident / repair / ops / deliver サブコマンドのエントリポイント
+│   ├── api.py                  小さな認証付き HTTP API (ループバックのみ。ヘルス以外のルートはトークンが必要)
+│   ├── identifiers.py          名前 (アカウント、パス、タスクやワーカーの ID) の形を定める唯一の場所
+│   ├── plugins.py              プラグインのライフサイクル: 検出、検証、有効化、実行、無効化
+│   ├── sandbox.py              タスク実行部の OS レベルの分離
+│   ├── signing.py              修復候補、承認、バックアップマニフェストの Ed25519 署名
+│   ├── taskflow.py             タスク実行の周辺: 固定リビジョンでのリポジトリ準備、同時実行の上限、作業領域の寿命
+│   └── worker.py               タスクをリースから結果まで運ぶワーカーのループ
+├── configs/                    設定ドキュメントの例
+├── tests/                      各モジュールと設定例のテスト
+├── docs/                       プロジェクトの文書
+├── examples/plugins/           サンプルプラグイン：レポート 1 つとジェネレーター 1 つ
+├── examples/                   plugins/: サンプルプラグイン (host-report、readme-generator)
+├── images/                     メディアとアプリアイコン
+├── tools/                      プロジェクトのツールと CI の検査
+├── .github/                    CI ワークフローと Issue テンプレート
+├── build.sh / build.bat        venv + 編集可能インストール + チェック + テスト
+├── run.sh / run.bat            引数なしの場合は実際のinventory scan + config validateデモ、それ以外は実際のCLIコマンドを転送
+├── bump_version.py             明示的なバージョン更新
+├── bump_manifest_version.py    hydra-umc.project.jsonのバージョンをネイティブのものと同期（--sync）
+├── CHANGELOG.md                各バージョンの変更点
+├── build-test.sh               変更を伴わないビルド確認
+├── hydra-umc.project.json      マニフェスト：バージョン、成熟度、ファミリー
+├── pyproject.toml              パッケージのメタデータ
+└── test.sh                     テストを実行
+```
+
+</details>
+
+## 🗺️ ロードマップと既知の制限
+
+**現時点の既知の制限**
 
 このバージョンはDS01からDS10までを提供する。10回の提供計画は完了した。提供順に、各提供物は:
 
@@ -309,6 +319,10 @@ CHANGELOGには一切触れない - これ自体はテストスイートを実�
 `deliver evaluate` はまさにそう述べており、その `known_limitations`
 リストが正直なToDoである。各提供物が明示的に含むもの・除外するものに
 ついては [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) を参照。
+
+## 🌍 言語
+
+この README とリポジトリの文書は、英語・スペイン語・ドイツ語・フランス語・イタリア語・日本語・中国語・ポルトガル語（ポルトガル）の 8 言語で提供されています。8 つのファイルは同時に書かれ、同じ節と同じリンクを持つことを CI が確認します。 このリポジトリには独自の画面もメッセージカタログもないため、翻訳すべきインターフェース文字列はありません。
 
 ## 🔗 関連プロジェクト
 
@@ -399,24 +413,30 @@ CHANGELOGには一切触れない - これ自体はテストスイートを実�
 - **[URTC-SMART-RACK](https://github.com/JuanenRac/URTC-SMART-RACK)** — 実際のツールID復号とSmart Idle予熱ロジックを備えた、基板搭載ラック向けファームウェア。
 - **[URTC-VISION-TOOL](https://github.com/JuanenRac/URTC-VISION-TOOL)** — 熱/RGB検査ツールヘッド向けの、ファームウェアと実際のPythonビジョンコンパニオン。
 
----
+## 📚 ドキュメント
 
-## 📚 ドキュメントとコミュニティ
+さらに読むには：
 
-- **[docs/CLI_REFERENCE.md](docs/CLI_REFERENCE.md)** — 各サブコマンド、そのフラグ、終了コード契約。
-- **[docs/CONFIG_SCHEMA.md](docs/CONFIG_SCHEMA.md)** — `HostProfile`/`ToolchainPolicy`/`TaskPolicy`の実際のJSON形状。
-- **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)** — 目的、2つの作業モード、初期範囲、ディスク構成。
-- **[docs/OPS_INTEGRATION.md](docs/OPS_INTEGRATION.md)** — 完全な17関係マップと状態所有権表。
-- **[CONTRIBUTING.md](CONTRIBUTING.md)** — プルリクエストのための技術スタックとコーディングガイドライン。
-- **[CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)** — このコミュニティで期待される行動基準。
-- **[SECURITY.md](SECURITY.md)** — 脆弱性の報告方法、およびこのプロジェクトの実際のセキュリティ重点分野。
-- **[SUPPORT.md](SUPPORT.md)** — 質問や不具合報告の窓口。
+* **[docs/CLI_REFERENCE.md](docs/CLI_REFERENCE.md)** — 各サブコマンド、そのフラグ、終了コード契約。
+* **[docs/CONFIG_SCHEMA.md](docs/CONFIG_SCHEMA.md)** — `HostProfile`/`ToolchainPolicy`/`TaskPolicy`の実際のJSON形状。
+* **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)** — 目的、2つの作業モード、初期範囲、ディスク構成。
+* **[docs/OPS_INTEGRATION.md](docs/OPS_INTEGRATION.md)** — 完全な17関係マップと状態所有権表。
+* [エコシステムのセキュリティ基準](https://github.com/JuanenRac/HYDRA-UMC-DOCS/blob/main/docs/SECURITY_BASELINE.md)
+* [エコシステムの脅威モデル](https://github.com/JuanenRac/HYDRA-UMC-DOCS/blob/main/docs/THREAT_MODEL.md)
+* [このリポジトリの変更履歴](CHANGELOG.md)
+* [このリポジトリのライセンス](LICENSE.md)
+
+## 🤝 コントリビュートとコミュニティ
+
+* プルリクエストの前に `HYDRA_UMC_CI=1 py -3 tools/ci_validate.py`（または `HYDRA_UMC_CI=1 python3 tools/ci_validate.py`）を実行してください。`CI_VALIDATION=PASS` と表示される必要があります。この確認に `build.sh` や `build.bat` は使わないでください。ビルドは検査ではありません。
+* 8 つの README は HYDRA-UMC-DOCS の 1 つのソースから書かれます。手で編集しないでください。ソースを変更し、`tools/make_readmes.py` で書き直します。
+* 実行していないことを README に書かないでください。事実であれば「シミュレーションのみ」「実機では未確認」と書きます。
+* [CONTRIBUTING.md](CONTRIBUTING.md)、[行動規範](CODE_OF_CONDUCT.md)、[SECURITY.md](SECURITY.md)、[SUPPORT.md](SUPPORT.md) を参照してください。
 
 ## 👤 作者
-**JuanenRac**（Electro Hobby 3D）
-📧 electrohobby3d@gmail.com
-📺 [youtube.com/@electrohobby3d](https://youtube.com/@electrohobby3d)
+
+**JuanenRac (Electro Hobby 3D)** · electrohobby3d@gmail.com
 
 ## 📜 ライセンス
 
-GPL-3.0-or-later（ソフトウェア）／ CC BY-SA 4.0（ドキュメント）- 詳細は [LICENSE.md](LICENSE.md) を参照。
+GPL-3.0-or-later - [LICENSE](LICENSE).
