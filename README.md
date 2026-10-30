@@ -198,6 +198,8 @@ surface.
 
 Two more commands, `plugin list` and `serve`, cover the plugin lifecycle and an authenticated local HTTP API (loopback only, bearer token). A plugin stays inert until it is enabled against the approved SHA-256 of its files and can only add named checks, reports and generators (declared with `provides` in `plugin.json`, run by `plugin run` or over the API, each bounded by a timeout and a size limit); the API runs no task and deploys nothing. See [docs/CLI_REFERENCE.md](docs/CLI_REFERENCE.md) and [docs/PLUGINS.md](docs/PLUGINS.md). Since then the task runner wraps the command in a bubblewrap or systemd-run sandbox when the host has one (no home, no network unless the policy opens it, only the workspace writable), limits the arguments of each command, fetches the pinned revision, limits the tasks that run at once and removes the workspace afterwards, and plugins run in their own process by default. None of this has run on a real host yet.
 
+The health route of the local API answers only `{"status": "ok"}` without the token; the version and the plugin count need it (or `serve --public-health-detail`, which restores the open answer). A check, report or generator that ran and failed answers `502` (`504` when it ran out of time); a missing token is `401` with `WWW-Authenticate: Bearer`, and a known route called with the wrong method is `405` with an `Allow` header, all with a JSON body.
+
 ## 🧩 Role in HYDRA-UMC
 
 **HYDRA-UMC-DEV-SERVER** is the development host of the ecosystem: it runs bounded, allow-listed build and test tasks in isolated workspaces and coordinates repair candidates with `HYDRA-UMC-OPS-AGENT`. It never approves its own tasks and deploys nothing; delivery to a node always goes through `HYDRA-UMC-UPDATER`.

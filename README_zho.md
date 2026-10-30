@@ -133,6 +133,8 @@ $ hydra-umc-dev-server inventory scan --root ..
 
 另外两个命令 `plugin list` 和 `serve` 负责插件生命周期以及带认证的本地 HTTP API（仅限回环地址，Bearer 令牌）。插件在以其文件已批准的 SHA-256 启用之前保持惰性，并且只能添加具名的检查、报告和生成器（在 `plugin.json` 中用 `provides` 声明，通过 `plugin run` 或 API 运行，各自受超时和大小上限限制）；该 API 不运行任何任务，也不部署任何内容。详见 [docs/CLI_REFERENCE.md](docs/CLI_REFERENCE.md) 和 [docs/PLUGINS.md](docs/PLUGINS.md)。 此外，当主机具备 bubblewrap 或 systemd-run 时，任务运行器会把命令放进沙箱（无主目录，除非策略开放否则无网络，只有工作区可写），限制每个命令的参数，拉取固定的修订版本，限制同时运行的任务数并在结束后删除工作区；插件默认在各自的进程中运行。以上内容尚未在真实主机上运行过。
 
+本地 API 的健康检查路由在没有令牌时只返回 `{"status": "ok"}`；版本和插件数量需要令牌(或使用 `serve --public-health-detail` 恢复公开的应答)。运行后失败的检查、报告或生成器返回 `502`(超时则为 `504`)；缺少令牌是带 `WWW-Authenticate: Bearer` 的 `401`，用错误方法调用已知路由是带 `Allow` 头的 `405`，全部带 JSON 正文。
+
 ## 🧩 在 HYDRA-UMC 中的角色
 
 **HYDRA-UMC-DEV-SERVER** 是生态系统的开发主机：它在隔离的工作区中运行受限的、在允许列表内的构建和测试任务，并与 `HYDRA-UMC-OPS-AGENT` 协调修复候选。它从不批准自己的任务，也不部署任何东西；向节点交付始终经过 `HYDRA-UMC-UPDATER`。
