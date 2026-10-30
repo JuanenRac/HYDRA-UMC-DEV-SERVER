@@ -12,7 +12,8 @@ changes what the server allows. It reports the workspace inventory and
 drives the plugin lifecycle in plugins.py.
 
 Routes
-    GET  /v1/health                         no token; version and plugin count
+    GET  /v1/health                         no token; {"status": "ok"} (version and plugin count only with the token,
+                                            or for everybody with public_health_detail)
     GET  /v1/inventory                      manifests found under the workspace
     GET  /v1/audit                          the last requests (method, path, status, time), newest last
     GET  /v1/plugins                        every discovered plugin and its state
@@ -99,6 +100,7 @@ class DevServer(ThreadingHTTPServer):
         workspace_root: Path,
         plugins_root: Path,
         max_connections: int = MAX_CONNECTIONS,
+        public_health_detail: bool = False,
     ) -> None:
         validate_bind(address[0], token)
         if max_connections < 1:
@@ -107,6 +109,9 @@ class DevServer(ThreadingHTTPServer):
         self.token = token
         self.workspace_root = workspace_root
         self.plugins_root = plugins_root
+        # False: the health route answers a caller without the token only {"status": "ok"}, so the exact version
+        # and the number of plugins are not shown to anybody who can reach the port.
+        self.public_health_detail = public_health_detail
         self.registry = PluginRegistry()
         self.registry.discover(plugins_root)
         self._slots = threading.BoundedSemaphore(max_connections)
@@ -158,6 +163,14 @@ class _Handler(BaseHTTPRequestHandler):
         if self.command != "HEAD":
             self.wfile.write(body)
 
+    def _send_run(self, outcome: dict) -> None:
+        """A plugin call that failed is not a 200: 504 when it ran out of time, 502 for any other error."""
+        if outcome.get("status") == "error":
+            timed_out = "did not finish within" in str(outcome.get("error", ""))
+            self._send(504 if timed_out else 502, outcome)
+        else:
+            self._send(200, outcome)
+
     def _refuse_unauthorized(self) -> None:
         self._send(401, {"error": "a valid bearer token is required"}, {"WWW-Authenticate": "Bearer"})
 
@@ -197,7 +210,10 @@ class _Handler(BaseHTTPRequestHandler):
     def do_GET(self) -> None:  # noqa: N802
         path = self.path.split("?", 1)[0]
         if path == "/v1/health":
-            self._send(200, {"status": "ok", "version": __version__, "plugins": len(self.server.registry.list())})
+            if self.server.public_health_detail or self._authorized():
+                self._send(200, {"status": "ok", "version": __version__, "plugins": len(self.server.registry.list())})
+            else:
+                self._send(200, {"status": "ok"})
             return
         if not self._authorized():
             self._refuse_unauthorized()
@@ -246,15 +262,15 @@ class _Handler(BaseHTTPRequestHandler):
                 return
             check = _CHECK_RE.match(path)
             if check:
-                self._send(200, registry.run_check(check.group(1), check.group(2)))
+                self._send_run(registry.run_check(check.group(1), check.group(2)))
                 return
             report = _REPORT_RE.match(path)
             if report:
-                self._send(200, registry.run_report(report.group(1), report.group(2)))
+                self._send_run(registry.run_report(report.group(1), report.group(2)))
                 return
             generator = _GENERATOR_RE.match(path)
             if generator:
-                self._send(200, registry.run_generator(generator.group(1), generator.group(2), body.get("params")))
+                self._send_run(registry.run_generator(generator.group(1), generator.group(2), body.get("params")))
                 return
         except PluginError as exc:
             self._send(404 if str(exc).startswith("no plugin") else 409, {"error": str(exc)})

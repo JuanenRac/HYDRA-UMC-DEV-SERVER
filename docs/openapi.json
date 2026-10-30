@@ -49,7 +49,7 @@
   "paths": {
     "/v1/health": {
       "get": {
-        "summary": "Version and plugin count. Needs no token.",
+        "summary": "Status ok. Needs no token; the version and the plugin count are shown only with the token (or to everybody when the server runs with --public-health-detail).",
         "security": [],
         "responses": {
           "200": { "description": "ok" },
@@ -151,6 +151,8 @@
         ],
         "responses": {
           "200": { "description": "the answer of the check" },
+          "502": { "description": "the plugin call ran and failed (the body has status error and the reason)" },
+          "504": { "description": "the plugin call did not finish within its time limit" },
           "401": { "$ref": "#/components/responses/Unauthorized" },
           "404": { "$ref": "#/components/responses/NotFound" },
           "409": { "$ref": "#/components/responses/Conflict" },
@@ -169,6 +171,8 @@
         ],
         "responses": {
           "200": { "description": "the report" },
+          "502": { "description": "the plugin call ran and failed (the body has status error and the reason)" },
+          "504": { "description": "the plugin call did not finish within its time limit" },
           "401": { "$ref": "#/components/responses/Unauthorized" },
           "404": { "$ref": "#/components/responses/NotFound" },
           "409": { "$ref": "#/components/responses/Conflict" },
@@ -191,6 +195,8 @@
         },
         "responses": {
           "200": { "description": "the generated file" },
+          "502": { "description": "the plugin call ran and failed (the body has status error and the reason)" },
+          "504": { "description": "the plugin call did not finish within its time limit" },
           "401": { "$ref": "#/components/responses/Unauthorized" },
           "404": { "$ref": "#/components/responses/NotFound" },
           "409": { "$ref": "#/components/responses/Conflict" },

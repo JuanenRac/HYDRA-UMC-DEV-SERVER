@@ -73,6 +73,33 @@ class ApiTests(unittest.TestCase):
         except urllib.error.HTTPError as error:
             return error.code, json.loads(error.read())
 
+    def test_health_without_the_token_shows_no_version_and_with_it_shows_the_detail(self):
+        self.assertEqual(self._call("GET", "/v1/health", token=None), (200, {"status": "ok"}))
+        self.assertEqual(self._call("GET", "/v1/health", token="x" * 32), (200, {"status": "ok"}))
+        status, body = self._call("GET", "/v1/health")
+        self.assertEqual((status, body["status"]), (200, "ok"))
+        self.assertIn("version", body)
+        self.assertEqual(body["plugins"], 1)
+
+    def test_public_health_detail_is_an_explicit_opt_in(self):
+        self.server.public_health_detail = True
+        status, body = self._call("GET", "/v1/health", token=None)
+        self.assertEqual(status, 200)
+        self.assertIn("version", body)
+
+    def test_a_check_that_fails_or_times_out_is_not_a_200(self):
+        digest = self._call("GET", "/v1/plugins")[1]["plugins"][0]["sha256"]
+        self._call("POST", "/v1/plugins/demo/enable", {"sha256": digest})
+        self.assertEqual(self._call("POST", "/v1/plugins/demo/checks/ping")[0], 200)
+        original = self.server.registry.run_check
+        try:
+            self.server.registry.run_check = lambda *a, **k: {"status": "error", "error": "the check did not finish within 5 s"}
+            self.assertEqual(self._call("POST", "/v1/plugins/demo/checks/ping")[0], 504)
+            self.server.registry.run_check = lambda *a, **k: {"status": "error", "error": "it raised"}
+            self.assertEqual(self._call("POST", "/v1/plugins/demo/checks/ping")[0], 502)
+        finally:
+            self.server.registry.run_check = original
+
     def test_health_needs_no_token_but_everything_else_does(self):
         self.assertEqual(self._call("GET", "/v1/health", token=None)[0], 200)
         for method, path in (("GET", "/v1/inventory"), ("GET", "/v1/plugins"), ("POST", "/v1/plugins/rescan")):

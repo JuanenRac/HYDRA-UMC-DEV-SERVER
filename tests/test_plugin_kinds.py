@@ -270,7 +270,7 @@ class ApiTests(unittest.TestCase):
     def test_a_report_over_http(self):
         self.assertEqual(self._call("POST", "/v1/plugins/demo/reports/state"), (200, {"status": "ok", "result": {"n": 3}}))
         status, body = self._call("POST", "/v1/plugins/demo/reports/boom")
-        self.assertEqual((status, body["status"]), (200, "error"))
+        self.assertEqual((status, body["status"]), (502, "error"))
         self.assertEqual(self._call("POST", "/v1/plugins/demo/reports/ghost")[0], 409)
         self.assertEqual(self._call("POST", "/v1/plugins/ghost/reports/state")[0], 404)
 
@@ -278,7 +278,8 @@ class ApiTests(unittest.TestCase):
         status, body = self._call("POST", "/v1/plugins/demo/generators/hello", {"params": {"who": "Ana"}})
         self.assertEqual((status, body["result"]["content"]), (200, "hi Ana"))
         self.assertEqual(self._call("POST", "/v1/plugins/demo/generators/hello")[1]["result"]["content"], "hi you")
-        self.assertEqual(self._call("POST", "/v1/plugins/demo/generators/bad-name")[1]["status"], "error")
+        bad = self._call("POST", "/v1/plugins/demo/generators/bad-name")
+        self.assertEqual((bad[0], bad[1]["status"]), (502, "error"))
 
     def test_bad_generator_parameters_are_refused_not_run(self):
         self.assertEqual(self._call("POST", "/v1/plugins/demo/generators/hello", {"params": [1]})[0], 409)

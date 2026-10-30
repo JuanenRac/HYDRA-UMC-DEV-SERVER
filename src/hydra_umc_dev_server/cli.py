@@ -586,6 +586,7 @@ def _cmd_serve(args: argparse.Namespace) -> int:
             token=_read_api_token(args),
             workspace_root=Path(args.workspace_root),
             plugins_root=Path(args.plugins_root),
+            public_health_detail=args.public_health_detail,
         )
     except (ApiConfigError, OSError) as exc:
         print(f"cannot start the API: {exc}", file=sys.stderr)
@@ -839,6 +840,7 @@ def build_parser() -> argparse.ArgumentParser:
     serve.add_argument("--workspace-root", required=True, help="Workspace whose manifests /v1/inventory reports.")
     serve.add_argument("--plugins-root", required=True, help="Directory whose subdirectories are plugins.")
     serve.add_argument("--token-file", default=None, help="File holding the API bearer token (at least 24 characters); otherwise HYDRA_UMC_DEV_SERVER_TOKEN.")
+    serve.add_argument("--public-health-detail", action="store_true", help="Let GET /v1/health show the version and the plugin count to a caller without the token (default: only {\"status\": \"ok\"}).")
     serve.set_defaults(func=_cmd_serve)
 
     return parser
