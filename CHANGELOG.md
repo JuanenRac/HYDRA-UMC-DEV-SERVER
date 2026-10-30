@@ -4,6 +4,8 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+## [0.2.0] - A health route that no longer shows the exact version, consistent HTTP status codes and the universal README
+
 - **The health route no longer shows the exact version to anybody:** `GET /v1/health` answers `{"status": "ok"}` without the token and adds the version and the plugin count only with it; `serve --public-health-detail` restores the old open answer. A check, report or generator that ran and failed now answers `502` (and `504` when it ran out of time) instead of `200` with an error body; the body is the same.
 - **The HTTP status codes of the local API are consistent:** a missing token is answered `401` with `WWW-Authenticate: Bearer`; a known route called with the wrong method, and any method other than `GET` and `POST`, is `405` with an `Allow` header and a JSON body (it was `404` or the standard library's `501` HTML page); a failure inside the server is a `500` with a JSON body and no trace instead of a dropped connection. The OpenAPI document names the new answers. Tested.
 - **README in the universal layout:** the README and its seven translations follow the layout that the four families share (22 sections in a fixed order), with an architecture picture and a repository-structure picture drawn from `docs/architecture.json` and `docs/structure.json`; the CI validator checks both pictures and the file tree.
