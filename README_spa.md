@@ -18,14 +18,14 @@ GPL-3.0-or-later - see LICENSE
   <img src="https://img.shields.io/badge/License-GPL%203.0--or--later-blue.svg" alt="GPL 3.0 or later">
   <img src="https://img.shields.io/badge/Language-Python%203.11%2B-blue.svg" alt="Language">
   <img src="https://img.shields.io/badge/Core-stdlib%20only-brightgreen.svg" alt="Core">
-  <img src="https://img.shields.io/badge/Tests-442%20passing-2ea44f.svg" alt="Tests">
+  <img src="https://img.shields.io/badge/Tests-448%20passing-2ea44f.svg" alt="Tests">
   <img src="https://img.shields.io/badge/Version-0.2.0-0f6cbd.svg" alt="Version">
   <img src="https://img.shields.io/badge/Maturity-functional-0F6CBD.svg" alt="Maturity">
 </p>
 
 ---
 
-**Comprobación de honestidad - qué funciona realmente hoy:** los veintidós módulos listados a continuación (`config.py`, `inventory.py`, `remote_station.py`, `preflight.py`, `provision.py`, `migration.py`, `workspace.py`, `recipe.py`, `runner.py`, `durable_queue.py`, `ai_provider.py`, `incident_transport.py`, `repair_cycle.py`, `operations.py`, `delivery.py`, `cli.py`, `api.py`, `plugins.py`, `sandbox.py`, `taskflow.py`, `worker.py`, `signing.py`) son código real, no stubs, y están cubiertos por una suite de tests real (442 tests pasando en `tests/test_*.py`). Lo que ese código real ha hecho de verdad, en concreto: validar documentos JSON, planificar migraciones en disco, ejecutar un subproceso real acotado en un workspace aislado real con un entorno real depurado, persistir una cola/journal SQLite real a través de reinicios, y ejercitar un round-trip real de incidentes firmado con HMAC - todo contra este checkout local o un seam de test inyectable, nunca contra el hardware real de destino Raspberry Pi 5/CM5 para el que está construido este proyecto. `provider suggest` solo llama nunca al `FakeProvider` determinista; cablear un proveedor de IA real es una decisión de usuario explícita y sin hacer. `station preflight`/`station plan` describen un host remoto a través de un inspector inyectable y nunca se han ejecutado contra una máquina remota real. Nada en este repositorio ha aprovisionado un host ni ejecutado un despliegue, y el bucle de trabajo (`queue work`) solo se ha ejecutado contra simulacros del lanzador y de git, nunca en un host real - el propio `overall_maturity: "functional"` hardcodeado de `deliver evaluate` lo dice claramente desde dentro del propio código. Ver `CHANGELOG.md` para lo que se ha entregado exactamente, entrega por entrega.
+**Comprobación de honestidad - qué funciona realmente hoy:** los veintidós módulos listados a continuación (`config.py`, `inventory.py`, `remote_station.py`, `preflight.py`, `provision.py`, `migration.py`, `workspace.py`, `recipe.py`, `runner.py`, `durable_queue.py`, `ai_provider.py`, `incident_transport.py`, `repair_cycle.py`, `operations.py`, `delivery.py`, `cli.py`, `api.py`, `plugins.py`, `sandbox.py`, `taskflow.py`, `worker.py`, `signing.py`) son código real, no stubs, y están cubiertos por una suite de tests real (448 tests pasando en `tests/test_*.py`). Lo que ese código real ha hecho de verdad, en concreto: validar documentos JSON, planificar migraciones en disco, ejecutar un subproceso real acotado en un workspace aislado real con un entorno real depurado, persistir una cola/journal SQLite real a través de reinicios, y ejercitar un round-trip real de incidentes firmado con HMAC - todo contra este checkout local o un seam de test inyectable, nunca contra el hardware real de destino Raspberry Pi 5/CM5 para el que está construido este proyecto. `provider suggest` solo llama nunca al `FakeProvider` determinista; cablear un proveedor de IA real es una decisión de usuario explícita y sin hacer. `station preflight`/`station plan` describen un host remoto a través de un inspector inyectable y nunca se han ejecutado contra una máquina remota real. Nada en este repositorio ha aprovisionado un host ni ejecutado un despliegue, y el bucle de trabajo (`queue work`) solo se ha ejecutado contra simulacros del lanzador y de git, nunca en un host real - el propio `overall_maturity: "functional"` hardcodeado de `deliver evaluate` lo dice claramente desde dentro del propio código. Ver `CHANGELOG.md` para lo que se ha entregado exactamente, entrega por entrega.
 
 ---
 
@@ -39,7 +39,7 @@ GPL-3.0-or-later - see LICENSE
 |---|---|
 | Versión | `0.2.0` |
 | Madurez | Funcional |
-| Tests | 442 (`python -m pytest -q tests`) |
+| Tests | 448 (`python -m pytest -q tests`) |
 | Tecnología | Python 3.11+ / JSON Schema / systemd (host role, Linux only) / SQLite (durable task/state journal, from DS05 onward) |
 | Destino | Un servidor de desarrollo |
 | En hardware real | Todavía no: no consta ninguna ejecución en hardware real para esta versión |
@@ -55,7 +55,7 @@ Cada línea es una parte de este repositorio y la luz dice hasta dónde llega ho
 | Área | Estado | Qué significa aquí |
 |---|---|---|
 | Software | 🟡 | Funciona para su propósito principal; la comprobación de honestidad de arriba lista lo que aún falta |
-| Pruebas | 🟢 | 442 pruebas automáticas, ejecutadas en cada cambio |
+| Pruebas | 🟢 | 448 pruebas automáticas, ejecutadas en cada cambio |
 | Hardware real | 🔴 | Todavía no: no consta ninguna ejecución en hardware real para esta versión |
 | Documentación | 🟢 | README en ocho idiomas, comprobado contra el manifiesto en cada cambio |
 
@@ -257,7 +257,7 @@ Requiere Python 3.11 o superior.
 
 ## 🧪 Pruebas
 
-442 pruebas automáticas se ejecutan con `python -m pytest -q tests`. Las pruebas del sandbox se saltan, diciendo por qué, en un equipo sin sandbox utilizable; ninguna necesita hardware.
+448 pruebas automáticas se ejecutan con `python -m pytest -q tests`. Las pruebas del sandbox se saltan, diciendo por qué, en un equipo sin sandbox utilizable; ninguna necesita hardware.
 
 El CI ejecuta `HYDRA_UMC_CI=1 python tools/ci_validate.py`, que comprueba el manifiesto, los documentos, los ocho README y las imágenes.
 

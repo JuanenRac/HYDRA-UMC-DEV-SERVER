@@ -18,14 +18,14 @@ GPL-3.0-or-later - see LICENSE
   <img src="https://img.shields.io/badge/License-GPL%203.0--or--later-blue.svg" alt="GPL 3.0 or later">
   <img src="https://img.shields.io/badge/Language-Python%203.11%2B-blue.svg" alt="Language">
   <img src="https://img.shields.io/badge/Core-stdlib%20only-brightgreen.svg" alt="Core">
-  <img src="https://img.shields.io/badge/Tests-442%20passing-2ea44f.svg" alt="Tests">
+  <img src="https://img.shields.io/badge/Tests-448%20passing-2ea44f.svg" alt="Tests">
   <img src="https://img.shields.io/badge/Version-0.2.0-0f6cbd.svg" alt="Version">
   <img src="https://img.shields.io/badge/Maturity-functional-0F6CBD.svg" alt="Maturity">
 </p>
 
 ---
 
-**正直な現状確認 - 今日実際に動くもの:** 以下に挙げる 22 個のモジュール(`config.py`、`inventory.py`、`remote_station.py`、`preflight.py`、`provision.py`、`migration.py`、`workspace.py`、`recipe.py`、`runner.py`、`durable_queue.py`、`ai_provider.py`、`incident_transport.py`、`repair_cycle.py`、`operations.py`、`delivery.py`、`cli.py`, `api.py`, `plugins.py`, `sandbox.py`, `taskflow.py`, `worker.py`, `signing.py`)はすべてスタブではなく本物のコードであり、本物のテストスイート(`tests/test_*.py` 全体で 442 件のテストが成功)によってカバーされている。この本物のコードが実際に行ったこと: JSON ドキュメントの検証、ディスク上でのマイグレーション計画、実際の隔離ワークスペース内で実際に浄化された環境を使った本物の制限付きサブプロセスの実行、再起動をまたいだ本物の SQLite キュー/ジャーナルの永続化、本物の HMAC 署名インシデントの往復のテスト - これらすべてはこのローカルチェックアウトまたは注入可能なテスト用シームに対してのみ行われており、このプロジェクトが実際に対象とする Raspberry Pi 5/CM5 の実機に対しては一度も実行されていない。`provider suggest` は決定論的な `FakeProvider` のみを常に呼び出す。本物の AI プロバイダーを組み込むことは、まだ行われていない明示的なユーザー判断のままである。`station preflight`/`station plan` は注入可能なインスペクターを通じてリモートホストを記述するだけで、実際のリモートマシンに対して実行されたことは一度もない。このリポジトリの中で、ホストをプロビジョニングしたり、デプロイを実行したりしたものは何もなく、ワーカーループ(`queue work`)もランチャーと git の代用品に対してしか動いたことがなく、実際のホストでは一度も動いていない - `deliver evaluate` 自身がハードコードしている `overall_maturity: "functional"` が、コード自体からそれを率直に物語っている。これまでに何が納品されたかは `CHANGELOG.md` を参照。
+**正直な現状確認 - 今日実際に動くもの:** 以下に挙げる 22 個のモジュール(`config.py`、`inventory.py`、`remote_station.py`、`preflight.py`、`provision.py`、`migration.py`、`workspace.py`、`recipe.py`、`runner.py`、`durable_queue.py`、`ai_provider.py`、`incident_transport.py`、`repair_cycle.py`、`operations.py`、`delivery.py`、`cli.py`, `api.py`, `plugins.py`, `sandbox.py`, `taskflow.py`, `worker.py`, `signing.py`)はすべてスタブではなく本物のコードであり、本物のテストスイート(`tests/test_*.py` 全体で 448 件のテストが成功)によってカバーされている。この本物のコードが実際に行ったこと: JSON ドキュメントの検証、ディスク上でのマイグレーション計画、実際の隔離ワークスペース内で実際に浄化された環境を使った本物の制限付きサブプロセスの実行、再起動をまたいだ本物の SQLite キュー/ジャーナルの永続化、本物の HMAC 署名インシデントの往復のテスト - これらすべてはこのローカルチェックアウトまたは注入可能なテスト用シームに対してのみ行われており、このプロジェクトが実際に対象とする Raspberry Pi 5/CM5 の実機に対しては一度も実行されていない。`provider suggest` は決定論的な `FakeProvider` のみを常に呼び出す。本物の AI プロバイダーを組み込むことは、まだ行われていない明示的なユーザー判断のままである。`station preflight`/`station plan` は注入可能なインスペクターを通じてリモートホストを記述するだけで、実際のリモートマシンに対して実行されたことは一度もない。このリポジトリの中で、ホストをプロビジョニングしたり、デプロイを実行したりしたものは何もなく、ワーカーループ(`queue work`)もランチャーと git の代用品に対してしか動いたことがなく、実際のホストでは一度も動いていない - `deliver evaluate` 自身がハードコードしている `overall_maturity: "functional"` が、コード自体からそれを率直に物語っている。これまでに何が納品されたかは `CHANGELOG.md` を参照。
 
 ---
 
@@ -39,7 +39,7 @@ GPL-3.0-or-later - see LICENSE
 |---|---|
 | バージョン | `0.2.0` |
 | 成熟度 | 機能する |
-| テスト | 442 (`python -m pytest -q tests`) |
+| テスト | 448 (`python -m pytest -q tests`) |
 | 技術 | Python 3.11+ / JSON Schema / systemd (host role, Linux only) / SQLite (durable task/state journal, from DS05 onward) |
 | 対象 | 開発用サーバー |
 | 実機での確認 | まだです：このバージョンについて実機での動作記録はありません |
@@ -55,7 +55,7 @@ GPL-3.0-or-later - see LICENSE
 | 領域 | 状態 | ここでの意味 |
 |---|---|---|
 | ソフトウェア | 🟡 | 主な目的では動作します。足りない点は上の正直さの確認に書かれています |
-| テスト | 🟢 | 自動テスト 442 件。変更のたびに実行されます |
+| テスト | 🟢 | 自動テスト 448 件。変更のたびに実行されます |
 | 実機 | 🔴 | まだです：このバージョンについて実機での動作記録はありません |
 | ドキュメント | 🟢 | 8 言語の README。変更のたびにマニフェストと照合されます |
 
@@ -196,7 +196,7 @@ Python 3.11 以上が必要です。
 
 ## 🧪 テスト
 
-`python -m pytest -q tests` で自動テスト 442 件を実行します。 サンドボックスのテストは、使えるサンドボックスがないホストでは理由を示してスキップされます。ハードウェアが必要なテストはありません。
+`python -m pytest -q tests` で自動テスト 448 件を実行します。 サンドボックスのテストは、使えるサンドボックスがないホストでは理由を示してスキップされます。ハードウェアが必要なテストはありません。
 
 CI は `HYDRA_UMC_CI=1 python tools/ci_validate.py` を実行し、マニフェスト、文書、8 つの README、図を検査します。
 
