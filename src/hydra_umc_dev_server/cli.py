@@ -145,7 +145,7 @@ def _cmd_config_validate(args: argparse.Namespace) -> int:
         print(f"INVALID: {path} ({args.kind}): {exc}", file=sys.stderr)
         return 1
     print(f"VALID: {path} ({args.kind})")
-    print(json.dumps(document.to_dict(), indent=2))
+    print(json.dumps(document.to_dict(), indent=2))  # type: ignore[attr-defined]
     return 0
 
 

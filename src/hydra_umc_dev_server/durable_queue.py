@@ -313,7 +313,7 @@ class DurableQueue:
 
         final_state = STATE_SUCCEEDED if (ran_ok and not base_moved) else STATE_FAILED
         promotable = ran_ok and not base_moved
-        reason = None
+        reason = None  # type: ignore[assignment]
         if base_moved:
             reason = "base changed during the task - candidate not promotable"
         elif not ran_ok:

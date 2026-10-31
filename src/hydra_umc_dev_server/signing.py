@@ -73,7 +73,7 @@ def _recover_x(y: int, sign: int) -> int | None:
 
 _GY = 4 * _inv(5) % _P
 _GX = _recover_x(_GY, 0)
-_G = (_GX, _GY, 1, _GX * _GY % _P)  # extended coordinates (X, Y, Z, T)
+_G = (_GX, _GY, 1, _GX * _GY % _P)  # type: ignore[operator]  # extended coordinates (X, Y, Z, T)
 
 
 def _add(a: tuple[int, int, int, int], b: tuple[int, int, int, int]) -> tuple[int, int, int, int]:
@@ -147,7 +147,7 @@ def signing_backend() -> str:
 
 def _pure_public_key_bytes(seed: bytes) -> bytes:
     scalar, _ = _expand(seed)
-    return _compress(_mul(scalar, _G))
+    return _compress(_mul(scalar, _G))  # type: ignore[arg-type]
 
 
 def public_key_bytes(seed: bytes) -> bytes:
@@ -173,9 +173,9 @@ def sign_bytes(seed: bytes, message: bytes) -> bytes:
 
 def _pure_sign_bytes(seed: bytes, message: bytes) -> bytes:
     scalar, prefix = _expand(seed)
-    public = _compress(_mul(scalar, _G))
+    public = _compress(_mul(scalar, _G))  # type: ignore[arg-type]
     r = _hash_int(prefix + message) % _L
-    big_r = _compress(_mul(r, _G))
+    big_r = _compress(_mul(r, _G))  # type: ignore[arg-type]
     k = _hash_int(big_r + public + message) % _L
     s = (r + k * scalar) % _L
     return big_r + int.to_bytes(s, 32, "little")
@@ -192,7 +192,7 @@ def verify_bytes(public: bytes, message: bytes, signature: bytes) -> bool:
     if s >= _L:
         return False
     k = _hash_int(signature[:32] + public + message) % _L
-    return _equal(_mul(s, _G), _add(r, _mul(k, a)))
+    return _equal(_mul(s, _G), _add(r, _mul(k, a)))  # type: ignore[arg-type]
 
 
 # ---------------------------------------------------------------------------

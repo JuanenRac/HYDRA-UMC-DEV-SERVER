@@ -158,7 +158,7 @@ def evaluate_maturity(repo_root: str | Path) -> MaturityEvaluation:
     src = root / "src" / "hydra_umc_dev_server"
     statuses: list[DeliveryStatus] = []
     for delivery_id, scope, module, status in _DELIVERIES:
-        present = bool(module) and (src / module).is_file()
+        present = bool(module) and (src / module).is_file()  # type: ignore[operator]
         statuses.append(DeliveryStatus(
             delivery_id=delivery_id, scope=scope, module=module,
             status=status if present or module is None else "not-started",
