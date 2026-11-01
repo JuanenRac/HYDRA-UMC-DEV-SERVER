@@ -57,6 +57,11 @@ Each line is one part of this repository and the light says how far it is today.
 | Software | 🟡 | Works for its main purpose; the honesty check above lists what is still missing |
 | Tests | 🟢 | 467 automated tests, run on every change |
 | Real hardware | 🔴 | Not yet: no run on real hardware is recorded for this version |
+| Interface and protocols | 🟡 | The routes or messages it offers are documented and tested with a client; not every client has used them yet |
+| Integration | 🟠 | Its messages and routes are checked against the shared contracts of the SDK; it has not run together with the real equipment |
+| Security | 🟡 | Access control, input limits or signatures are implemented and tested on a computer; nobody outside the project has reviewed them |
+| Deployment | 🟠 | Published as a release; installing it on a clean machine is documented but not recorded |
+| Operation | 🟡 | Exposes /metrics in the Prometheus text format with a health summary; it is not wired to a monitoring dashboard yet |
 | Documentation | 🟢 | README in eight languages, checked against the manifest on every change |
 
 ## 🎯 Overview
