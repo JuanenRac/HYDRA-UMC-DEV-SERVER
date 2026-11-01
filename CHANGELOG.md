@@ -4,6 +4,8 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+- **A local bench that runs the services of the ecosystem against each other, without Docker and without a robot** (`python -m hydra_umc_dev_server.bench`). A goal is planned (a proposal that needs an approval), the safety zones say whether the cell is clear, the twin signs the risk of the first movement and only then the dispatcher gets the job; a person in the cell stops the chain before any certificate or job. With the real bridge and the twin's simulated robot, a certified command also moves a simulated joint over time and the twin follows it as measured. Each service is one you give (`--planner URL` ...), one the bench starts (`--real`: the planner and the safety zones as Python processes, the twin and the bridge from their built binaries, on loopback ports, with throw-away keys and folders) or a simulated stand-in that speaks the documented contract (the default, which is what lets CI run it anywhere). The report says which is which; a scenario that cannot run says why instead of passing. The dispatcher (a Go program) and the server are given by URL or simulated.
+
 ## [0.2.0] - A health route that no longer shows the exact version, consistent HTTP status codes and the universal README
 
 - **The health route no longer shows the exact version to anybody:** `GET /v1/health` answers `{"status": "ok"}` without the token and adds the version and the plugin count only with it; `serve --public-health-detail` restores the old open answer. A check, report or generator that ran and failed now answers `502` (and `504` when it ran out of time) instead of `200` with an error body; the body is the same.
