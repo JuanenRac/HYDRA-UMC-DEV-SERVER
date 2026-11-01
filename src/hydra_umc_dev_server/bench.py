@@ -509,7 +509,7 @@ class Bench:
         status, certificate = self._certify("shoulder", 1.0)
         if status != 200:
             return Result("certified_command_moves_the_simulated_robot", "fail", f"the twin did not sign: {status} {certificate}")
-        order = {"mode": "real", "joint": "shoulder", "position": 1.0, "certificate": certificate, "issued_at_ms": int(time.time() * 1000), "valid_for_ms": 5000, "seq": 1}
+        order = {"mode": "real", "joint": "shoulder", "position": 1.0, "certificate": certificate, "issued_at_ms": int(time.time() * 1000), "valid_for_ms": 1000, "seq": 1}
         status, routed = call(bridge.url, "POST", "/route", order)
         if status != 200 or "SentReal" not in json.dumps(routed):
             return Result("certified_command_moves_the_simulated_robot", "fail", f"the bridge answered {status}: {routed}")
