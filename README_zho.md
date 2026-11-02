@@ -25,7 +25,7 @@ GPL-3.0-or-later - see LICENSE
 
 ---
 
-**诚实核查 - 今天真正能运行的部分：** 下面列出的二十二个模块(`config.py`、`inventory.py`、`remote_station.py`、`preflight.py`、`provision.py`、`migration.py`、`workspace.py`、`recipe.py`、`runner.py`、`durable_queue.py`、`ai_provider.py`、`incident_transport.py`、`repair_cycle.py`、`operations.py`、`delivery.py`、`cli.py`, `api.py`, `plugins.py`, `sandbox.py`, `taskflow.py`, `worker.py`, `signing.py`)都是真实代码，而非占位符，并且由真实的测试套件覆盖(467 个测试在 `tests/test_*.py` 中全部通过)。这些真实代码具体做到了什么：验证 JSON 文档、在磁盘上规划迁移、在一个真实隔离工作区内以真实的净化环境运行一个真实的受限子进程、让一个真实的 SQLite 队列/日志在重启后依然持久、并执行了一次真实的 HMAC 签名事件往返 - 所有这些都只是针对本地检出或可注入的测试替身进行的，从未针对该项目真正面向的目标硬件 Raspberry Pi 5/CM5 运行过。`provider suggest` 始终只调用确定性的 `FakeProvider`；接入真实的 AI 提供方仍是一个明确尚未做出的用户决定。`station preflight`/`station plan` 通过可注入的检查器描述远程主机，从未针对真实的远程机器运行过。本仓库中没有任何东西真正部署过主机、执行过部署，而工作循环(`queue work`)只针对启动器和 git 的替身运行过，从未在真实主机上运行 - `deliver evaluate` 自身硬编码的 `overall_maturity: "functional"` 就是代码本身给出的明确说明。具体每一项交付的内容请见 `CHANGELOG.md`。
+**诚实核查 - 今天真正能运行的部分：** 下面列出的二十三个模块(`config.py`、`inventory.py`、`remote_station.py`、`preflight.py`、`provision.py`、`migration.py`、`workspace.py`、`recipe.py`、`runner.py`、`durable_queue.py`、`ai_provider.py`、`incident_transport.py`、`repair_cycle.py`、`operations.py`、`delivery.py`、`cli.py`, `api.py`, `plugins.py`, `sandbox.py`, `taskflow.py`, `worker.py`, `signing.py`, `trust_store.py`)都是真实代码，而非占位符，并且由真实的测试套件覆盖(467 个测试在 `tests/test_*.py` 中全部通过)。这些真实代码具体做到了什么：验证 JSON 文档、在磁盘上规划迁移、在一个真实隔离工作区内以真实的净化环境运行一个真实的受限子进程、让一个真实的 SQLite 队列/日志在重启后依然持久、并执行了一次真实的 HMAC 签名事件往返 - 所有这些都只是针对本地检出或可注入的测试替身进行的，从未针对该项目真正面向的目标硬件 Raspberry Pi 5/CM5 运行过。`provider suggest` 始终只调用确定性的 `FakeProvider`；接入真实的 AI 提供方仍是一个明确尚未做出的用户决定。`station preflight`/`station plan` 通过可注入的检查器描述远程主机，从未针对真实的远程机器运行过。本仓库中没有任何东西真正部署过主机、执行过部署，而工作循环(`queue work`)只针对启动器和 git 的替身运行过，从未在真实主机上运行 - `deliver evaluate` 自身硬编码的 `overall_maturity: "functional"` 就是代码本身给出的明确说明。具体每一项交付的内容请见 `CHANGELOG.md`。
 
 ---
 
@@ -153,7 +153,8 @@ $ hydra-umc-dev-server inventory scan --root ..
 ### 架构与设计决策
 
 - **批准采用非对称签名并绑定到补丁。** 修复周期只用 Ed25519 公钥验证候选补丁和批准（共享的 HMAC 密钥也必须放在验证一侧，因此能验证的人也能伪造；`allow_symmetric_keys` 将其保留为可选的兼容模式）。批准会写明它批准的补丁（`approved_patch_ref`）并带有过期时间（`expires_at`，UTC）；二者都被签名，周期会拒绝针对其他补丁、缺少这些字段或已过期的批准。
-- **沙箱已在真实内核上运行。** `systemd-run` 沙箱已在带 systemd 的 Linux 主机上运行(tests/test_sandbox_real_host.py):任务只能写入自己的工作区,读不到服务用户的主目录,没有网络,用到 `MemoryMax` 的五倍时会被内核杀掉。运行发现了命令行测试看不到的两个缺陷:位于 `/tmp` 或 `/var/tmp` 下的工作区会让单元启动失败(状态 226),需要用 `BindPaths` 绑定进去;位于 `/home`、`/root` 或 `/run/user` 下的工作区根本无法访问,所以现在会在运行任何东西之前带着原因被拒绝。在没有可用沙箱的主机上,测试会说明原因并跳过;bubblewrap 尚未运行。安装了可选的 `cryptography` 包时,导出公钥和签名会改走它(恒定时间),而不是纯 RFC 8032 代码;`signing_backend()` 会说明用的是哪一个。
+- **沙箱已在真实内核上运行。** `systemd-run` 沙箱已在带 systemd 的 Linux 主机上运行(tests/test_sandbox_real_host.py):任务只能写入自己的工作区,读不到服务用户的主目录,没有网络,用到 `MemoryMax` 的五倍时会被内核杀掉。运行发现了命令行测试看不到的两个缺陷:位于 `/tmp` 或 `/var/tmp` 下的工作区会让单元启动失败(状态 226),需要用 `BindPaths` 绑定进去;位于 `/home`、`/root` 或 `/run/user` 下的工作区根本无法访问,所以现在会在运行任何东西之前带着原因被拒绝。在没有可用沙箱的主机上,测试会说明原因并跳过;bubblewrap 也已在真实主机上运行(任务只能写入自己的工作区,读不到主目录,也没有网络)。安装了可选的 `cryptography` 包时,导出公钥和签名会改走它(恒定时间),而不是纯 RFC 8032 代码;`signing_backend()` 会说明用的是哪一个。
+- **按别名信任密钥,而且只信任公钥。** 验证候选、批准和备份清单的主机持有一个信任库(`trust_store.py`,`trust add|list|revoke`):别名下的公钥、已吊销别名列表、被拒绝的私钥,并且回答会指明是谁签的名。未知或已吊销的签名者永远不会通过,私钥也永远不会离开批准人。
 - **默认情况下没有任何任务拥有部署权限。** 这是 DS01 字面上的验收标准，
   由 `TaskPolicy` 数据类自身的默认值强制执行——而不仅仅是文字上的声明——
   并针对文档可能试图夹带该权限的每一种方式（字段缺失、拼写错误、非布尔值）
@@ -251,6 +252,7 @@ HYDRA-UMC-DEV-SERVER/
 │   ├── sandbox.py              任务运行器的操作系统级隔离
 │   ├── signing.py              用于修复候选、批准和备份清单的 Ed25519 签名
 │   ├── taskflow.py             任务运行的周边工作: 按固定版本准备仓库、并发上限以及工作区的生命周期
+│   ├── trust_store.py          信任库：按别名的公钥、吊销以及签名者
 │   └── worker.py               把任务从租约带到结果的工作循环
 ├── configs/                    示例配置文档
 ├── tests/                      每个模块和示例配置的测试

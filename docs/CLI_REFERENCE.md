@@ -217,7 +217,7 @@ stderr); `--state-file` keeps the nonces and the rate log in a SQLite file
 shared by every run, and the check and the update of one message are one
 transaction, so two runs cannot both accept it.
 
-## `repair check-candidate <candidate_file> --secret-file FILE --incident ID --base FP --target NAME` (DS08)
+## `repair check-candidate <candidate_file> (--secret-file FILE | --trust-store FILE [--signer ALIAS]) --incident ID --base FP --target NAME` (DS08)
 
 The candidate gate of the controlled repair cycle. Verifies the
 candidate's signature (read from `--secret-file`, operator-held, never
@@ -225,7 +225,10 @@ committed: an HMAC secret, or the public key `ed25519-public:...` for a
 candidate signed with a key pair; the two kinds never mix) and that it is pinned to THIS incident,
 base fingerprint and target. Prints `{"accepted": bool, "reason":
 str|null}`; exits `1` (never a traceback) on a block - a tampered
-candidate, or one aimed at another incident / base / target.
+candidate, or one aimed at another incident / base / target. With
+`--trust-store` (instead of `--secret-file`) the candidate must be signed by a
+trusted, not revoked alias of the store (the one named by `--signer`, or any),
+and the answer adds `"signer": "<alias>"`.
 
 ## `ops health --db PATH [--min-free-gb F --free-disk-gb G --journal-cap N]` (DS09)
 
@@ -233,14 +236,16 @@ Operational health over the durable queue and disk. Prints a
 `HealthReport`; exit `1` (never a traceback) with a named finding for
 `orphaned-leases`, `journal-over-cap`, or `low-disk`. Safe on a timer.
 
-## `ops verify-backup <manifest_file> --backup-root DIR [--public-key-file FILE --signature-file FILE]` (DS09)
+## `ops verify-backup <manifest_file> --backup-root DIR [--public-key-file FILE | --trust-store FILE [--signer ALIAS]] [--signature-file FILE]` (DS09)
 
 Re-hashes every file in a state backup against its manifest. Prints
 `{ ok, verified, mismatches, missing, signature_valid }`; exit `1` on any
 mismatch or missing file. With `--public-key-file` the manifest must also
 carry a valid signature (`--signature-file`) of that key, or the backup is
 not ok: a manifest regenerated over replaced files is caught. A key without
-a signature is not ok either. `restore_backup()` (tested, no CLI yet)
+a signature is not ok either. With `--trust-store` the manifest must be signed by a trusted,
+not revoked alias (`--signer` to name it) and the answer adds `signer`.
+`restore_backup()` (tested, no CLI yet)
 additionally refuses a backup for a different instance id or schema version,
 and, given a public key, a manifest that is not signed by it.
 
@@ -255,6 +260,19 @@ shared host (the implementation is not constant-time).
 
 Prints the signature (`ed25519:...`) of a backup manifest, and writes it to
 `--output` (a new file) when given.
+
+## `trust list|add|revoke <store_file>`
+
+The trust store is a JSON document `{"trusted_keys": {alias: "ed25519-public:..."}, "revoked": [alias]}`
+(see `configs/trust-store.example.json`). `trust list` prints the trusted and the
+revoked aliases; `trust add <store_file> <alias> --public-key-file FILE` adds a
+public key (creates the store; a private key, an alias that is not 1 to 40 letters,
+digits, spaces or `._@-`, and an alias that already holds another key are refused);
+`trust revoke <store_file> <alias>` revokes one, so nothing it signed verifies any
+more. A store with problems (a private key in it, a malformed entry) is read with
+the entries left out and a warning per problem on stderr, and is not rewritten by
+`add` or `revoke` until it is fixed. The store never holds a private key and no
+command reads one from it.
 
 ## `deliver manifest [--repo-root DIR]` (DS10)
 

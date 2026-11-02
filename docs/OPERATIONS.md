@@ -59,6 +59,16 @@ The algorithm is the reference one of RFC 8032 in plain Python (checked against
 its test vectors; not constant-time, so sign on the operator's own machine).
 Without a key nothing changes.
 
+### Trusted keys by alias
+
+A host that verifies several signers keeps a trust store instead of one key file:
+`trust add STORE ALIAS --public-key-file KEY.pub` puts the public key of each
+approver under an alias, `trust revoke` takes one out of use, and
+`ops verify-backup --trust-store STORE --signature-file SIG` (or
+`restore_backup(trust_store=...)`) accepts a manifest signed by any trusted, not
+revoked alias and says which one. The private key stays with the approver who signs;
+the store holds public keys only and refuses a private key.
+
 ## What DS09 still does not do
 
 - it does not schedule the backup or the health check - a systemd timer

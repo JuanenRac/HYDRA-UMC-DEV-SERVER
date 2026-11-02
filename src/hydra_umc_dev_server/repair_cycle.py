@@ -208,6 +208,7 @@ class RepairCycle:
         self.state = STATE_NOT_STARTED
         self.reason: str | None = "not started"
         self.candidate: RepairCandidate | None = None
+        self.candidate_signer: str | None = None
 
     def _block(self, reason: str) -> StepOutcome:
         if self.state == STATE_BLOCKED:  # already final: keep the reason that blocked it
@@ -246,6 +247,18 @@ class RepairCycle:
             return self._block("candidate is for a different target")
         self.candidate = candidate
         return self._advance(STATE_CANDIDATE_RECEIVED)
+
+    def receive_candidate_trusted(self, candidate: RepairCandidate, trust_store: Any, *, signer: str | None = None) -> StepOutcome:
+        """`receive_candidate` with the public key taken from the trust store: the candidate has to be signed by a trusted, not
+        revoked alias (`signer` when given, any otherwise). The alias is kept in `candidate_signer`."""
+        alias = signer if signer is not None else trust_store.identify(candidate._body(), candidate.signature)
+        key = trust_store.key_for(alias) if alias else None
+        if key is None:
+            return self._block("candidate is not signed by a key of the trust store")
+        outcome = self.receive_candidate(candidate, key)
+        if outcome.ok:
+            self.candidate_signer = alias
+        return outcome
 
     def run_regression(self, run_result: Any) -> StepOutcome:
         if self.state != STATE_CANDIDATE_RECEIVED:
@@ -290,6 +303,11 @@ class RepairCycle:
             return self._block("approval was issued for a different target")
         return self._advance(STATE_APPROVED)
 
+    def apply_approval_trusted(self, approval: Approval, trust_store: Any) -> StepOutcome:
+        """`apply_approval` with the key of `approval.approved_by` taken from the trust store: the approver has to be a trusted,
+        not revoked alias, and the approval has to be signed by that alias's key."""
+        return self.apply_approval(approval, trust_store.key_for(approval.approved_by))
+
     def install_isolated(self, installer: IsolatedInstaller) -> StepOutcome:
         if self.state != STATE_APPROVED:
             return self._block(f"cannot install from state {self.state!r}")
@@ -323,9 +341,13 @@ class RepairCycle:
 class CandidateCheck:
     accepted: bool
     reason: str | None = None
+    signer: str | None = None
 
     def to_dict(self) -> dict[str, Any]:
-        return {"accepted": self.accepted, "reason": self.reason}
+        out: dict[str, Any] = {"accepted": self.accepted, "reason": self.reason}
+        if self.signer is not None:
+            out["signer"] = self.signer
+        return out
 
 
 def check_candidate(
@@ -346,3 +368,21 @@ def check_candidate(
     if candidate.for_target != target:
         return CandidateCheck(False, "candidate is for a different target")
     return CandidateCheck(True)
+
+
+def check_candidate_trusted(
+    candidate: RepairCandidate,
+    trust_store: Any,
+    *,
+    incident_id: str,
+    base_fingerprint: str,
+    target: str,
+    signer: str | None = None,
+) -> CandidateCheck:
+    """`check_candidate` against a trust store: the candidate must be signed by a trusted, not revoked alias."""
+    alias = signer if signer is not None else trust_store.identify(candidate._body(), candidate.signature)
+    key = trust_store.key_for(alias) if alias else None
+    if key is None:
+        return CandidateCheck(False, "candidate is not signed by a key of the trust store")
+    check = check_candidate(candidate, key, incident_id=incident_id, base_fingerprint=base_fingerprint, target=target)
+    return CandidateCheck(check.accepted, check.reason, alias if check.accepted else None)

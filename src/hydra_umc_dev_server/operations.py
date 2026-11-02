@@ -145,11 +145,16 @@ class VerifyBackupResult:
     # None when no public key was given (the files are only compared with the manifest); otherwise whether
     # the manifest carries a valid signature of the key holder
     signature_valid: bool | None = None
+    # With a trust store: the alias of the trusted key that signed the manifest (None when it was not signed by one)
+    signer: str | None = None
 
     def to_dict(self) -> dict[str, Any]:
-        return {"ok": self.ok, "verified": list(self.verified),
-                "mismatches": list(self.mismatches), "missing": list(self.missing),
-                "signature_valid": self.signature_valid}
+        out = {"ok": self.ok, "verified": list(self.verified),
+               "mismatches": list(self.mismatches), "missing": list(self.missing),
+               "signature_valid": self.signature_valid}
+        if self.signer is not None:
+            out["signer"] = self.signer
+        return out
 
 
 def verify_backup(
@@ -159,11 +164,24 @@ def verify_backup(
     *,
     public_key: str | None = None,
     signature: str | None = None,
+    trust_store: Any = None,
+    signer: str | None = None,
 ) -> VerifyBackupResult:
     """Re-hash every file against the manifest. With `public_key`, the manifest must also carry a valid
-    signature (`signature`) of that key, or the backup is not ok however well the files match."""
+    signature (`signature`) of that key, or the backup is not ok however well the files match. With
+    `trust_store` (a `TrustStore`) it must be signed by one of its trusted, not revoked keys (by `signer`
+    when that alias is given), and the result says which alias signed it."""
     signature_valid: bool | None = None
-    if public_key is not None:
+    signed_by: str | None = None
+    if trust_store is not None:
+        body = manifest.to_dict()
+        text = (signature or "").strip()
+        if signer is not None:
+            signed_by = signer if text and trust_store.verify(body, text, signer=signer) else None
+        else:
+            signed_by = trust_store.identify(body, text) if text else None
+        signature_valid = signed_by is not None
+    elif public_key is not None:
         signature_valid = bool(signature) and manifest_signature_ok(manifest, signature or "", public_key)
     verified: list[str] = []
     mismatches: list[str] = []
@@ -179,7 +197,7 @@ def verify_backup(
     return VerifyBackupResult(
         ok=not mismatches and not missing and signature_valid is not False,
         verified=tuple(verified), mismatches=tuple(mismatches), missing=tuple(missing),
-        signature_valid=signature_valid,
+        signature_valid=signature_valid, signer=signed_by,
     )
 
 
@@ -203,12 +221,14 @@ def restore_backup(
     expected_schema_version: str = BACKUP_SCHEMA_VERSION,
     public_key: str | None = None,
     signature: str | None = None,
+    trust_store: Any = None,
+    signer: str | None = None,
 ) -> RestoreResult:
     if manifest.instance_id != expected_instance_id:
         return RestoreResult(False, reason=f"backup is for instance {manifest.instance_id!r}, not {expected_instance_id!r}")
     if manifest.schema_version != expected_schema_version:
         return RestoreResult(False, reason=f"backup schema {manifest.schema_version!r} != {expected_schema_version!r}")
-    check = verify_backup(manifest, backup_root, fs, public_key=public_key, signature=signature)
+    check = verify_backup(manifest, backup_root, fs, public_key=public_key, signature=signature, trust_store=trust_store, signer=signer)
     if check.signature_valid is False:
         return RestoreResult(False, reason="the manifest is not signed by the expected key - nothing was restored")
     if not check.ok:

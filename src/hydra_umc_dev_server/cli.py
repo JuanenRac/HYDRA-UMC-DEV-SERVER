@@ -118,7 +118,8 @@ from .operations import (
     sign_manifest,
     verify_backup,
 )
-from .repair_cycle import RepairCandidate, check_candidate
+from .repair_cycle import RepairCandidate, check_candidate, check_candidate_trusted
+from .trust_store import TrustStore, load_trust_store, save_trust_store
 from .preflight import SystemHostInspector, run_preflight
 from .provision import build_provision_plan
 from .recipe import TaskRecipe
@@ -429,23 +430,96 @@ def _cmd_incident_verify(args: argparse.Namespace) -> int:
     return 0 if result.ok else 1
 
 
+def _load_store_or_report(path: str) -> TrustStore | None:
+    """The trust store of `path`, with its problems on stderr; None (and a message) when it cannot be read."""
+    try:
+        store, problems = load_trust_store(Path(path))
+    except ConfigValidationError as exc:
+        print(f"INVALID: {path} (trust store): {exc}", file=sys.stderr)
+        return None
+    for problem in problems:
+        print(f"warning: {path}: {problem}", file=sys.stderr)
+    return store
+
+
 def _cmd_repair_check_candidate(args: argparse.Namespace) -> int:
     try:
         candidate = RepairCandidate.from_dict(load_json_document(Path(args.candidate_file)))
     except ConfigValidationError as exc:
         print(f"INVALID: {args.candidate_file} (repair-candidate): {exc}", file=sys.stderr)
         return 1
-    try:
-        secret = Path(args.secret_file).read_text(encoding="utf-8").strip()
-    except (OSError, UnicodeDecodeError) as exc:
-        print(f"INVALID: {args.secret_file} (secret file): {exc}", file=sys.stderr)
+    if bool(args.secret_file) == bool(args.trust_store):
+        print("INVALID: give exactly one of --secret-file and --trust-store", file=sys.stderr)
         return 1
-    check = check_candidate(
-        candidate, secret,
-        incident_id=args.incident, base_fingerprint=args.base, target=args.target,
-    )
+    if args.trust_store:
+        store = _load_store_or_report(args.trust_store)
+        if store is None:
+            return 1
+        check = check_candidate_trusted(
+            candidate, store, incident_id=args.incident, base_fingerprint=args.base, target=args.target, signer=args.signer,
+        )
+    else:
+        if args.signer:
+            print("INVALID: --signer needs --trust-store", file=sys.stderr)
+            return 1
+        try:
+            secret = Path(args.secret_file).read_text(encoding="utf-8").strip()
+        except (OSError, UnicodeDecodeError) as exc:
+            print(f"INVALID: {args.secret_file} (secret file): {exc}", file=sys.stderr)
+            return 1
+        check = check_candidate(
+            candidate, secret,
+            incident_id=args.incident, base_fingerprint=args.base, target=args.target,
+        )
     print(json.dumps(check.to_dict(), indent=2))
     return 0 if check.accepted else 1
+
+
+def _trust_summary(store: TrustStore) -> str:
+    return json.dumps({"trusted": store.active_aliases(), "revoked": sorted(store.revoked)}, indent=2)
+
+
+def _cmd_trust_list(args: argparse.Namespace) -> int:
+    store = _load_store_or_report(args.store_file)
+    if store is None:
+        return 1
+    print(_trust_summary(store))
+    return 0
+
+
+def _cmd_trust_add(args: argparse.Namespace) -> int:
+    path = Path(args.store_file)
+    try:
+        public_key = Path(args.public_key_file).read_text(encoding="utf-8").strip()
+        store = TrustStore()
+        if path.exists():
+            store, problems = load_trust_store(path)
+            if problems:
+                print("REFUSED: the store has problems; fix them first so nothing is lost on write: " + "; ".join(problems), file=sys.stderr)
+                return 1
+        store = store.with_key(args.alias, public_key)
+        save_trust_store(path, store)
+    except (ConfigValidationError, OSError, UnicodeDecodeError) as exc:
+        print(f"REFUSED: {exc}", file=sys.stderr)
+        return 1
+    print(_trust_summary(store))
+    return 0
+
+
+def _cmd_trust_revoke(args: argparse.Namespace) -> int:
+    path = Path(args.store_file)
+    try:
+        store, problems = load_trust_store(path)
+        if problems:
+            print("REFUSED: the store has problems; fix them first so nothing is lost on write: " + "; ".join(problems), file=sys.stderr)
+            return 1
+        store = store.with_revoked(args.alias)
+        save_trust_store(path, store)
+    except (ConfigValidationError, OSError) as exc:
+        print(f"REFUSED: {exc}", file=sys.stderr)
+        return 1
+    print(_trust_summary(store))
+    return 0
 
 
 def _cmd_ops_health(args: argparse.Namespace) -> int:
@@ -467,17 +541,32 @@ def _cmd_ops_verify_backup(args: argparse.Namespace) -> int:
         print(f"INVALID: {args.manifest_file} (backup-manifest): {exc}", file=sys.stderr)
         return 1
     public_key = signature = None
-    if args.public_key_file:
+    store = None
+    if args.public_key_file and args.trust_store:
+        print("INVALID: give --public-key-file or --trust-store, not both", file=sys.stderr)
+        return 1
+    if args.signer and not args.trust_store:
+        print("INVALID: --signer needs --trust-store", file=sys.stderr)
+        return 1
+    if args.trust_store:
+        store = _load_store_or_report(args.trust_store)
+        if store is None:
+            return 1
+    if args.public_key_file or store is not None:
         try:
-            public_key = Path(args.public_key_file).read_text(encoding="utf-8").strip()
+            if args.public_key_file:
+                public_key = Path(args.public_key_file).read_text(encoding="utf-8").strip()
             signature = Path(args.signature_file).read_text(encoding="utf-8").strip() if args.signature_file else ""
         except (OSError, UnicodeDecodeError) as exc:
             print(f"INVALID: {exc}", file=sys.stderr)
             return 1
     elif args.signature_file:
-        print("INVALID: --signature-file needs --public-key-file", file=sys.stderr)
+        print("INVALID: --signature-file needs --public-key-file or --trust-store", file=sys.stderr)
         return 1
-    result = verify_backup(manifest, str(Path(args.backup_root)), SystemBackupFs(), public_key=public_key, signature=signature)
+    result = verify_backup(
+        manifest, str(Path(args.backup_root)), SystemBackupFs(),
+        public_key=public_key, signature=signature, trust_store=store, signer=args.signer,
+    )
     print(json.dumps(result.to_dict(), indent=2))
     return 0 if result.ok else 1
 
@@ -765,7 +854,9 @@ def build_parser() -> argparse.ArgumentParser:
         help="Check one repair candidate: signature + that it is pinned to THIS incident, base and target. Blocks a tampered or misdirected candidate.",
     )
     repair_check.add_argument("candidate_file", help="Path to a repair-candidate JSON document.")
-    repair_check.add_argument("--secret-file", required=True, help="File holding the candidate signer's HMAC secret, or its public key (ed25519-public:...) for a candidate signed with a key pair (operator-held, never committed).")
+    repair_check.add_argument("--trust-store", help="A trust store (alias -> public key, see `trust add`) instead of --secret-file: the candidate must be signed by a trusted, not revoked alias, and the answer names it.")
+    repair_check.add_argument("--signer", help="With --trust-store: the alias that must have signed the candidate (default: any trusted alias).")
+    repair_check.add_argument("--secret-file", help="File holding the candidate signer's HMAC secret, or its public key (ed25519-public:...) for a candidate signed with a key pair (operator-held, never committed).")
     repair_check.add_argument("--incident", required=True, help="The incident id this cycle is for.")
     repair_check.add_argument("--base", required=True, help="The base fingerprint this cycle is pinned to.")
     repair_check.add_argument("--target", required=True, help="The target this cycle installs to.")
@@ -792,6 +883,8 @@ def build_parser() -> argparse.ArgumentParser:
     ops_verify.add_argument("--backup-root", required=True, help="Directory the backup files live under.")
     ops_verify.add_argument("--public-key-file", help="Public key (ed25519-public:...) of the operator. With it the manifest must also carry a valid signature, or the backup is not ok.")
     ops_verify.add_argument("--signature-file", help="File with the signature of the manifest (made by `ops sign-backup`).")
+    ops_verify.add_argument("--trust-store", help="A trust store instead of --public-key-file: the manifest must be signed by a trusted, not revoked alias (--signer to name it); the answer names the signer.")
+    ops_verify.add_argument("--signer", help="With --trust-store: the alias that must have signed the manifest.")
     ops_verify.set_defaults(func=_cmd_ops_verify_backup)
 
     ops_keygen = ops_sub.add_parser(
@@ -810,6 +903,21 @@ def build_parser() -> argparse.ArgumentParser:
     ops_sign.add_argument("--private-key-file", required=True, help="File holding the private key (ed25519-seed:...).")
     ops_sign.add_argument("--output", help="Write the signature to this new file.")
     ops_sign.set_defaults(func=_cmd_ops_sign_backup)
+
+    trust = subparsers.add_parser("trust", help="The trust store: the public keys this host accepts, each under an alias. It never holds a private key.")
+    trust_sub = trust.add_subparsers(dest="trust_command", required=True)
+    trust_list = trust_sub.add_parser("list", help="List the trusted and the revoked aliases of a trust store.")
+    trust_list.add_argument("store_file", help="Path to the trust store JSON document.")
+    trust_list.set_defaults(func=_cmd_trust_list)
+    trust_add = trust_sub.add_parser("add", help="Add a public key under an alias (creates the store). A private key is refused; an alias that holds another key is refused.")
+    trust_add.add_argument("store_file", help="Path to the trust store JSON document.")
+    trust_add.add_argument("alias", help="1 to 40 letters, digits, spaces or ._@-")
+    trust_add.add_argument("--public-key-file", required=True, help="File with the public key (ed25519-public:...), as written by `ops keygen`.")
+    trust_add.set_defaults(func=_cmd_trust_add)
+    trust_revoke = trust_sub.add_parser("revoke", help="Revoke an alias: nothing it signed verifies any more.")
+    trust_revoke.add_argument("store_file", help="Path to the trust store JSON document.")
+    trust_revoke.add_argument("alias")
+    trust_revoke.set_defaults(func=_cmd_trust_revoke)
 
     deliver = subparsers.add_parser("deliver", help="Delivery package + honest maturity evaluation (DS10).")
     deliver_sub = deliver.add_subparsers(dest="deliver_command", required=True)

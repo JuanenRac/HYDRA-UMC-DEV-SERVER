@@ -548,6 +548,29 @@
           }
         },
         {
+          "name": "trust_store.py",
+          "desc": {
+            "en": "Trusted public keys by alias",
+            "es": "Claves públicas de confianza por alias",
+            "de": "Vertrauenswürdige öffentliche Schlüssel nach Alias",
+            "fr": "Clés publiques de confiance par alias",
+            "it": "Chiavi pubbliche fidate per alias",
+            "ja": "エイリアス別の信頼する公開鍵",
+            "zh": "按别名管理的受信公钥",
+            "pt": "Chaves públicas de confiança por alias"
+          },
+          "tree_desc": {
+            "en": "Trust store: public keys by alias, revocation, and who signed",
+            "es": "Almacén de confianza: claves públicas por alias, revocación y quién firmó",
+            "de": "Vertrauensspeicher: öffentliche Schlüssel nach Alias, Widerruf und wer signiert hat",
+            "fr": "Magasin de confiance : clés publiques par alias, révocation et qui a signé",
+            "it": "Archivio di fiducia: chiavi pubbliche per alias, revoca e chi ha firmato",
+            "ja": "信頼ストア: エイリアス別の公開鍵、失効、署名者",
+            "zh": "信任库：按别名的公钥、吊销以及签名者",
+            "pt": "Repositório de confiança: chaves públicas por alias, revogação e quem assinou"
+          }
+        },
+        {
           "name": "worker.py",
           "desc": {
             "en": "The worker loop that carries a task from",

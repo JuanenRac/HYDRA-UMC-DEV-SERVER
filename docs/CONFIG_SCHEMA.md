@@ -62,6 +62,13 @@ permiso de despliegue por defecto"* (no task has deployment permission by
 default). It is enforced by the dataclass's own default, not just stated
 in prose, and that default is covered by a real automated test.
 
+## Trust store - which public keys a host accepts
+
+Example: `configs/trust-store.example.json`. `trusted_keys` maps an alias (1 to 40
+letters, digits, spaces or `._@-`) to a public key `ed25519-public:<64 hex>`;
+`revoked` lists aliases that no longer verify. Public keys only: a private key is
+left out with the alias named. See `trust_store.py` and the `trust` commands.
+
 ## Loading a document
 
 `load_json_document(path)` (`config.py`) reads and parses one file,
