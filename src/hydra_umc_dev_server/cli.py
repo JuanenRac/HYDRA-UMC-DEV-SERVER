@@ -99,6 +99,7 @@ from .migration import (
     build_repo_inventory,
 )
 from .api import ApiConfigError, DevServer
+from .health_route import health_open_requested
 from .plugins import PluginError, PluginRegistry
 from .ai_provider import FakeProvider, ProviderConfig, run_provider_step
 from .durable_queue import DurableQueue
@@ -680,6 +681,7 @@ def _cmd_serve(args: argparse.Namespace) -> int:
     except (ApiConfigError, OSError) as exc:
         print(f"cannot start the API: {exc}", file=sys.stderr)
         return 1
+    server.health_open = health_open_requested(args.health_open)
     print(f"HYDRA-UMC-DEV-SERVER API on http://{args.host}:{server.server_address[1]} (loopback only)")
     try:
         server.serve_forever()
@@ -949,6 +951,7 @@ def build_parser() -> argparse.ArgumentParser:
     serve.add_argument("--plugins-root", required=True, help="Directory whose subdirectories are plugins.")
     serve.add_argument("--token-file", default=None, help="File holding the API bearer token (at least 24 characters); otherwise HYDRA_UMC_DEV_SERVER_TOKEN.")
     serve.add_argument("--public-health-detail", action="store_true", help="Let GET /v1/health show the version and the plugin count to a caller without the token (default: only {\"status\": \"ok\"}).")
+    serve.add_argument("--health-open", action="store_true", help="Answer GET /health, the common route of the family (loopback, or the token); closed by default, or set HYDRA_UMC_DEV_SERVER_HEALTH_OPEN=1. GET /v1/health is unchanged.")
     serve.set_defaults(func=_cmd_serve)
 
     return parser

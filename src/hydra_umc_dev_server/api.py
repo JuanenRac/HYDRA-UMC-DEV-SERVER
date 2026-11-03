@@ -12,6 +12,8 @@ changes what the server allows. It reports the workspace inventory and
 drives the plugin lifecycle in plugins.py.
 
 Routes
+    GET  /health                            the common route of the family, closed (404) unless opened with `serve --health-open`;
+                                            {"status", "service", "version"} to loopback or with the token
     GET  /v1/health                         no token; {"status": "ok"} (version and plugin count only with the token,
                                             or for everybody with public_health_detail)
     GET  /v1/inventory                      manifests found under the workspace
@@ -40,6 +42,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
 from . import __version__
+from .health_route import HealthRouteMixin
 from .inventory import scan_project_manifests
 from .plugins import PluginError, PluginRegistry
 
@@ -112,6 +115,7 @@ class DevServer(ThreadingHTTPServer):
         # False: the health route answers a caller without the token only {"status": "ok"}, so the exact version
         # and the number of plugins are not shown to anybody who can reach the port.
         self.public_health_detail = public_health_detail
+        self.health_open = False  # GET /health answers only when the operator opens it (health_route.py)
         self.registry = PluginRegistry()
         self.registry.discover(plugins_root)
         self._slots = threading.BoundedSemaphore(max_connections)
@@ -135,8 +139,10 @@ class DevServer(ThreadingHTTPServer):
             self._slots.release()
 
 
-class _Handler(BaseHTTPRequestHandler):
+class _Handler(HealthRouteMixin, BaseHTTPRequestHandler):
     server: DevServer  # type: ignore[assignment]
+    metrics_service = "hydra-umc-dev-server"  # the name and version that the common GET /health reports
+    metrics_version = __version__
     # A client that connects and then goes quiet must not hold a thread forever.
     timeout = 15.0
 
@@ -208,6 +214,9 @@ class _Handler(BaseHTTPRequestHandler):
 
     # -- routes ------------------------------------------------------------
     def do_GET(self) -> None:  # noqa: N802
+        # The common GET /health of the family: closed (404) unless the operator opened it; open, it answers loopback or the bearer token.
+        if self.serve_health(self.server.token):
+            return
         path = self.path.split("?", 1)[0]
         if path == "/v1/health":
             if self.server.public_health_detail or self._authorized():

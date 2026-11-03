@@ -47,6 +47,18 @@
   },
   "security": [{ "bearer": [] }],
   "paths": {
+    "/health": {
+      "get": {
+        "summary": "The common health route of the family. Closed (404) unless the server starts with --health-open or HYDRA_UMC_DEV_SERVER_HEALTH_OPEN=1; open, it answers status, service and version to a caller on loopback and, to any other caller, only with the token.",
+        "security": [],
+        "responses": {
+          "200": { "description": "ok" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "404": { "description": "the route is closed" },
+          "503": { "$ref": "#/components/responses/Busy" }
+        }
+      }
+    },
     "/v1/health": {
       "get": {
         "summary": "Status ok. Needs no token; the version and the plugin count are shown only with the token (or to everybody when the server runs with --public-health-detail).",

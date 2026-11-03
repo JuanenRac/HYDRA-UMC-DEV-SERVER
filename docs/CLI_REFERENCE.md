@@ -339,13 +339,14 @@ is only printed; nothing is written to disk.
 Runs the local HTTP API. It binds only to a loopback address, and the bearer
 token (at least 24 characters) comes from `--token-file` or the
 `HYDRA_UMC_DEV_SERVER_TOKEN` environment variable, never from the command
-line. Every route except `GET /v1/health` needs `Authorization: Bearer
+line. Every route except `GET /v1/health` (and `GET /health`, once opened) needs `Authorization: Bearer
 <token>`; bodies are capped at 4096 bytes, a connection that goes quiet for 15 seconds is closed,
 and at most 32 requests are served at once (the next gets `503` with `Retry-After: 1`). The status codes are fixed: `401` (with `WWW-Authenticate: Bearer`) for a missing or wrong token, `404` for a route or plugin that does not exist, `405` (with `Allow`) for a known route called with the wrong method and for any method other than `GET` and `POST`, `409` for a plugin that is not in a state that allows the call, `413` for a body over the limit, `502` for a check, report or generator that ran and failed, `504` for one that did not finish in time (both carry the `status: error` body), `500` (no trace in the body) for a failure inside the server and `503` when busy.
 `docs/openapi.json` describes the routes; a test keeps it equal to the handler.
 
 | Route | Purpose |
 |---|---|
+| `GET /health` | the common route of the family, closed (`404`) unless the server starts with `serve --health-open` (or `HYDRA_UMC_DEV_SERVER_HEALTH_OPEN=1`); open, `{"status": "ok", "service": "hydra-umc-dev-server", "version": ...}` to a caller on loopback and, to any other, only with the token |
 | `GET /v1/health` | `{"status": "ok"}` without a token; with the token (or with `serve --public-health-detail`) also the version and the plugin count |
 | `GET /v1/inventory` | manifests found under the workspace |
 | `GET /v1/audit` | the last 500 requests (time, method, path without query, status, client); never a body or a token |

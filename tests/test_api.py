@@ -81,6 +81,47 @@ class ApiTests(unittest.TestCase):
         self.assertIn("version", body)
         self.assertEqual(body["plugins"], 1)
 
+    def test_the_common_health_route_is_closed_by_default_and_the_v1_route_is_unchanged(self):
+        self.assertEqual(self._call("GET", "/health", token=None)[0], 404)
+        self.assertEqual(self._call("GET", "/health")[0], 404)
+        self.assertEqual(self._call("GET", "/v1/health", token=None), (200, {"status": "ok"}))
+
+    def test_the_common_health_route_answers_status_service_and_version_once_opened(self):
+        self.server.health_open = True
+        status, body = self._call("GET", "/health", token=None)
+        self.assertEqual(status, 200)
+        self.assertEqual(set(body), {"status", "service", "version"})
+        self.assertEqual((body["status"], body["service"]), ("ok", "hydra-umc-dev-server"))
+        self.assertNotIn(TOKEN, json.dumps(body))
+        self.assertEqual(self._call("GET", "/v1/health", token=None), (200, {"status": "ok"}))
+
+    def test_the_common_health_route_needs_the_token_from_outside_loopback(self):
+        from hydra_umc_dev_server import health_route
+
+        self.server.health_open = True
+        original = health_route._is_loopback
+        health_route._is_loopback = lambda address: False
+        try:
+            self.assertEqual(self._call("GET", "/health", token=None)[0], 401)
+            self.assertEqual(self._call("GET", "/health", token="x" * 32)[0], 401)
+            self.assertEqual(self._call("GET", "/health")[0], 200)
+        finally:
+            health_route._is_loopback = original
+
+    def test_health_open_comes_from_the_flag_or_the_environment(self):
+        import os
+        from unittest import mock
+
+        from hydra_umc_dev_server.health_route import ENV_HEALTH_OPEN, health_open_requested
+
+        self.assertEqual(ENV_HEALTH_OPEN, "HYDRA_UMC_DEV_SERVER_HEALTH_OPEN")
+        with mock.patch.dict(os.environ, {}, clear=False):
+            os.environ.pop(ENV_HEALTH_OPEN, None)
+            self.assertFalse(health_open_requested(False))
+            self.assertTrue(health_open_requested(True))
+            os.environ[ENV_HEALTH_OPEN] = "1"
+            self.assertTrue(health_open_requested(False))
+
     def test_public_health_detail_is_an_explicit_opt_in(self):
         self.server.public_health_detail = True
         status, body = self._call("GET", "/v1/health", token=None)
@@ -267,6 +308,8 @@ class OpenApiDocumentTests(unittest.TestCase):
         served = set()
         get_part, post_part = source.split("def do_POST")
         served |= {("GET", p) for p in re.findall(r'path == "(/v1/[a-z/]+)"', get_part)}
+        if "self.serve_health(" in get_part:
+            served.add(("GET", "/health"))
         served |= {("POST", p) for p in re.findall(r'path == "(/v1/[a-z/]+)"', post_part)}
         served |= {("POST", "/v1/plugins/{name}/" + word) for word in ("enable", "disable")}
         served |= {("POST", f"/v1/plugins/{{name}}/{kind}/{{{kind[:-1]}}}") for kind in ("checks", "reports", "generators")}
