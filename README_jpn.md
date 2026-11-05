@@ -151,6 +151,8 @@ $ hydra-umc-dev-server inventory scan --root ..
 
 ローカル API のヘルスルートは、トークンなしでは `{"status": "ok"}` だけを返します。バージョンとプラグイン数にはトークンが必要です(または `serve --public-health-detail` で従来の公開応答に戻せます)。実行されて失敗したチェック、レポート、ジェネレーターは `502`(時間切れなら `504`)を返します。トークンがない場合は `WWW-Authenticate: Bearer` 付きの `401`、既知のルートを誤ったメソッドで呼ぶと `Allow` ヘッダー付きの `405` で、いずれも JSON の本文が付きます。
 
+🪪 **HYDRA-UMC-SERVER の ID（既定ではオフ）:** `serve --identity-key-file FILE`（または `HYDRA_UMC_DEV_SERVER_IDENTITY_KEY_FILE=FILE`）を指定すると、サービスは自身のトークンに加えて、サーバーがログイン時に発行する署名付きトークンを受け付けます。閲覧者は読み取りだけで変更はできず、資格情報のないリクエストはループバックでも拒否されます。スイッチがなければ何も変わりません。
+
 ## 🧩 HYDRA-UMC での役割
 
 **HYDRA-UMC-DEV-SERVER** はエコシステムの開発ホストです。許可リストにある範囲限定のビルドとテストのタスクを隔離されたワークスペースで実行し、修復候補を `HYDRA-UMC-OPS-AGENT` と調整します。自分のタスクを自分で承認することはなく、何もデプロイしません。ノードへの配信は常に `HYDRA-UMC-UPDATER` を通ります。

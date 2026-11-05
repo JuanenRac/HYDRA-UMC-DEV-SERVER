@@ -379,3 +379,5 @@ unit file, opens a port, or copies a single file. `task run` is the only
 command that executes anything, and only an allow-listed command in an
 isolated workspace with no inherited secrets - it deploys nothing. No
 target hardware has been provisioned or validated.
+
+`serve --identity-key-file FILE` (or `HYDRA_UMC_DEV_SERVER_IDENTITY_KEY_FILE`; off by default) accepts the signed token of HYDRA-UMC-SERVER next to the token of the service: a viewer may read but not change, and a request with no credential is refused even on loopback, `GET /health` and `GET /stats` included. A container health check then runs `python -m hydra_umc_dev_server.server_identity probe --port PORT --key-file FILE`, which presents a short-lived token signed with the same key file.

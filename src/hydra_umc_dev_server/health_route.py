@@ -73,7 +73,15 @@ class HealthRouteMixin(BaseHTTPRequestHandler):
         if not getattr(self.server, "health_open", False):
             _write(self, 404, {"error": "not found"})
             return True
-        if not _is_loopback(self.client_address[0]) and (not token or not _bearer_ok(self, token)):
+        identity_key = getattr(self.server, "identity_key", None)
+        if identity_key is not None:
+            # the identity of HYDRA-UMC-SERVER is on (server_identity.py): nothing is open, not even this route and not even on loopback
+            from .server_identity import accepts
+
+            if not accepts(self, token or "", identity_key):
+                _write(self, 401, {"error": "a valid identity is required"})
+                return True
+        elif not _is_loopback(self.client_address[0]) and (not token or not _bearer_ok(self, token)):
             _write(self, 401, {"error": "a valid bearer token is required"})
             return True
         _write(

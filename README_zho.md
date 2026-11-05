@@ -140,6 +140,8 @@ $ hydra-umc-dev-server inventory scan --root ..
 
 本地 API 的健康检查路由在没有令牌时只返回 `{"status": "ok"}`；版本和插件数量需要令牌(或使用 `serve --public-health-detail` 恢复公开的应答)。运行后失败的检查、报告或生成器返回 `502`(超时则为 `504`)；缺少令牌是带 `WWW-Authenticate: Bearer` 的 `401`，用错误方法调用已知路由是带 `Allow` 头的 `405`，全部带 JSON 正文。
 
+🪪 **HYDRA-UMC-SERVER 的身份（默认关闭）：** `serve --identity-key-file 文件`（或 `HYDRA_UMC_DEV_SERVER_IDENTITY_KEY_FILE=文件`）会让服务在自己的令牌之外，也接受服务器在登录时签发的已签名令牌：查看者只能读取而不能更改，没有凭据的请求即使在环回地址上也会被拒绝。不开启该开关时一切照旧。
+
 ## 🧩 在 HYDRA-UMC 中的角色
 
 **HYDRA-UMC-DEV-SERVER** 是生态系统的开发主机：它在隔离的工作区中运行受限的、在允许列表内的构建和测试任务，并与 `HYDRA-UMC-OPS-AGENT` 协调修复候选。它从不批准自己的任务，也不部署任何东西；向节点交付始终经过 `HYDRA-UMC-UPDATER`。

@@ -215,6 +215,8 @@ Altri due comandi, `plugin list` e `serve`, coprono il ciclo di vita dei plugin 
 
 La rotta di salute dell'API locale risponde solo `{"status": "ok"}` senza il token; la versione e il numero di plugin lo richiedono (oppure `serve --public-health-detail`, che ripristina la risposta aperta). Un controllo, rapporto o generatore che è stato eseguito ed è fallito risponde `502` (`504` se il tempo è scaduto); un token mancante è `401` con `WWW-Authenticate: Bearer`, e una rotta nota chiamata con il metodo sbagliato è `405` con un'intestazione `Allow`, il tutto con un corpo JSON.
 
+🪪 **L'identità di HYDRA-UMC-SERVER, disattivata per impostazione predefinita:** `serve --identity-key-file FILE` (o `HYDRA_UMC_DEV_SERVER_IDENTITY_KEY_FILE=FILE`) fa accettare al servizio il token firmato che il server emette al login, oltre al proprio token: un visualizzatore può leggere ma non modificare, e una richiesta senza credenziali viene rifiutata anche in loopback. Senza l'interruttore non cambia nulla.
+
 ## 🧩 Ruolo in HYDRA-UMC
 
 **HYDRA-UMC-DEV-SERVER** è l'host di sviluppo dell'ecosistema: esegue attività di compilazione e test limitate e ammesse in aree di lavoro isolate e coordina i candidati di riparazione con `HYDRA-UMC-OPS-AGENT`. Non approva mai le proprie attività e non distribuisce nulla; la consegna a un nodo passa sempre da `HYDRA-UMC-UPDATER`.

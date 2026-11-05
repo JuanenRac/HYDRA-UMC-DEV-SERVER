@@ -43,6 +43,7 @@ from pathlib import Path
 
 from . import __version__
 from .health_route import HealthRouteMixin
+from .server_identity import accepts
 from .inventory import scan_project_manifests
 from .plugins import PluginError, PluginRegistry
 
@@ -116,6 +117,7 @@ class DevServer(ThreadingHTTPServer):
         # and the number of plugins are not shown to anybody who can reach the port.
         self.public_health_detail = public_health_detail
         self.health_open = False  # GET /health answers only when the operator opens it (health_route.py)
+        self.identity_key: bytes | None = None  # the signing key of HYDRA-UMC-SERVER, when the operator turned its identity on (server_identity.py)
         self.registry = PluginRegistry()
         self.registry.discover(plugins_root)
         self._slots = threading.BoundedSemaphore(max_connections)
@@ -184,6 +186,8 @@ class _Handler(HealthRouteMixin, BaseHTTPRequestHandler):
         self._send(405, {"error": "method not allowed"}, {"Allow": allowed})
 
     def _authorized(self) -> bool:
+        if self.server.identity_key is not None:
+            return accepts(self, self.server.token, self.server.identity_key)  # the identity of HYDRA-UMC-SERVER is on: its signed token or the token of the API, nothing else
         header = self.headers.get("Authorization", "")
         scheme, _, presented = header.partition(" ")
         return scheme == "Bearer" and hmac.compare_digest(presented.encode("utf-8"), self.server.token.encode("utf-8"))
@@ -219,6 +223,9 @@ class _Handler(HealthRouteMixin, BaseHTTPRequestHandler):
             return
         path = self.path.split("?", 1)[0]
         if path == "/v1/health":
+            if self.server.identity_key is not None and not self._authorized():
+                self._refuse_unauthorized()  # with the identity of the SERVER on, not even this health route is open
+                return
             if self.server.public_health_detail or self._authorized():
                 self._send(200, {"status": "ok", "version": __version__, "plugins": len(self.server.registry.list())})
             else:

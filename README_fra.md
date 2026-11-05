@@ -215,6 +215,8 @@ Deux autres commandes, `plugin list` et `serve`, couvrent le cycle de vie des pl
 
 La route de santé de l'API locale ne répond que `{"status": "ok"}` sans le jeton ; la version et le nombre de plugins l'exigent (ou `serve --public-health-detail`, qui rétablit la réponse ouverte). Une vérification, un rapport ou un générateur qui a tourné et échoué répond `502` (`504` si le temps est écoulé) ; un jeton absent donne `401` avec `WWW-Authenticate: Bearer`, et une route connue appelée avec la mauvaise méthode donne `405` avec un en-tête `Allow`, le tout avec un corps JSON.
 
+🪪 **L'identité de HYDRA-UMC-SERVER, désactivée par défaut :** `serve --identity-key-file FICHIER` (ou `HYDRA_UMC_DEV_SERVER_IDENTITY_KEY_FILE=FICHIER`) fait accepter au service le jeton signé que le serveur émet à la connexion, en plus de son propre jeton : un lecteur peut consulter mais pas modifier, et une requête sans justificatif est refusée même en loopback. Sans l'interrupteur, rien ne change.
+
 ## 🧩 Rôle dans HYDRA-UMC
 
 **HYDRA-UMC-DEV-SERVER** est l'hôte de développement de l'écosystème : il exécute des tâches de compilation et de test bornées et autorisées dans des espaces de travail isolés et coordonne les candidats de réparation avec `HYDRA-UMC-OPS-AGENT`. Il n'approuve jamais ses propres tâches et ne déploie rien ; la livraison vers un nœud passe toujours par `HYDRA-UMC-UPDATER`.
