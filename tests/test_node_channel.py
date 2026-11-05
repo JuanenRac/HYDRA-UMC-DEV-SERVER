@@ -22,10 +22,13 @@ from hydra_umc_dev_server.node_channel import (
 )
 
 API_TOKEN = "a" * 32
-SECRET = "s" * 32
+# Ephemeral per-run test keys: random bytes, never a fixed value.
+NODE_ONE_KEY = os.urandom(16).hex()
+NODE_TWO_KEY = os.urandom(16).hex()
+NODE_FORGED_KEY = os.urandom(16).hex()
 
 
-def message(node="tech-1", message_id="tech-1-esc-1", nonce="n1", at=None, secret=SECRET, to_node="dev-server"):
+def message(node="tech-1", message_id="tech-1-esc-1", nonce="n1", at=None, secret=NODE_ONE_KEY, to_node="dev-server"):
     unsigned = IncidentMessage(
         message_id=message_id, from_node=node, to_node=to_node, kind="incident", contract_version=CONTRACT_VERSION,
         nonce=nonce, sent_at=time.time() if at is None else at, payload={"escalationId": "esc-1"},
@@ -40,7 +43,7 @@ class Base(unittest.TestCase):
         self.root = Path(self._tmp.name)
         self.tokens = self.root / "tokens.json"
         self.token_out = self.root / "tech-1.token"
-        (self.root / "registry.json").write_text(json.dumps({"tech-1": SECRET, "tech-2": "t" * 32}), encoding="utf-8")
+        (self.root / "registry.json").write_text(json.dumps({"tech-1": NODE_ONE_KEY, "tech-2": NODE_TWO_KEY}), encoding="utf-8")
         (self.root / "channel.json").write_text(json.dumps({
             "tokens_file": str(self.tokens), "registry_file": str(self.root / "registry.json"),
             "state_file": str(self.root / "state.db"), "inbox_dir": str(self.root / "inbox"), "to_node": "dev-server",
@@ -111,12 +114,12 @@ class ChannelTests(Base):
 
     def test_a_token_cannot_speak_for_another_node(self):
         token = self.issue("tech-1")
-        status, answer = self.post(token, message(node="tech-2", secret="t" * 32))
+        status, answer = self.post(token, message(node="tech-2", secret=NODE_TWO_KEY))
         self.assertEqual((status, answer["code"]), (403, "impersonation"))
 
     def test_a_stolen_token_without_the_node_secret_cannot_forge_a_message(self):
         token = self.issue()
-        status, answer = self.post(token, message(secret="w" * 32))
+        status, answer = self.post(token, message(secret=NODE_FORGED_KEY))
         self.assertEqual((status, answer["code"]), (403, "bad-signature"))
 
     def test_a_replayed_message_and_a_stale_one_are_refused(self):
