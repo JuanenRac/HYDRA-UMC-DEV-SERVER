@@ -307,10 +307,10 @@ class OpenApiDocumentTests(unittest.TestCase):
         source = (Path(__file__).resolve().parent.parent / "src" / "hydra_umc_dev_server" / "api.py").read_text(encoding="utf-8")
         served = set()
         get_part, post_part = source.split("def do_POST")
-        served |= {("GET", p) for p in re.findall(r'path == "(/v1/[a-z/]+)"', get_part)}
+        served |= {("GET", p) for p in re.findall(r'path == "(/v1/[a-z/-]+)"', get_part)}
         if "self.serve_health(" in get_part:
             served.add(("GET", "/health"))
-        served |= {("POST", p) for p in re.findall(r'path == "(/v1/[a-z/]+)"', post_part)}
+        served |= {("POST", p) for p in re.findall(r'path == "(/v1/[a-z/-]+)"', post_part)}
         served |= {("POST", "/v1/plugins/{name}/" + word) for word in ("enable", "disable")}
         served |= {("POST", f"/v1/plugins/{{name}}/{kind}/{{{kind[:-1]}}}") for kind in ("checks", "reports", "generators")}
         self.assertEqual(documented, served)

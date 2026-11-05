@@ -63,9 +63,13 @@ The **node registry** (`node id -> HMAC secret`) is operator-held and
 **never committed** - keep it outside git, in a secrets store or an
 environment-fed file. `incident verify --registry PATH` reads it.
 
+## The channel of the nodes (`serve --node-channel`)
+
+A node (the local technician) posts its escalation to `POST /v1/incident-transport` with a token that belongs to that node alone: `node-token issue NODE` writes it to a file for the node and keeps only its hash, `node-token revoke NODE` stops it, issuing again replaces it. The token only proves who the node is; the message behind it is still verified (`verify_message`: sender equal to the node of the token, HMAC of the node, time window, nonce, rate), so a stolen token without the node's secret cannot forge anything. An accepted message is stored once in the inbox directory (a retry with a fresh nonce is acknowledged as a duplicate). The route is closed unless the server is started with the channel file; see `docs/CLI_REFERENCE.md`.
+
 ## What DS07 still does not do
 
-- no real network transport (TLS, mTLS, a message bus) - that is a
-  deployment choice; DS07 is the protocol and the checks
+- no TLS of its own, and no non-loopback listener - the channel of the nodes
+  sits behind the tunnel or the proxy the operator sets up
 - it does not run the repair itself - that is DS08
 - it never counts a manual file copy as a completed transport

@@ -115,6 +115,21 @@
         }
       }
     },
+    "/v1/incident-transport": {
+      "post": {
+        "summary": "An escalation of a node (incident-transport/1), with the token of that node.",
+        "description": "Only with serve --node-channel FILE; otherwise 404. The bearer token is the one issued for the node (node-token issue), not the token of the API.",
+        "responses": {
+          "200": { "description": "{ok: true, duplicate, message_id}" },
+          "400": { "description": "not an incident-transport message" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "description": "verification refused: {ok: false, code}" },
+          "404": { "description": "the channel is not configured" },
+          "413": { "description": "body over the limit of the channel" },
+          "503": { "$ref": "#/components/responses/Busy" }
+        }
+      }
+    },
     "/v1/plugins/{name}/enable": {
       "post": {
         "summary": "Enable a plugin whose digest the caller approves.",

@@ -18,14 +18,14 @@ GPL-3.0-or-later - see LICENSE
   <img src="https://img.shields.io/badge/License-GPL%203.0--or--later-blue.svg" alt="GPL 3.0 or later">
   <img src="https://img.shields.io/badge/Language-Python%203.11%2B-blue.svg" alt="Language">
   <img src="https://img.shields.io/badge/Core-stdlib%20only-brightgreen.svg" alt="Core">
-  <img src="https://img.shields.io/badge/Tests-494%20passing-2ea44f.svg" alt="Tests">
+  <img src="https://img.shields.io/badge/Tests-513%20passing-2ea44f.svg" alt="Tests">
   <img src="https://img.shields.io/badge/Version-0.2.2-0f6cbd.svg" alt="Version">
   <img src="https://img.shields.io/badge/Maturity-functional-0F6CBD.svg" alt="Maturity">
 </p>
 
 ---
 
-**诚实核查 - 今天真正能运行的部分：** 下面列出的二十三个模块(`config.py`、`inventory.py`、`remote_station.py`、`preflight.py`、`provision.py`、`migration.py`、`workspace.py`、`recipe.py`、`runner.py`、`durable_queue.py`、`ai_provider.py`、`incident_transport.py`、`repair_cycle.py`、`operations.py`、`delivery.py`、`cli.py`, `api.py`, `plugins.py`, `sandbox.py`, `taskflow.py`, `worker.py`, `signing.py`, `trust_store.py`)都是真实代码，而非占位符，并且由真实的测试套件覆盖(494 个测试在 `tests/test_*.py` 中全部通过)。这些真实代码具体做到了什么：验证 JSON 文档、在磁盘上规划迁移、在一个真实隔离工作区内以真实的净化环境运行一个真实的受限子进程、让一个真实的 SQLite 队列/日志在重启后依然持久、并执行了一次真实的 HMAC 签名事件往返 - 所有这些都只是针对本地检出或可注入的测试替身进行的，从未针对该项目真正面向的目标硬件 Raspberry Pi 5/CM5 运行过。`provider suggest` 始终只调用确定性的 `FakeProvider`；接入真实的 AI 提供方仍是一个明确尚未做出的用户决定。`station preflight`/`station plan` 通过可注入的检查器描述远程主机，从未针对真实的远程机器运行过。本仓库中没有任何东西真正部署过主机、执行过部署，而工作循环(`queue work`)只针对启动器和 git 的替身运行过，从未在真实主机上运行 - `deliver evaluate` 自身硬编码的 `overall_maturity: "functional"` 就是代码本身给出的明确说明。具体每一项交付的内容请见 `CHANGELOG.md`。
+**诚实核查 - 今天真正能运行的部分：** 下面列出的二十三个模块(`config.py`、`inventory.py`、`remote_station.py`、`preflight.py`、`provision.py`、`migration.py`、`workspace.py`、`recipe.py`、`runner.py`、`durable_queue.py`、`ai_provider.py`、`incident_transport.py`、`repair_cycle.py`、`operations.py`、`delivery.py`、`cli.py`, `api.py`, `plugins.py`, `sandbox.py`, `taskflow.py`, `worker.py`, `signing.py`, `trust_store.py`)都是真实代码，而非占位符，并且由真实的测试套件覆盖(513 个测试在 `tests/test_*.py` 中全部通过)。这些真实代码具体做到了什么：验证 JSON 文档、在磁盘上规划迁移、在一个真实隔离工作区内以真实的净化环境运行一个真实的受限子进程、让一个真实的 SQLite 队列/日志在重启后依然持久、并执行了一次真实的 HMAC 签名事件往返 - 所有这些都只是针对本地检出或可注入的测试替身进行的，从未针对该项目真正面向的目标硬件 Raspberry Pi 5/CM5 运行过。`provider suggest` 始终只调用确定性的 `FakeProvider`；接入真实的 AI 提供方仍是一个明确尚未做出的用户决定。`station preflight`/`station plan` 通过可注入的检查器描述远程主机，从未针对真实的远程机器运行过。本仓库中没有任何东西真正部署过主机、执行过部署，而工作循环(`queue work`)只针对启动器和 git 的替身运行过，从未在真实主机上运行 - `deliver evaluate` 自身硬编码的 `overall_maturity: "functional"` 就是代码本身给出的明确说明。具体每一项交付的内容请见 `CHANGELOG.md`。
 
 ---
 
@@ -39,7 +39,7 @@ GPL-3.0-or-later - see LICENSE
 |---|---|
 | 版本 | `0.2.2` |
 | 成熟度 | 可用 |
-| 测试 | 494 (`python -m pytest -q tests`) |
+| 测试 | 513 (`python -m pytest -q tests`) |
 | 技术栈 | Python 3.11+ / JSON Schema / systemd (host role, Linux only) / SQLite (durable task/state journal, from DS05 onward) |
 | 目标 | 开发服务器 |
 | 真实硬件 | 尚未：此版本没有在真实硬件上运行的记录 |
@@ -55,7 +55,7 @@ GPL-3.0-or-later - see LICENSE
 | 领域 | 状态 | 在这里的含义 |
 |---|---|---|
 | 软件 | 🟡 | 主要用途可用；上面的诚实性检查列出了仍然缺少的内容 |
-| 测试 | 🟢 | 494 项自动测试，每次变更都会运行 |
+| 测试 | 🟢 | 513 项自动测试，每次变更都会运行 |
 | 真实硬件 | 🔴 | 尚未：此版本没有在真实硬件上运行的记录 |
 | 接口与协议 | 🟡 | 提供的路由或消息已有文档，并用客户端测试过；尚未被所有客户端使用 |
 | 集成 | 🟠 | 其消息和路由已对照 SDK 的共享契约检查；尚未与真实设备一起运行 |
@@ -189,7 +189,7 @@ python -m hydra_umc_dev_server.bench  # the local bench: planner, safety zones, 
 
 ## 🧪 测试
 
-运行 `python -m pytest -q tests` 会执行 494 个自动测试。 在没有可用沙箱的主机上，沙箱测试会说明原因并跳过；没有任何测试需要硬件。
+运行 `python -m pytest -q tests` 会执行 513 个自动测试。 在没有可用沙箱的主机上，沙箱测试会说明原因并跳过；没有任何测试需要硬件。
 
 CI 运行 `HYDRA_UMC_CI=1 python tools/ci_validate.py`，检查清单、文档、八个 README 和图片。
 

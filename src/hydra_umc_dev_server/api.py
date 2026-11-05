@@ -20,6 +20,7 @@ Routes
     GET  /v1/audit                          the last requests (method, path, status, time), newest last
     GET  /v1/plugins                        every discovered plugin and its state
     POST /v1/plugins/rescan                 discover again from disk
+    POST /v1/incident-transport             an escalation of a node, with the token of that node (only with --node-channel; node_channel.py)
     POST /v1/plugins/<name>/enable          body {"sha256": "..."}: the approved digest
     POST /v1/plugins/<name>/disable
     POST /v1/plugins/<name>/checks/<check>  run one check, bounded by a timeout
@@ -45,6 +46,7 @@ from . import __version__
 from .health_route import HealthRouteMixin
 from .server_identity import accepts
 from .inventory import scan_project_manifests
+from .node_channel import NodeChannel
 from .plugins import PluginError, PluginRegistry
 
 MAX_BODY_BYTES = 4096
@@ -105,6 +107,7 @@ class DevServer(ThreadingHTTPServer):
         plugins_root: Path,
         max_connections: int = MAX_CONNECTIONS,
         public_health_detail: bool = False,
+        node_channel: NodeChannel | None = None,
     ) -> None:
         validate_bind(address[0], token)
         if max_connections < 1:
@@ -116,6 +119,8 @@ class DevServer(ThreadingHTTPServer):
         # False: the health route answers a caller without the token only {"status": "ok"}, so the exact version
         # and the number of plugins are not shown to anybody who can reach the port.
         self.public_health_detail = public_health_detail
+        # None: POST /v1/incident-transport answers 404. Set (serve --node-channel FILE): a node posts with its own token.
+        self.node_channel = node_channel
         self.health_open = False  # GET /health answers only when the operator opens it (health_route.py)
         self.identity_key: bytes | None = None  # the signing key of HYDRA-UMC-SERVER, when the operator turned its identity on (server_identity.py)
         self.registry = PluginRegistry()
@@ -246,8 +251,27 @@ class _Handler(HealthRouteMixin, BaseHTTPRequestHandler):
         else:
             self._send(404, {"error": "not found"})
 
+    def _node_channel_post(self) -> None:
+        """The route of the nodes: its own token per node, never the token of the rest of the API."""
+        channel = self.server.node_channel
+        if channel is None:
+            self._send(404, {"error": "not found"})
+            return
+        try:
+            length = int(self.headers.get("Content-Length") or 0)
+        except ValueError:
+            length = -1
+        if length < 0 or length > channel.settings.max_body_bytes:
+            self._send(413 if length > 0 else 400, {"ok": False, "error": "body size"})
+            return
+        status, answer = channel.handle(self.headers.get("Authorization", ""), self.rfile.read(length))
+        self._send(status, answer)
+
     def do_POST(self) -> None:  # noqa: N802
         path = self.path.split("?", 1)[0]
+        if path == "/v1/incident-transport":
+            self._node_channel_post()
+            return
         if not self._authorized():
             self._refuse_unauthorized()
             return

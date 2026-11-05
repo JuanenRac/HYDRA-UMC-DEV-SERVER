@@ -101,6 +101,7 @@ from .migration import (
 from .api import ApiConfigError, DevServer
 from .health_route import health_open_requested
 from .server_identity import identity_key_from
+from .node_channel import ChannelSettings, NodeChannel, NodeChannelError, issue_token, revoke_token
 from .plugins import PluginError, PluginRegistry
 from .ai_provider import FakeProvider, ProviderConfig, run_provider_step
 from .durable_queue import DurableQueue
@@ -672,12 +673,18 @@ def _read_api_token(args: argparse.Namespace) -> str:
 
 def _cmd_serve(args: argparse.Namespace) -> int:
     try:
+        channel = NodeChannel(ChannelSettings.load(Path(args.node_channel))) if args.node_channel else None
+    except NodeChannelError as exc:
+        print(f"cannot start the API: {exc}", file=sys.stderr)
+        return 1
+    try:
         server = DevServer(
             (args.host, args.port),
             token=_read_api_token(args),
             workspace_root=Path(args.workspace_root),
             plugins_root=Path(args.plugins_root),
             public_health_detail=args.public_health_detail,
+            node_channel=channel,
         )
         server.identity_key = identity_key_from(args.identity_key_file)
     except (ApiConfigError, OSError, ValueError) as exc:
@@ -691,6 +698,20 @@ def _cmd_serve(args: argparse.Namespace) -> int:
         pass
     finally:
         server.server_close()
+    return 0
+
+
+def _cmd_node_token(args: argparse.Namespace) -> int:
+    try:
+        if args.token_command == "issue":
+            issue_token(Path(args.tokens_file), args.node, Path(args.out))
+            print(f"The token of {args.node} was written to {args.out} (mode 0600); the server keeps only its hash. Give the file to the node; an older token of that node no longer works.")
+        else:
+            revoke_token(Path(args.tokens_file), args.node)
+            print(f"The token of {args.node} is revoked.")
+    except (NodeChannelError, OSError) as exc:
+        print(f"ERROR: {exc}", file=sys.stderr)
+        return 1
     return 0
 
 
@@ -955,7 +976,20 @@ def build_parser() -> argparse.ArgumentParser:
     serve.add_argument("--public-health-detail", action="store_true", help="Let GET /v1/health show the version and the plugin count to a caller without the token (default: only {\"status\": \"ok\"}).")
     serve.add_argument("--identity-key-file", default=None, help="File with the signing key of HYDRA-UMC-SERVER (its JWT_SECRET): a valid token of the SERVER is then accepted next to the API token, every route (GET /health and GET /v1/health too) demands an identity and a viewer may read but not change (off by default; or set HYDRA_UMC_DEV_SERVER_IDENTITY_KEY_FILE).")
     serve.add_argument("--health-open", action="store_true", help="Answer GET /health, the common route of the family (loopback, or the token); closed by default, or set HYDRA_UMC_DEV_SERVER_HEALTH_OPEN=1. GET /v1/health is unchanged.")
+    serve.add_argument("--node-channel", default=None, help="The configuration file of the channel the nodes escalate through (POST /v1/incident-transport, one token per node); without it the route answers 404.")
     serve.set_defaults(func=_cmd_serve)
+
+    token = subparsers.add_parser("node-token", help="Issue or revoke the token of one node for the escalation channel (node_channel.py).")
+    token_sub = token.add_subparsers(dest="token_command", required=True)
+    issue = token_sub.add_parser("issue", help="Make the token of a node and write it to a new file (never printed); an older token of that node stops working.")
+    issue.add_argument("node")
+    issue.add_argument("--tokens-file", required=True, help="The tokens file of the server (it keeps only hashes).")
+    issue.add_argument("--out", required=True, help="Where the token is written (a new file, mode 0600).")
+    issue.set_defaults(func=_cmd_node_token)
+    revoke = token_sub.add_parser("revoke", help="Stop a node: its token is refused from the next request.")
+    revoke.add_argument("node")
+    revoke.add_argument("--tokens-file", required=True)
+    revoke.set_defaults(func=_cmd_node_token)
 
     return parser
 

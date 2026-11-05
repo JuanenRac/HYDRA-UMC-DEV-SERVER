@@ -357,8 +357,17 @@ and at most 32 requests are served at once (the next gets `503` with `Retry-Afte
 | `POST /v1/plugins/<name>/checks/<check>` | run one check |
 | `POST /v1/plugins/<name>/reports/<report>` | run one report |
 | `POST /v1/plugins/<name>/generators/<generator>` | run one generator; optional body `{"params": {...}}`; the answer carries the file name and text |
+| `POST /v1/incident-transport` | an escalation of a node, with the token of that node (not the API token); `404` unless the server starts with `serve --node-channel FILE` |
 
 The API runs no task and deploys nothing.
+
+## `node-token issue NODE --tokens-file FILE --out FILE` / `node-token revoke NODE --tokens-file FILE`
+
+The token of one node for the escalation channel. `issue` makes a new token for the node, writes it to a NEW file (`--out`, mode 0600, never printed) and keeps in the tokens file only its SHA-256; issuing again for the same node replaces the token, so the old one stops working. `revoke` stops a node: its token is refused from the next request (the file is read on every request). The node name has letters, digits and `. _ : -` only. Exit `0`, or `1` with the reason on stderr.
+
+## `serve ... --node-channel FILE`
+
+Opens `POST /v1/incident-transport` (closed, `404`, without it). The JSON file holds `tokens_file`, `registry_file` (node -> HMAC secret, as for `incident verify`), `state_file` (the SQLite file with the nonces and the rate log), `inbox_dir` (one file per accepted escalation, named by its `message_id`), `to_node` (the name of this server in the messages), an optional `policy` (as the incident-transport policy) and an optional `max_body_bytes` (256 to 1048576, default 65536). The route takes the token of the node, then verifies the message as `incident verify` does with the node of the token as the identity the channel proved. Answers: `200 {"ok": true, "duplicate": bool}`, `401` for a missing, wrong or revoked token, `403 {"ok": false, "code": ...}` for a message that does not verify, `400`, `413`, `503` when the files of the channel cannot be read. The API stays on loopback: a node on another host reaches it through the tunnel or the proxy the operator sets up.
 
 ## `--version`
 
