@@ -1,0 +1,9 @@
+{
+  "enabled": false,
+  "server_url": null,
+  "token_file": null,
+  "username": null,
+  "password_file": null,
+  "timeout_seconds": 5,
+  "allow_plain_http": false
+}

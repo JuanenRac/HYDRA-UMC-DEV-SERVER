@@ -122,6 +122,7 @@ from .operations import (
     verify_backup,
 )
 from .repair_cycle import RepairCandidate, check_candidate, check_candidate_trusted
+from .scenario_ingest import load_ingest_settings, post_scenario_outcome
 from .trust_store import TrustStore, load_trust_store, save_trust_store
 from .preflight import SystemHostInspector, run_preflight
 from .provision import build_provision_plan
@@ -476,6 +477,22 @@ def _cmd_repair_check_candidate(args: argparse.Namespace) -> int:
         )
     print(json.dumps(check.to_dict(), indent=2))
     return 0 if check.accepted else 1
+
+
+def _cmd_repair_report_outcome(args: argparse.Namespace) -> int:
+    """Hands one ScenarioOutcome document to HYDRA-UMC-SERVER, as the scenario-ingest document says. Exit 0 only when the server kept it."""
+    try:
+        settings = load_ingest_settings(Path(args.config))
+        outcome = load_json_document(Path(args.outcome_file))
+    except ConfigValidationError as exc:
+        print(f"INVALID: {exc}", file=sys.stderr)
+        return 1
+    if settings is None:
+        print("OFF: 'enabled' is false in the scenario-ingest document; nothing was sent", file=sys.stderr)
+        return 1
+    result = post_scenario_outcome(outcome, settings)
+    print(json.dumps(result.to_dict(), indent=2))
+    return 0 if result.ok else 1
 
 
 def _trust_summary(store: TrustStore) -> str:
@@ -886,6 +903,13 @@ def build_parser() -> argparse.ArgumentParser:
     repair_check.add_argument("--base", required=True, help="The base fingerprint this cycle is pinned to.")
     repair_check.add_argument("--target", required=True, help="The target this cycle installs to.")
     repair_check.set_defaults(func=_cmd_repair_check_candidate)
+    repair_report = repair_sub.add_parser(
+        "report-outcome",
+        help="Hand one ScenarioOutcome 1.0 document to HYDRA-UMC-SERVER (POST /api/ingest/scenario-outcome). Off until the scenario-ingest document turns it on; the credential is a file, never an argument.",
+    )
+    repair_report.add_argument("outcome_file", help="Path to a ScenarioOutcome JSON document.")
+    repair_report.add_argument("--config", required=True, help="The scenario-ingest document (see configs/scenario-ingest.example.json).")
+    repair_report.set_defaults(func=_cmd_repair_report_outcome)
 
     ops = subparsers.add_parser("ops", help="Stable-operation and restore commands (DS09).")
     ops_sub = ops.add_subparsers(dest="ops_command", required=True)

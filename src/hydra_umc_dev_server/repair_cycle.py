@@ -194,7 +194,10 @@ class RepairCycle:
         allow_symmetric_keys: bool = False,
         require_bound_approval: bool = True,
         clock: Callable[[], datetime] | None = None,
+        outcome_sink: Callable[[dict[str, Any]], object] | None = None,
     ) -> None:
+        # Each run of the repro case (before the fix, after it) is also handed on as a ScenarioOutcome 1.0 (scenario_ingest.py); a sink that fails never changes the cycle.
+        self._outcome_sink = outcome_sink
         # By default only Ed25519 public keys verify a candidate or an approval: an HMAC secret has to be on the verifying side too, so
         # whoever can verify could also forge. `allow_symmetric_keys` keeps the shared secret as an opt-in compatibility mode.
         self.allow_symmetric_keys = allow_symmetric_keys
@@ -220,11 +223,26 @@ class RepairCycle:
         self.state, self.reason = state, None
         return StepOutcome(True, state)
 
+    def _hand_on(self, phase: str, fingerprint: str, outcome: str) -> None:
+        """One ScenarioOutcome 1.0 of this cycle to the sink, when there is one."""
+        if self._outcome_sink is None:
+            return
+        document = {
+            "schema_version": "1.0", "scenario_id": self.incident_id, "run_id": f"{self.incident_id}:{phase}",
+            "base_fingerprint": fingerprint, "phase": phase, "repro_case": self.repro_case_id,
+            "observed": {"outcome": outcome}, "timestamp_utc": self._clock().isoformat(),
+        }
+        try:
+            self._outcome_sink(document)
+        except Exception:  # noqa: BLE001 - reporting must never change the cycle
+            pass
+
     def confirm_repro(self, evidence: dict[str, Any]) -> StepOutcome:
         if self.state != STATE_NOT_STARTED:
             return self._block(f"cannot confirm the reproduction from state {self.state!r}")
         if evidence.get("reproduced") is not True or evidence.get("repro_case_id") != self.repro_case_id:
             return self._block("the failure was not reproduced for this repro case")
+        self._hand_on("before", self.base_fingerprint, "reproduced")
         return self._advance(STATE_REPRO_CONFIRMED)
 
     def raise_incident(self) -> StepOutcome:
@@ -329,8 +347,10 @@ class RepairCycle:
             return self._block("verification evidence is for a different repro case")
         if evidence.get("verified") is not True:
             installer.rollback()
+            self._hand_on("after", observed_base_fingerprint, "reproduced")
             self.state, self.reason = STATE_RECOVERED, "post-install verification failed - rolled back"
             return StepOutcome(False, self.state, self.reason)
+        self._hand_on("after", observed_base_fingerprint, "not-reproduced")
         return self._advance(STATE_VERIFIED)
 
 

@@ -54,3 +54,7 @@ HMAC secret only an HMAC one, so a signature cannot be downgraded.
   real install - those are injected (`RunResult`, `IsolatedInstaller`)
 - stable long-run operation and full restore are DS09
 - the delivery package and maturity evaluation are DS10
+
+## Handing the runs to the server
+
+`RepairCycle` takes an optional `outcome_sink`. With one, the run before the fix (`confirm_repro`) and the run after it (`verify`, whatever its result) are passed on as `ScenarioOutcome` 1.0 documents (`scenario_id` is the incident, `repro_case` the repro case, `base_fingerprint` the base the run saw). `scenario_ingest.outcome_sink(settings)` builds a sink that posts them to HYDRA-UMC-SERVER (`POST /api/ingest/scenario-outcome`); a sink that raises never changes the cycle. Off unless the scenario-ingest document says `enabled`.

@@ -230,6 +230,10 @@ candidate, or one aimed at another incident / base / target. With
 trusted, not revoked alias of the store (the one named by `--signer`, or any),
 and the answer adds `"signer": "<alias>"`.
 
+## `repair report-outcome <outcome_file> --config FILE` (DS08)
+
+Hands one `ScenarioOutcome` 1.0 document to HYDRA-UMC-SERVER (`POST /api/ingest/scenario-outcome`). `--config` is the scenario-ingest document (`configs/scenario-ingest.example.json`): `enabled` (false by default; then nothing is sent and the exit status is `1`), `server_url`, the credential as a file (`token_file`, or `username` with `password_file`), `timeout_seconds` and `allow_plain_http`. Prints `{"ok", "status", "detail", "seq"}`; exits `0` only when the server kept it. The SERVER keeps the feed off until its switch `HYDRA_UMC_INGEST_SCENARIO` is `1`.
+
 ## `ops health --db PATH [--min-free-gb F --free-disk-gb G --journal-cap N]` (DS09)
 
 Operational health over the durable queue and disk. Prints a

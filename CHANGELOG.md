@@ -4,6 +4,8 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+- **A repair cycle can hand its runs to HYDRA-UMC-SERVER (off by default):** `RepairCycle(..., outcome_sink=...)` sends the run before the fix (when the failure is confirmed) and the run after it (when the check ends) as `ScenarioOutcome` 1.0 documents, and `repair report-outcome FILE --config FILE` sends one document by hand, to `POST /api/ingest/scenario-outcome`. The settings are a document (`configs/scenario-ingest.example.json`); the credential is a file (a token the server issued, or an account whose password is in a file) and never appears in a log or a result; it only goes over HTTPS or to this machine; a redirect is not followed; a sink that fails never changes the cycle.
+
 - **The build test of the repository compiles only on CI or when allowed:** for the stacks that compile (`rust`, `go`, `android`, `flutter`, `firmware-c`), `tools/build_test.py` prints `BUILD_TEST=SKIPPED` with exit status 2 on a plain PC, never a pass; `ALLOW_LOCAL_BUILD=1` allows it and a CI runner always may. The `python` and `node` stacks are not locked.
 
 ## [0.2.3] - The identity of HYDRA-UMC-SERVER, off by default (serve --identity-key-file FILE, or HYDRAUMCDEVSERVERIDENTITYKEYFILE): the service verifies the signed token (HS256 JWT with exp, username and role) that the server issues at... (and 3 more changes)
