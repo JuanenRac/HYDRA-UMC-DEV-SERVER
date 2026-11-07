@@ -29,12 +29,14 @@ documentation:
 from __future__ import annotations
 
 import ipaddress
+import re
 from dataclasses import dataclass
 from typing import Any
 
 from .config import ConfigValidationError, ToolchainPolicy, _require_bool, _require_str
 from .identifiers import is_account_name, path_text_problem
 
+_TLS_PATH = re.compile(r"/[A-Za-z0-9._/-]{1,200}")
 _VALID_REMOTE_ACCESS_KINDS = ("code-server", "ssh-remote")
 # A remote-editing service on a dev host has no business on a well-known
 # service port - require the unprivileged range so a preflight port check
@@ -104,6 +106,12 @@ class RemoteAccess:
     port: int
     bind_address: str
     allow_public_bind: bool = False
+    # TLS for code-server: both files or neither (neither is plain HTTP, as before). Absolute paths outside the home of the account, which the unit hides.
+    tls_cert_file: str = ""
+    tls_key_file: str = ""
+
+    def uses_tls(self) -> bool:
+        return bool(self.tls_cert_file and self.tls_key_file)
 
     def is_loopback_or_private(self) -> bool:
         try:
@@ -118,12 +126,16 @@ class RemoteAccess:
         return addr.is_loopback or addr.is_private
 
     def to_dict(self) -> dict[str, Any]:
-        return {
+        data: dict[str, Any] = {
             "kind": self.kind,
             "port": self.port,
             "bind_address": self.bind_address,
             "allow_public_bind": self.allow_public_bind,
         }
+        if self.uses_tls():
+            data["tls_cert_file"] = self.tls_cert_file
+            data["tls_key_file"] = self.tls_key_file
+        return data
 
     @staticmethod
     def from_dict(data: object) -> "RemoteAccess":
@@ -153,9 +165,23 @@ class RemoteAccess:
             except ValueError:
                 errors.append(f"'bind_address' must be a valid IP address, got {bind_address!r}")
 
+        tls_cert_file = data.get("tls_cert_file", "")
+        tls_key_file = data.get("tls_key_file", "")
+        for name, value in (("tls_cert_file", tls_cert_file), ("tls_key_file", tls_key_file)):
+            if not isinstance(value, str):
+                errors.append(f"'{name}' must be a string")
+            elif value and not _TLS_PATH.fullmatch(value):
+                errors.append(f"'{name}' must be an absolute path of plain characters, not {value!r}")
+        if bool(tls_cert_file) != bool(tls_key_file):
+            errors.append("'tls_cert_file' and 'tls_key_file' go together: give both or neither")
+        if kind and kind != "code-server" and (tls_cert_file or tls_key_file):
+            errors.append("TLS files are for the 'code-server' kind only")
+
         if errors:
             raise ConfigValidationError("; ".join(errors))
-        return RemoteAccess(kind=kind, port=port, bind_address=bind_address, allow_public_bind=allow_public_bind)
+        return RemoteAccess(
+            kind=kind, port=port, bind_address=bind_address, allow_public_bind=allow_public_bind, tls_cert_file=tls_cert_file, tls_key_file=tls_key_file
+        )
 
 
 @dataclass(frozen=True)

@@ -83,6 +83,8 @@ def _systemd_unit_text(profile: RemoteStationProfile) -> str:
     config_dir = _home_path(identity, _CODE_SERVER_CONFIG_DIR)
     data_dir = _home_path(identity, _CODE_SERVER_DATA_DIR)
     env_file = _home_path(identity, _CODE_SERVER_ENV_FILE)
+    # With a certificate and a key in the profile code-server speaks TLS itself; without them the unit is the plain HTTP one it always was.
+    tls = f" --cert {access.tls_cert_file} --cert-key {access.tls_key_file}" if access.uses_tls() else ""
     # RestrictAddressFamilies keeps AF_NETLINK in the allow-list on
     # purpose: an editor server that ever enumerates interfaces needs it,
     # and a too-tight family list has caused a real crash-loop elsewhere
@@ -110,7 +112,7 @@ def _systemd_unit_text(profile: RemoteStationProfile) -> str:
             f"Environment=XDG_CONFIG_HOME={identity.home.rstrip('/')}/.config",
             f"Environment=XDG_DATA_HOME={identity.home.rstrip('/')}/.local/share",
             f"EnvironmentFile={env_file}",
-            f"ExecStart={_CODE_SERVER_EXEC} --bind-addr {access.bind_address}:{access.port} --auth password --disable-telemetry",
+            f"ExecStart={_CODE_SERVER_EXEC} --bind-addr {access.bind_address}:{access.port} --auth password --disable-telemetry{tls}",
             "Restart=on-failure",
             "RestartSec=3",
             "NoNewPrivileges=yes",

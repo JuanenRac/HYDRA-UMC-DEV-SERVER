@@ -26,6 +26,7 @@ One JSON object, loaded by `station validate` / `station preflight` /
 | `remote_access.port` | Unprivileged TCP port (1024-65535) the editor endpoint listens on. |
 | `remote_access.bind_address` | IP the endpoint binds. Loopback or RFC-1918 private by default. |
 | `remote_access.allow_public_bind` | Must be the literal boolean `true` to allow a routable/public `bind_address`. A missing, misspelled or non-boolean value never grants it. |
+| `remote_access.tls_cert_file`, `remote_access.tls_key_file` | Optional, `code-server` kind only, both or neither: absolute paths of plain characters to a certificate and its key outside the home of the account (the unit hides the home). With them the unit starts code-server with `--cert` and `--cert-key` and it speaks HTTPS itself; without them nothing changes. Plain HTTP on the same port is only sent to HTTPS. |
 | `required_tools[]` | `{ "name", "min_version", "required" }` entries - same shape as DS01's `toolchain` schema. |
 | `min_free_disk_gb` | Minimum free space (default `10.0`) the preflight enforces at the workspace path. |
 

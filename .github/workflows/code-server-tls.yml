@@ -1,0 +1,57 @@
+# =============================================================================
+# HYDRA-UMC-DEV-SERVER - Real code-server over TLS (manual)
+# Copyright (C) 2026 JuanenRac (Electro Hobby 3D) <electrohobby3d@gmail.com>
+# GPL-3.0-or-later - see LICENSE
+# =============================================================================
+# Started by hand only (workflow_dispatch): it never runs on a push or a pull request, so it cannot turn the checks of a push red.
+#
+# Installs the code-server package of a fixed version on the runner, makes a throw-away certificate for 127.0.0.1 and starts code-server with the arguments of the
+# unit that the plan writes for a profile with TLS files (tools/code_server_tls_check.py): health over HTTPS with only that certificate trusted, plain HTTP not
+# served, an untrusting client refused, and the editor behind the login page. It holds no key, uploads nothing and publishes nothing. The same station on a
+# CM5 or a Raspberry Pi 5, opened from a browser, is still to be tried.
+
+name: Real code-server over TLS (manual)
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "code-server release to install"
+        type: string
+        default: "4.96.4"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: code-server-tls
+  cancel-in-progress: false
+
+jobs:
+  tls:
+    name: code-server over TLS
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    env:
+      CODE_SERVER_VERSION: ${{ inputs.version || '4.96.4' }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.12"
+      - name: Install code-server
+        shell: bash
+        run: |
+          set -euo pipefail
+          case "$CODE_SERVER_VERSION" in (*[!0-9.]*|"") echo "::error::not a version"; exit 1;; esac
+          curl -fsSL -o "$RUNNER_TEMP/code-server.deb" "https://github.com/coder/code-server/releases/download/v${CODE_SERVER_VERSION}/code-server_${CODE_SERVER_VERSION}_amd64.deb"
+          sha256sum "$RUNNER_TEMP/code-server.deb"
+          sudo dpkg -i "$RUNNER_TEMP/code-server.deb"
+          code-server --version
+      - name: Start it with the arguments of the unit and talk to it
+        shell: bash
+        run: python tools/code_server_tls_check.py
