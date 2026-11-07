@@ -6,10 +6,10 @@
 """The trust store: which public keys a host accepts, each under an alias.
 
 A host that verifies a repair candidate, an approval or a backup manifest needs the PUBLIC key of whoever signed it and
-nothing else. The store is a small JSON document that maps an alias ("Ana (bench 1)", "release approver") to a public key
+nothing else. The store is a small JSON document that maps an alias ("Ana bench 1", "release approver") to a public key
 (`ed25519-public:<64 hex>`), plus a list of revoked aliases:
 
-    {"trusted_keys": {"Ana (bench 1)": "ed25519-public:..."}, "revoked": ["Old laptop"]}
+    {"trusted_keys": {"Ana bench 1": "ed25519-public:..."}, "revoked": ["Old laptop"]}
 
 Rules, all on the safe side:
 
