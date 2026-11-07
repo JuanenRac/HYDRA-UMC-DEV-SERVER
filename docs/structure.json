@@ -633,6 +633,29 @@
       "columns": 2,
       "rows": [
         {
+          "name": "bench/",
+          "desc": {
+            "en": "container bench",
+            "es": "banco de contenedores",
+            "de": "Container-Bench",
+            "fr": "banc de conteneurs",
+            "it": "banco di container",
+            "ja": "コンテナベンチ",
+            "zh": "容器测试台",
+            "pt": "banco de contentores"
+          },
+          "tree_desc": {
+            "en": "container bench",
+            "es": "banco de contenedores",
+            "de": "Container-Bench",
+            "fr": "banc de conteneurs",
+            "it": "banco di container",
+            "ja": "コンテナベンチ",
+            "zh": "容器测试台",
+            "pt": "banco de contentores"
+          }
+        },
+        {
           "name": "configs/",
           "desc": {
             "en": "example configuration documents",

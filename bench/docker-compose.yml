@@ -1,0 +1,22 @@
+# HYDRA-UMC-DEV-SERVER - bench/docker-compose.yml: the container bench ("hydra-bench")
+# Copyright (C) 2026 JuanenRac (Electro Hobby 3D) <electrohobby3d@gmail.com>
+# GPL-3.0-or-later - see LICENSE
+#
+# The swarm cell as real containers on one internal network: the orchestrator, the job dispatcher, the node healer and the state replicator,
+# built from their sibling checkouts (../../HYDRA-UMC-<name> next to this repository). It reuses the compose file of the orchestrator, so the
+# bench and the cell can never describe two different stacks. Only the orchestrator is published, on the loopback interface of the host.
+#
+# Required before the start (the stack refuses to start without them): ORCHESTRATOR_TOKEN, JOB_DISPATCHER_TOKEN, SWARM_SYNC_SHARED_SECRET.
+#
+# Usage (from this folder):
+#   export ORCHESTRATOR_TOKEN=$(openssl rand -hex 32) JOB_DISPATCHER_TOKEN=$(openssl rand -hex 32) SWARM_SYNC_SHARED_SECRET=$(openssl rand -hex 32)
+#   docker compose up --build --detach --wait --wait-timeout 900
+#   python -m hydra_umc_dev_server.compose_bench      # the scenarios, over HTTP, against the published orchestrator
+#   docker compose down --volumes --remove-orphans
+#
+# The manual workflow "Container bench" does exactly this on a CI runner.
+
+name: hydra-bench
+
+include:
+  - path: ../../HYDRA-UMC-ORCHESTRATOR/docker-compose.yml

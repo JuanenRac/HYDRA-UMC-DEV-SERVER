@@ -1,0 +1,59 @@
+# =============================================================================
+# HYDRA-UMC-DEV-SERVER - the container bench: the swarm cell as real containers, driven by the scenarios of compose_bench.py
+# Copyright (C) 2026 JuanenRac (Electro Hobby 3D) <electrohobby3d@gmail.com>
+# GPL-3.0-or-later - see LICENSE
+# =============================================================================
+name: Container bench
+
+on:
+  workflow_dispatch:
+  # reusable: the SDK, the server and the firmware call it from their own pull requests (see the integration workflow of the SDK)
+  workflow_call:
+  schedule:
+    - cron: "37 3 * * 1"
+
+permissions:
+  contents: read
+
+jobs:
+  bench:
+    name: Start the cell containers and run the scenarios
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - name: Check out the bench (always this repository, also when another repository calls the workflow)
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: JuanenRac/HYDRA-UMC-DEV-SERVER
+          ref: ${{ github.repository == 'JuanenRac/HYDRA-UMC-DEV-SERVER' && github.sha || 'main' }}
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.12"
+      - name: Fetch the sibling repositories the cell builds from
+        run: |
+          for repository in HYDRA-UMC-ORCHESTRATOR HYDRA-UMC-JOB-DISPATCHER HYDRA-UMC-NODE-HEALING HYDRA-UMC-SWARM-SYNC; do
+            git clone --quiet --depth 1 "https://github.com/JuanenRac/${repository}.git" "../${repository}"
+          done
+      - name: Start the containers
+        working-directory: bench
+        run: |
+          {
+            echo "ORCHESTRATOR_TOKEN=$(openssl rand -hex 32)"
+            echo "JOB_DISPATCHER_TOKEN=$(openssl rand -hex 32)"
+            echo "SWARM_SYNC_SHARED_SECRET=$(openssl rand -hex 32)"
+          } > .env
+          docker compose up --build --detach --wait --wait-timeout 1500
+      - name: Run the scenarios
+        working-directory: bench
+        run: |
+          set -a; . ./.env; set +a
+          PYTHONPATH=../src python -m hydra_umc_dev_server.compose_bench --wait 120
+      - name: Show the logs when it failed
+        if: ${{ failure() }}
+        working-directory: bench
+        run: docker compose logs --no-color --tail 80
+      - name: Stop the containers
+        if: ${{ always() }}
+        working-directory: bench
+        run: docker compose down --volumes --remove-orphans

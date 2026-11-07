@@ -4,6 +4,7 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+- **A container bench runs the swarm cell as real containers:** `bench/docker-compose.yml` reuses the compose file of the orchestrator (orchestrator, job dispatcher, node healer, state replicator) and `compose_bench.py` drives it over HTTP with six scenarios (health, closed without the token, mission lifecycle, malformed input, the dispatcher reached through the orchestrator, recovery of an unknown node); every scenario reports PASS or FAIL and the run fails at the end, never at the first failure. The manual and weekly workflow `Container bench` starts the containers on a runner and runs it. The scenarios are tested here against a stand-in orchestrator (16 tests). The broker, voice, datalake and bridge containers are not part of the cell yet.
 - **The sandbox is tested on a real kernel by a manual workflow:** `sandbox-real-host.yml` runs the real-host sandbox tests with bubblewrap as an ordinary user and with `systemd-run` as root on the Linux kernel of a CI runner, and fails when a test of the mode under test is skipped. It is a CI kernel, not the device: the run on the CM5 stays pending.
 
 ## [0.2.4] - A repair cycle can hand its runs to HYDRA-UMC-SERVER (off by default): RepairCycle(..., outcomesink=...) sends the run before the fix (when the failure is confirmed) and the run after it (when the check ends) as... (and 1 more changes)
