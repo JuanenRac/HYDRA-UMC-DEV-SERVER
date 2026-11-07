@@ -1,0 +1,74 @@
+# =============================================================================
+# HYDRA-UMC-DEV-SERVER - Sandbox on a real Linux kernel (manual)
+# Copyright (C) 2026 JuanenRac (Electro Hobby 3D) <electrohobby3d@gmail.com>
+# GPL-3.0-or-later - see LICENSE
+# =============================================================================
+# Started by hand only (workflow_dispatch): it never runs on a push or a pull request, so it cannot turn the checks of a push red.
+#
+# Runs tests/test_sandbox_real_host.py on the runner's Linux kernel: once with bubblewrap as an ordinary user and once with systemd-run as root. The tests look at what a
+# task could and could not do inside the sandbox (read the home, write outside its workspace, use the network, exceed its memory limit). A skipped test proves nothing, so
+# the job fails when a test of the mode under test was skipped. It holds no key, uploads nothing and publishes nothing.
+
+name: Sandbox on a real kernel (manual)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sandbox-real-host
+  cancel-in-progress: false
+
+jobs:
+  bubblewrap:
+    name: bubblewrap as an ordinary user
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.12"
+      - name: Install bubblewrap and let the runner use user namespaces
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq bubblewrap
+          # Ubuntu 24.04 limits unprivileged user namespaces with AppArmor; bubblewrap needs them. The setting is the runner's, not the project's.
+          sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0 || true
+          bwrap --version
+      - name: Run the sandbox tests with bubblewrap
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install ".[dev]"
+          PYTHONPATH=src python -m unittest -v tests.test_sandbox_real_host 2>&1 | tee "$RUNNER_TEMP/bwrap.log"
+          { echo "### Sandbox tests on a real kernel (bubblewrap)"; echo '```'; tail -n 40 "$RUNNER_TEMP/bwrap.log"; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+          if grep -E "skipped .bubblewrap:" "$RUNNER_TEMP/bwrap.log"; then echo "::error::a bubblewrap test was skipped, so it proves nothing"; exit 1; fi
+          grep -qE "^OK" "$RUNNER_TEMP/bwrap.log" || { echo "::error::the sandbox tests did not pass"; exit 1; }
+
+  systemd-run:
+    name: systemd-run as root
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.12"
+      - name: Run the sandbox and unit tests as root
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install ".[dev]"
+          sudo -E env "PATH=$PATH" PYTHONPATH=src python -m unittest -v tests.test_sandbox_real_host tests.test_code_server_unit_real_host 2>&1 | tee "$RUNNER_TEMP/systemd.log"
+          { echo "### Sandbox and unit tests on a real systemd (systemd-run)"; echo '```'; tail -n 40 "$RUNNER_TEMP/systemd.log"; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+          if grep -E "skipped .systemd-run:" "$RUNNER_TEMP/systemd.log"; then echo "::error::a systemd-run test was skipped, so it proves nothing"; exit 1; fi
+          grep -qE "^OK" "$RUNNER_TEMP/systemd.log" || { echo "::error::the tests did not pass"; exit 1; }

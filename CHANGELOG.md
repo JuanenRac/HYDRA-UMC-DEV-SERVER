@@ -4,6 +4,8 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+- **The sandbox is tested on a real kernel by a manual workflow:** `sandbox-real-host.yml` runs the real-host sandbox tests with bubblewrap as an ordinary user and with `systemd-run` as root on the Linux kernel of a CI runner, and fails when a test of the mode under test is skipped. It is a CI kernel, not the device: the run on the CM5 stays pending.
+
 ## [0.2.4] - A repair cycle can hand its runs to HYDRA-UMC-SERVER (off by default): RepairCycle(..., outcomesink=...) sends the run before the fix (when the failure is confirmed) and the run after it (when the check ends) as... (and 1 more changes)
 
 - **A repair cycle can hand its runs to HYDRA-UMC-SERVER (off by default):** `RepairCycle(..., outcome_sink=...)` sends the run before the fix (when the failure is confirmed) and the run after it (when the check ends) as `ScenarioOutcome` 1.0 documents, and `repair report-outcome FILE --config FILE` sends one document by hand, to `POST /api/ingest/scenario-outcome`. The settings are a document (`configs/scenario-ingest.example.json`); the credential is a file (a token the server issued, or an account whose password is in a file) and never appears in a log or a result; it only goes over HTTPS or to this machine; a redirect is not followed; a sink that fails never changes the cycle.

@@ -106,8 +106,8 @@ is wrapped in an operating-system sandbox when the host has one (`sandbox` in th
 The result of a run says which one was used (`sandbox`). The command lines are built by pure functions
 and covered by tests; `tests/test_sandbox_real_host.py` also runs real tasks in the sandbox and looks at what they could and could not do
 (write outside the workspace, read the home of the service user, use the network, exceed `MemoryMax` or `TasksMax`). It has been run
-against `systemd-run` on a real systemd host; it skips, saying why, where no usable sandbox exists, and the bubblewrap tests have not been
-run anywhere yet. Two rules came out of it: the workspace of a `systemd-run` task is bound into the unit (a workspace under `/tmp` or
+against `systemd-run` on a real systemd host and, with the manual workflow `sandbox-real-host.yml`, against bubblewrap and `systemd-run` on the Linux kernel of a CI runner
+(simulated host, not the CM5); it skips, saying why, where no usable sandbox exists. Two rules came out of it: the workspace of a `systemd-run` task is bound into the unit (a workspace under `/tmp` or
 `/var/tmp` would otherwise not exist for it), and a workspace under `/home`, `/root` or `/run/user` is refused, because `ProtectHome`
 leaves nothing there to run in; keep the workspace base somewhere like `/srv` or `/var/lib`.
 
