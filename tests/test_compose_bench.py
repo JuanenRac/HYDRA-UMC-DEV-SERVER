@@ -90,9 +90,11 @@ class _Handler(BaseHTTPRequestHandler):
                 return self._send(404, {"error": "unknown"})
             if verb == "cancel":
                 if self.server.missions[name] == "Cancelled":
-                    return self._send(409, {"error": "invalid transition"})
+                    return self._send(200, {"id": name, "state": "AlreadyCancelled"})
                 self.server.missions[name] = "Cancelled"
                 return self._send(200, {"id": name, "state": "Cancelled"})
+            if verb == "start":
+                return self._send(409, {"id": name, "state": self.server.missions[name], "error": "invalid transition"})
             if verb == "auto-dispatch":
                 return self._send(503 if self.server.mode != "dispatch-crash" else 500, {"error": "no robot"})
         if parts[0] == "nodes" and len(parts) == 3 and parts[2] == "recover":
@@ -193,7 +195,7 @@ def test_two_runs_with_different_ids_do_not_collide(fake) -> None:
     cell = Cell(server.url, TOKEN)
     assert all(r.status == "pass" for r in run(cell, run_id="a"))
     assert all(r.status == "pass" for r in run(cell, run_id="b"))
-    assert len(server.missions) == 4
+    assert len(server.missions) == 6
 
 
 def test_wait_until_ready_returns_true_when_it_answers_and_false_when_it_never_does(fake) -> None:

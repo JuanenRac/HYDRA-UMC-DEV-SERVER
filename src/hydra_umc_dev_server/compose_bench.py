@@ -73,8 +73,13 @@ def scenario_mission_lifecycle(cell: Cell, run_id: str) -> str:
     status, body = cell.post(f"/missions/{mission}/cancel")
     assert status == 200 and "Cancel" in json.dumps(body), f"cancelling answered {status}: {body}"
     status, body = cell.post(f"/missions/{mission}/cancel")
-    assert status == 409, f"cancelling twice answered {status}, expected 409"
-    return "a mission is created, listed, cancelled, and a second cancel is refused"
+    assert status == 200 and "AlreadyCancelled" in json.dumps(body), f"cancelling twice answered {status}: {body}"
+    other = f"bench-{run_id}-early"
+    cell.post("/missions", {"id": other})
+    status, body = cell.post(f"/missions/{other}/start")
+    assert status == 409 and "Pending" in json.dumps(body), f"starting a mission that was never dispatched answered {status}: {body}"
+    cell.post(f"/missions/{other}/cancel")
+    return "a mission is created, listed and cancelled (twice is harmless), and one that was never dispatched cannot be started"
 
 
 def scenario_malformed_input(cell: Cell, run_id: str) -> str:
