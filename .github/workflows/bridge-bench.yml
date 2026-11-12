@@ -1,0 +1,65 @@
+# =============================================================================
+# HYDRA-UMC-DEV-SERVER - the bridge bench: the CNC and the 3D-printer bridges behind the broker container, in front of an emulator and a Moonraker stand-in
+# Copyright (C) 2026 JuanenRac (Electro Hobby 3D) <electrohobby3d@gmail.com>
+# GPL-3.0-or-later - see LICENSE
+# =============================================================================
+name: Bridge bench
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  bench:
+    name: Start the broker container and run the scenarios of each bridge
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        bridge: [cnc, printer3d]
+    steps:
+      - name: Check out the bench
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.12"
+      - name: Fetch the sibling repositories (the broker image and the two bridges, which bring the SDK they pin)
+        run: |
+          for name in MQTT-BROKER BRIDGE-CNC BRIDGE-PRINTER3D; do
+            git clone --quiet --depth 1 "https://github.com/JuanenRac/HYDRA-UMC-${name}.git" "../HYDRA-UMC-${name}"
+          done
+      - name: Install the bridges and the MQTT client library
+        run: python -m pip install "paho-mqtt>=2.1,<3" pyserial ../HYDRA-UMC-BRIDGE-CNC ../HYDRA-UMC-BRIDGE-PRINTER3D
+      - name: Start the broker container
+        working-directory: bench
+        run: |
+          {
+            echo "BRIDGE_BENCH_BRIDGE_PASSWORD=$(openssl rand -hex 16)"
+            echo "BRIDGE_BENCH_OPS_PASSWORD=$(openssl rand -hex 16)"
+          } > .env
+          docker compose -f docker-compose.bridges.yml up --build --detach --wait --wait-timeout 600
+      - name: Start the bridge in front of its emulator
+        working-directory: bench
+        run: |
+          set -a; . ./.env; set +a
+          PYTHONPATH=../src nohup python -m hydra_umc_dev_server.bridge_rig "${{ matrix.bridge }}" > rig.log 2>&1 &
+      - name: Run the scenarios
+        working-directory: bench
+        run: |
+          set -a; . ./.env; set +a
+          PYTHONPATH=../src python -m hydra_umc_dev_server.bridge_bench "${{ matrix.bridge }}" --wait 60
+      - name: Show the logs when it failed
+        if: ${{ failure() }}
+        working-directory: bench
+        run: |
+          cat rig.log || true
+          docker compose -f docker-compose.bridges.yml logs --no-color --tail 80
+      - name: Stop the container
+        if: ${{ always() }}
+        working-directory: bench
+        run: docker compose -f docker-compose.bridges.yml down --volumes --remove-orphans

@@ -1,0 +1,45 @@
+# HYDRA-UMC-DEV-SERVER - bench/docker-compose.bridges.yml: the bridge bench ("hydra-bench-bridges")
+# Copyright (C) 2026 JuanenRac (Electro Hobby 3D) <electrohobby3d@gmail.com>
+# GPL-3.0-or-later - see LICENSE
+#
+# The MQTT broker as a real container (built from its own Dockerfile in its sibling checkout, ../../HYDRA-UMC-MQTT-BROKER next to this repository),
+# configured the way a production start is: two identities with passwords of 16 characters or more and a topic ACL. The bridge identity may publish
+# under hydra/bridges/ and read the commands there; the operator may give commands and read everything. The machine bridge itself is not a container:
+# `python -m hydra_umc_dev_server.bridge_rig cnc|printer3d` runs it in front of an emulator and connects it to this broker, and the scenarios of
+# `python -m hydra_umc_dev_server.bridge_bench cnc|printer3d` speak to the broker as the operator.
+#
+# Required before the start (the stack refuses to start without them): BRIDGE_BENCH_BRIDGE_PASSWORD and BRIDGE_BENCH_OPS_PASSWORD (at least 16 characters).
+#
+# Usage (from this folder):
+#   export BRIDGE_BENCH_BRIDGE_PASSWORD=$(openssl rand -hex 16) BRIDGE_BENCH_OPS_PASSWORD=$(openssl rand -hex 16)
+#   docker compose -f docker-compose.bridges.yml up --build --detach --wait --wait-timeout 600
+#   python -m hydra_umc_dev_server.bridge_rig cnc &
+#   python -m hydra_umc_dev_server.bridge_bench cnc
+#   docker compose -f docker-compose.bridges.yml down --volumes --remove-orphans
+#
+# The manual workflow "Bridge bench" does exactly this on a CI runner, once for each bridge.
+
+name: hydra-bench-bridges
+
+services:
+  broker:
+    build:
+      context: ../../HYDRA-UMC-MQTT-BROKER
+    environment:
+      MQTT_AUTH_JSON: >-
+        [{"username":"bridge","password":"${BRIDGE_BENCH_BRIDGE_PASSWORD:?set BRIDGE_BENCH_BRIDGE_PASSWORD to a secret of at least 16 characters}","clientIdPrefix":"bridge-"},
+        {"username":"ops","password":"${BRIDGE_BENCH_OPS_PASSWORD:?set BRIDGE_BENCH_OPS_PASSWORD to a secret of at least 16 characters}","clientIdPrefix":"ops-"}]
+      MQTT_ACL_JSON: >-
+        [{"clientIdPrefix":"bridge-","publish":["hydra/bridges/#"],"subscribe":["hydra/bridges/+/cmd/#"]},
+        {"clientIdPrefix":"ops-","publish":["hydra/bridges/+/cmd/#"],"subscribe":["hydra/bridges/#"]}]
+      MQTT_ALLOW_PLAINTEXT: "1"
+      MQTT_METRICS_PORT: "9883"
+      MQTT_METRICS_HOST: "0.0.0.0"
+    ports:
+      - "127.0.0.1:1883:1883"
+      - "127.0.0.1:9883:9883"
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:9883/metrics"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
