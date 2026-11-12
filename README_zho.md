@@ -322,7 +322,7 @@ HYDRA-UMC-DEV-SERVER/
 **同样属于本生态系统**
 
 *核心硬件与平台*
-- **[HYDRA-UMC](https://github.com/JuanenRac/HYDRA-UMC)** — 机器人手臂主板设计——CM5 主机 + 双核 STM32H745,目标是通过 CAN-OTA/SPI-OTA 协调最多 8 条工具臂(固件处于早期阶段,尚无已组装的电路板)。
+- **[HYDRA-UMC](https://github.com/JuanenRac/HYDRA-UMC)** — 机器人手臂主板设计——NVIDIA Jetson Orin NX 主机 + 双核 STM32H757(CM5 保留为试验台),目标是通过 CAN-OTA/SPI-OTA 协调最多 8 条工具臂(固件处于早期阶段,尚无已组装的电路板)。
 - **[HYDRA-UMC-OS](https://github.com/JuanenRac/HYDRA-UMC-OS)** — 面向 CM5 的可复现 Raspberry Pi OS 产品层：只读代理、经校验的配置/配置文件、WiFi 首次接触配置。
 
 *核心后端与客户端*

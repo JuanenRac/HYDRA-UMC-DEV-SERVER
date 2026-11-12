@@ -350,7 +350,7 @@ HYDRA-UMC-DEV-SERVER/
 **エコシステムの他の一部**
 
 *コアハードウェアとプラットフォーム*
-- **[HYDRA-UMC](https://github.com/JuanenRac/HYDRA-UMC)** — ロボットアームのマザーボードの設計——CM5 ホスト + デュアルコア STM32H745、CAN-OTA/SPI-OTA 経由で最大 8 本のツールアームを統括することを目指す(ファームウェアは初期段階で、実装済みの基板はまだない)。
+- **[HYDRA-UMC](https://github.com/JuanenRac/HYDRA-UMC)** — ロボットアームのマザーボードの設計——NVIDIA Jetson Orin NX ホスト + デュアルコア STM32H757(CM5 はパイロット試験台として残る)、CAN-OTA/SPI-OTA 経由で最大 8 本のツールアームを統括することを目指す(ファームウェアは初期段階で、実装済みの基板はまだない)。
 - **[HYDRA-UMC-OS](https://github.com/JuanenRac/HYDRA-UMC-OS)** — CM5向けの再現可能なRaspberry Pi OS製品層: 読み取り専用エージェント、検証済み設定/プロファイル、WiFi初回接続プロビジョニング。
 
 *コアバックエンドとクライアント*
