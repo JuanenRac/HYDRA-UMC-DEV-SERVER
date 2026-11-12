@@ -1,0 +1,46 @@
+# HYDRA-UMC-DEV-SERVER - bench/docker-compose.data.yml: the data bench ("hydra-bench-data")
+# Copyright (C) 2026 JuanenRac (Electro Hobby 3D) <electrohobby3d@gmail.com>
+# GPL-3.0-or-later - see LICENSE
+#
+# The data lake as a real container, built from its sibling checkout (../../HYDRA-UMC-DATALAKE next to this repository) and published on the loopback
+# interface of the host only. The scenarios of `compose_bench.py --suite data` write to it with the bearer token, read it back and send it malformed input.
+#
+# Required before the start (the stack refuses to start without it): DATALAKE_TOKEN (at least 16 characters).
+#
+# Usage (from this folder):
+#   export DATALAKE_TOKEN=$(openssl rand -hex 32)
+#   docker compose -f docker-compose.data.yml up --build --detach --wait --wait-timeout 600
+#   python -m hydra_umc_dev_server.compose_bench --suite data
+#   docker compose -f docker-compose.data.yml down --volumes --remove-orphans
+#
+# The manual workflow "Data bench" does exactly this on a CI runner.
+
+name: hydra-bench-data
+
+services:
+  datalake:
+    build:
+      context: ../../HYDRA-UMC-DATALAKE
+      dockerfile_inline: |
+        FROM python:3.12-slim
+        WORKDIR /app
+        COPY . .
+        RUN pip install --no-cache-dir .
+        RUN useradd --system --uid 10001 hydra && mkdir /data && chown hydra /data
+        USER hydra
+    command: ["python", "-m", "hydra_umc_datalake.main", "--addr", "0.0.0.0", "--port", "8095", "--db", "/data/datalake.sqlite3"]
+    environment:
+      HYDRA_UMC_DATALAKE_TOKEN: ${DATALAKE_TOKEN:?set DATALAKE_TOKEN to a secret of at least 16 characters}
+      HYDRA_UMC_DATALAKE_HEALTH_OPEN: "1"
+    ports:
+      - "127.0.0.1:8095:8095"
+    volumes:
+      - datalake-data:/data
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8095/health', timeout=3)"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
+volumes:
+  datalake-data:
