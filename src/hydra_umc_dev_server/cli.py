@@ -123,6 +123,19 @@ from .operations import (
 )
 from .repair_cycle import RepairCandidate, check_candidate, check_candidate_trusted
 from .scenario_ingest import load_ingest_settings, post_scenario_outcome
+from .trust_rotation import (
+    LOG_NAME,
+    STORE_NAME,
+    TRUST_DIR,
+    check_trust_dir,
+    log_agrees_with_store,
+    read_log,
+    rotate_in_directory,
+    rotation_body,
+    rotation_enabled,
+    sign_rotation,
+    verify_log,
+)
 from .trust_store import TrustStore, load_trust_store, save_trust_store
 from .preflight import SystemHostInspector, run_preflight
 from .provision import build_provision_plan
@@ -539,6 +552,78 @@ def _cmd_trust_revoke(args: argparse.Namespace) -> int:
         print(f"REFUSED: {exc}", file=sys.stderr)
         return 1
     print(_trust_summary(store))
+    return 0
+
+
+def _cmd_trust_check_dir(args: argparse.Namespace) -> int:
+    problems = check_trust_dir(Path(args.directory), app_data_dirs=tuple(Path(item) for item in args.app_data_dir))
+    if problems:
+        for problem in problems:
+            print(f"UNFIT: {problem}", file=sys.stderr)
+        return 1
+    print(json.dumps({"directory": args.directory, "fit": True}))
+    return 0
+
+
+def _cmd_trust_rotation_body(args: argparse.Namespace) -> int:
+    directory = Path(args.directory)
+    try:
+        store, problems = load_trust_store(directory / STORE_NAME)
+        if problems:
+            print("REFUSED: the store has problems: " + "; ".join(problems), file=sys.stderr)
+            return 1
+        records = read_log(directory / LOG_NAME)
+        new_key = Path(args.new_public_key_file).read_text(encoding="utf-8").strip()
+        print(json.dumps(rotation_body(store, records, args.old, args.new, new_key), indent=2, sort_keys=True))
+    except (ConfigValidationError, OSError, UnicodeDecodeError) as exc:
+        print(f"REFUSED: {exc}", file=sys.stderr)
+        return 1
+    return 0
+
+
+def _cmd_trust_sign_rotation(args: argparse.Namespace) -> int:
+    try:
+        body = json.loads(Path(args.body_file).read_text(encoding="utf-8"))
+        seed = Path(args.seed_file).read_text(encoding="utf-8").strip()
+        print(sign_rotation(seed, body))
+    except (ConfigValidationError, OSError, ValueError) as exc:
+        print(f"REFUSED: {type(exc).__name__}", file=sys.stderr)  # never the text: it could echo the key
+        return 1
+    return 0
+
+
+def _cmd_trust_rotate(args: argparse.Namespace) -> int:
+    directory = Path(args.directory)
+    if not args.skip_dir_check:
+        problems = check_trust_dir(directory)
+        if problems:
+            print("REFUSED: the trust directory is not fit: " + "; ".join(problems), file=sys.stderr)
+            return 1
+    try:
+        body = json.loads(Path(args.body_file).read_text(encoding="utf-8"))
+        signature = Path(args.signature_file).read_text(encoding="utf-8").strip()
+        store = rotate_in_directory(directory, body, signature, enabled=rotation_enabled() or args.enable_rotation)
+    except (ConfigValidationError, OSError, ValueError) as exc:
+        print(f"REFUSED: {exc}", file=sys.stderr)
+        return 1
+    print(_trust_summary(store))
+    return 0
+
+
+def _cmd_trust_log(args: argparse.Namespace) -> int:
+    directory = Path(args.directory)
+    try:
+        records = read_log(directory / LOG_NAME)
+        store, store_problems = load_trust_store(directory / STORE_NAME)
+    except (ConfigValidationError, OSError) as exc:
+        print(f"INVALID: {exc}", file=sys.stderr)
+        return 1
+    problems = verify_log(records) + store_problems + log_agrees_with_store(store, records)
+    if problems:
+        for problem in problems:
+            print(f"INVALID: {problem}", file=sys.stderr)
+        return 1
+    print(json.dumps({"rotations": len(records), "trusted": store.active_aliases(), "revoked": sorted(store.revoked)}, indent=2))
     return 0
 
 
@@ -967,6 +1052,30 @@ def build_parser() -> argparse.ArgumentParser:
     trust_revoke.add_argument("store_file", help="Path to the trust store JSON document.")
     trust_revoke.add_argument("alias")
     trust_revoke.set_defaults(func=_cmd_trust_revoke)
+    trust_check = trust_sub.add_parser("check-dir", help="Check that a trust directory is fit: owned by root, mode 0700, not a link, not inside the data of an application.")
+    trust_check.add_argument("directory", nargs="?", default=str(TRUST_DIR))
+    trust_check.add_argument("--app-data-dir", action="append", default=[], help="A data directory of an application the trust directory must not lie in (repeat).")
+    trust_check.set_defaults(func=_cmd_trust_check_dir)
+    trust_body = trust_sub.add_parser("rotation-body", help="Print the statement that replaces an alias by a new key; it is signed with the key being replaced (`trust sign-rotation`).")
+    trust_body.add_argument("directory", nargs="?", default=str(TRUST_DIR))
+    trust_body.add_argument("--old", required=True, help="The active alias to replace.")
+    trust_body.add_argument("--new", required=True, help="The alias of the new key.")
+    trust_body.add_argument("--new-public-key-file", required=True)
+    trust_body.set_defaults(func=_cmd_trust_rotation_body)
+    trust_sign = trust_sub.add_parser("sign-rotation", help="On the approver's machine: sign a rotation statement with the private key being replaced; prints only the signature.")
+    trust_sign.add_argument("--body-file", required=True)
+    trust_sign.add_argument("--seed-file", required=True, help="File with the private key (ed25519-seed:...); it is read, never printed.")
+    trust_sign.set_defaults(func=_cmd_trust_sign_rotation)
+    trust_rotate = trust_sub.add_parser("rotate", help="Apply a signed rotation to a trust directory. Off unless HYDRA_UMC_TRUST_ROTATION=1 or --enable-rotation; run as root.")
+    trust_rotate.add_argument("directory", nargs="?", default=str(TRUST_DIR))
+    trust_rotate.add_argument("--body-file", required=True)
+    trust_rotate.add_argument("--signature-file", required=True)
+    trust_rotate.add_argument("--enable-rotation", action="store_true", help="Switch the rotation on for this call (the default is off).")
+    trust_rotate.add_argument("--skip-dir-check", action="store_true", help="Do not check the owner and the mode of the directory (for a test directory).")
+    trust_rotate.set_defaults(func=_cmd_trust_rotate)
+    trust_log = trust_sub.add_parser("log", help="Verify the rotation log of a trust directory (sequence, chain, hashes, signatures) and that it agrees with the store.")
+    trust_log.add_argument("directory", nargs="?", default=str(TRUST_DIR))
+    trust_log.set_defaults(func=_cmd_trust_log)
 
     deliver = subparsers.add_parser("deliver", help="Delivery package + honest maturity evaluation (DS10).")
     deliver_sub = deliver.add_subparsers(dest="deliver_command", required=True)

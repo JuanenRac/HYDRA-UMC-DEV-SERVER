@@ -278,6 +278,17 @@ the entries left out and a warning per problem on stderr, and is not rewritten b
 `add` or `revoke` until it is fixed. The store never holds a private key and no
 command reads one from it.
 
+## `trust check-dir|rotation-body|sign-rotation|rotate|log [directory]`
+
+The trust directory of a CM5 is `/etc/hydra-umc/trust` (owned by root, mode 0700, outside the data of any application), with `trust.json` (the store above) and `rotation.log`.
+
+- `trust check-dir [DIR] [--app-data-dir DIR ...]` says what is wrong with the directory (exit 1) or prints `fit`.
+- `trust rotation-body [DIR] --old ALIAS --new ALIAS --new-public-key-file FILE` prints the statement that replaces `ALIAS` by a new key, with the sequence number and the hash of the last record.
+- `trust sign-rotation --body-file FILE --seed-file FILE` (on the approver's machine) prints the signature made with the private key being replaced; it never prints the key.
+- `trust rotate [DIR] --body-file FILE --signature-file FILE [--enable-rotation]` applies it: the new alias is added, the old one is revoked and a record is appended to `rotation.log`. Off unless `HYDRA_UMC_TRUST_ROTATION=1` or `--enable-rotation`; refused when the directory is not fit.
+- `trust log [DIR]` checks the sequence, the hash chain, the signatures and that the log agrees with the store.
+
+
 ## `deliver manifest [--repo-root DIR]` (DS10)
 
 Prints the delivery manifest for this repository as JSON: a sha256 for
