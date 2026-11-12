@@ -1,0 +1,48 @@
+# =============================================================================
+# HYDRA-UMC-DEV-SERVER - the URTC bench: a simulated tool head on a virtual CAN bus, driven by the scenarios of urtc_bench.py
+# Copyright (C) 2026 JuanenRac (Electro Hobby 3D) <electrohobby3d@gmail.com>
+# GPL-3.0-or-later - see LICENSE
+# =============================================================================
+name: URTC bench
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  bench:
+    name: Create vcan0, start the simulated head and run the scenarios
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check out the bench
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.12"
+      - name: Fetch the repository that holds the simulated head
+        run: git clone --quiet --depth 1 "https://github.com/JuanenRac/HYDRA-UMC-DOCS.git" "../HYDRA-UMC-DOCS"
+      - name: Create the virtual CAN interface
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq "linux-modules-extra-$(uname -r)" || true
+          sudo modprobe vcan
+          sudo ip link add dev vcan0 type vcan
+          sudo ip link set up vcan0
+          ip -details link show vcan0
+      - name: Start the simulated head
+        run: |
+          python ../HYDRA-UMC-DOCS/tools/fake_urtc.py --interface vcan0 --tool 5 --duration 300 > "$RUNNER_TEMP/fake_urtc.log" 2>&1 &
+          echo $! > "$RUNNER_TEMP/fake_urtc.pid"
+      - name: Run the scenarios
+        run: PYTHONPATH=src python -m hydra_umc_dev_server.urtc_bench --interface vcan0 --tool 5 --wait 30
+      - name: Show the log of the head when it failed
+        if: ${{ failure() }}
+        run: cat "$RUNNER_TEMP/fake_urtc.log" || true
+      - name: Stop the head
+        if: ${{ always() }}
+        run: kill "$(cat "$RUNNER_TEMP/fake_urtc.pid")" 2>/dev/null || true
