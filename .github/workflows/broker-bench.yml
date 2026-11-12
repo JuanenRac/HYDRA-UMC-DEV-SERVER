@@ -1,0 +1,49 @@
+# =============================================================================
+# HYDRA-UMC-DEV-SERVER - the broker bench: the MQTT broker as a real container, driven by the scenarios of broker_bench.py
+# Copyright (C) 2026 JuanenRac (Electro Hobby 3D) <electrohobby3d@gmail.com>
+# GPL-3.0-or-later - see LICENSE
+# =============================================================================
+name: Broker bench
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  bench:
+    name: Start the broker container and run the scenarios
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Check out the bench
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.12"
+      - name: Fetch the sibling repository the container builds from
+        run: git clone --quiet --depth 1 "https://github.com/JuanenRac/HYDRA-UMC-MQTT-BROKER.git" "../HYDRA-UMC-MQTT-BROKER"
+      - name: Start the container
+        working-directory: bench
+        run: |
+          {
+            echo "BROKER_ROBOT_PASSWORD=$(openssl rand -hex 16)"
+            echo "BROKER_OPS_PASSWORD=$(openssl rand -hex 16)"
+          } > .env
+          docker compose -f docker-compose.broker.yml up --build --detach --wait --wait-timeout 600
+      - name: Run the scenarios
+        working-directory: bench
+        run: |
+          set -a; . ./.env; set +a
+          PYTHONPATH=../src python -m hydra_umc_dev_server.broker_bench --wait 60
+      - name: Show the logs when it failed
+        if: ${{ failure() }}
+        working-directory: bench
+        run: docker compose -f docker-compose.broker.yml logs --no-color --tail 80
+      - name: Stop the container
+        if: ${{ always() }}
+        working-directory: bench
+        run: docker compose -f docker-compose.broker.yml down --volumes --remove-orphans

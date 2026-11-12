@@ -1,0 +1,43 @@
+# HYDRA-UMC-DEV-SERVER - bench/docker-compose.broker.yml: the broker bench ("hydra-bench-broker")
+# Copyright (C) 2026 JuanenRac (Electro Hobby 3D) <electrohobby3d@gmail.com>
+# GPL-3.0-or-later - see LICENSE
+#
+# The MQTT broker as a real container, built from its own Dockerfile in its sibling checkout (../../HYDRA-UMC-MQTT-BROKER next to this repository) and
+# published on the loopback interface of the host only. It starts the way a production start does: two identities with passwords of 16 characters or
+# more, a topic ACL that covers both, and the plain listener allowed because the network of the bench is the internal one of the container.
+# The scenarios of `python -m hydra_umc_dev_server.broker_bench` connect to it over MQTT 3.1.1 and read its /metrics.
+#
+# Required before the start (the stack refuses to start without them): BROKER_ROBOT_PASSWORD and BROKER_OPS_PASSWORD (at least 16 characters).
+#
+# Usage (from this folder):
+#   export BROKER_ROBOT_PASSWORD=$(openssl rand -hex 16) BROKER_OPS_PASSWORD=$(openssl rand -hex 16)
+#   docker compose -f docker-compose.broker.yml up --build --detach --wait --wait-timeout 600
+#   python -m hydra_umc_dev_server.broker_bench
+#   docker compose -f docker-compose.broker.yml down --volumes --remove-orphans
+#
+# The manual workflow "Broker bench" does exactly this on a CI runner.
+
+name: hydra-bench-broker
+
+services:
+  broker:
+    build:
+      context: ../../HYDRA-UMC-MQTT-BROKER
+    environment:
+      MQTT_AUTH_JSON: >-
+        [{"username":"robot","password":"${BROKER_ROBOT_PASSWORD:?set BROKER_ROBOT_PASSWORD to a secret of at least 16 characters}","clientIdPrefix":"robot-"},
+        {"username":"ops","password":"${BROKER_OPS_PASSWORD:?set BROKER_OPS_PASSWORD to a secret of at least 16 characters}","clientIdPrefix":"ops-"}]
+      MQTT_ACL_JSON: >-
+        [{"clientIdPrefix":"robot-","publish":["hydra/swarm/+/joints"],"subscribe":["hydra/swarm/+/cmd/#"]},
+        {"clientIdPrefix":"ops-","publish":["hydra/swarm/+/cmd/#"],"subscribe":["hydra/swarm/#"]}]
+      MQTT_ALLOW_PLAINTEXT: "1"
+      MQTT_METRICS_PORT: "9883"
+      MQTT_METRICS_HOST: "0.0.0.0"
+    ports:
+      - "127.0.0.1:1883:1883"
+      - "127.0.0.1:9883:9883"
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:9883/metrics"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
