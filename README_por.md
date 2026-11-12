@@ -18,14 +18,14 @@ GPL-3.0-or-later - see LICENSE
   <img src="https://img.shields.io/badge/License-GPL%203.0--or--later-blue.svg" alt="GPL 3.0 or later">
   <img src="https://img.shields.io/badge/Language-Python%203.11%2B-blue.svg" alt="Language">
   <img src="https://img.shields.io/badge/Core-stdlib%20only-brightgreen.svg" alt="Core">
-  <img src="https://img.shields.io/badge/Tests-572%20passing-2ea44f.svg" alt="Tests">
+  <img src="https://img.shields.io/badge/Tests-596%20passing-2ea44f.svg" alt="Tests">
   <img src="https://img.shields.io/badge/Version-0.2.5-0f6cbd.svg" alt="Version">
   <img src="https://img.shields.io/badge/Maturity-functional-0F6CBD.svg" alt="Maturity">
 </p>
 
 ---
 
-**Verificação de honestidade - o que realmente funciona hoje:** todos os vinte e três módulos nomeados abaixo (`config.py`, `inventory.py`, `remote_station.py`, `preflight.py`, `provision.py`, `migration.py`, `workspace.py`, `recipe.py`, `runner.py`, `durable_queue.py`, `ai_provider.py`, `incident_transport.py`, `repair_cycle.py`, `operations.py`, `delivery.py`, `cli.py`, `api.py`, `plugins.py`, `sandbox.py`, `taskflow.py`, `worker.py`, `signing.py`, `trust_store.py`) são código real, não esboços, e estão cobertos por uma suite de testes real (572 testes a passar em `tests/test_*.py`). O que esse código real fez de facto, em concreto: validou documentos JSON, planeou migrações em disco, executou um subprocesso real e limitado num espaço de trabalho isolado real com um ambiente depurado real, persistiu uma fila/diário SQLite real entre reinícios e exercitou uma ida e volta de incidentes real assinada com HMAC - tudo contra esta cópia local ou uma costura de teste injetável, nunca contra o hardware Raspberry Pi 5/CM5 de destino para que este projeto é construído. O `provider suggest` só chama o `FakeProvider` determinístico; ligar um fornecedor de IA real é uma decisão explícita do utilizador, ainda por tomar. O `station preflight`/`station plan` descrevem um anfitrião remoto através de um inspetor injetável e nunca correram contra uma máquina remota real. Nada neste repositório aprovisionou um anfitrião nem executou uma implementação, e o ciclo de trabalhador (`queue work`) só correu contra simulacros do lançador e do git, nunca num anfitrião real - o `overall_maturity: "functional"` fixado no código do `deliver evaluate` di-lo com clareza a partir de dentro do próprio código. Veja o `CHANGELOG.md` para saber exatamente o que foi entregue, entrega a entrega.
+**Verificação de honestidade - o que realmente funciona hoje:** todos os vinte e três módulos nomeados abaixo (`config.py`, `inventory.py`, `remote_station.py`, `preflight.py`, `provision.py`, `migration.py`, `workspace.py`, `recipe.py`, `runner.py`, `durable_queue.py`, `ai_provider.py`, `incident_transport.py`, `repair_cycle.py`, `operations.py`, `delivery.py`, `cli.py`, `api.py`, `plugins.py`, `sandbox.py`, `taskflow.py`, `worker.py`, `signing.py`, `trust_store.py`) são código real, não esboços, e estão cobertos por uma suite de testes real (596 testes a passar em `tests/test_*.py`). O que esse código real fez de facto, em concreto: validou documentos JSON, planeou migrações em disco, executou um subprocesso real e limitado num espaço de trabalho isolado real com um ambiente depurado real, persistiu uma fila/diário SQLite real entre reinícios e exercitou uma ida e volta de incidentes real assinada com HMAC - tudo contra esta cópia local ou uma costura de teste injetável, nunca contra o hardware Raspberry Pi 5/CM5 de destino para que este projeto é construído. O `provider suggest` só chama o `FakeProvider` determinístico; ligar um fornecedor de IA real é uma decisão explícita do utilizador, ainda por tomar. O `station preflight`/`station plan` descrevem um anfitrião remoto através de um inspetor injetável e nunca correram contra uma máquina remota real. Nada neste repositório aprovisionou um anfitrião nem executou uma implementação, e o ciclo de trabalhador (`queue work`) só correu contra simulacros do lançador e do git, nunca num anfitrião real - o `overall_maturity: "functional"` fixado no código do `deliver evaluate` di-lo com clareza a partir de dentro do próprio código. Veja o `CHANGELOG.md` para saber exatamente o que foi entregue, entrega a entrega.
 
 ---
 
@@ -39,7 +39,7 @@ GPL-3.0-or-later - see LICENSE
 |---|---|
 | Versão | `0.2.5` |
 | Maturidade | Funcional |
-| Testes | 572 (`python -m pytest -q tests`) |
+| Testes | 596 (`python -m pytest -q tests`) |
 | Tecnologia | Python 3.11+ / JSON Schema / systemd (host role, Linux only) / SQLite (durable task/state journal, from DS05 onward) |
 | Destino | Um servidor de desenvolvimento |
 | Em hardware real | Ainda não: não há registo de execução em hardware real para esta versão |
@@ -55,7 +55,7 @@ Cada linha é uma parte deste repositório e a luz diz até onde chega hoje. É 
 | Área | Estado | O que significa aqui |
 |---|---|---|
 | Software | 🟡 | Funciona para o seu propósito principal; a verificação de honestidade acima lista o que ainda falta |
-| Testes | 🟢 | 572 testes automáticos, executados a cada alteração |
+| Testes | 🟢 | 596 testes automáticos, executados a cada alteração |
 | Hardware real | 🔴 | Ainda não: não há registo de execução em hardware real para esta versão |
 | Interface e protocolos | 🟡 | As rotas ou mensagens que oferece estão documentadas e testadas com um cliente; ainda nem todos os clientes as usaram |
 | Integração | 🟠 | As suas mensagens e rotas são verificadas contra os contratos partilhados do SDK; ainda não funcionou em conjunto com o equipamento real |
@@ -258,7 +258,7 @@ python -m hydra_umc_dev_server.bench  # the local bench: planner, safety zones, 
 
 ## 🧪 Testes
 
-572 testes automáticos correm com `python -m pytest -q tests`. Os testes da sandbox são saltados, a dizer porquê, num equipamento sem sandbox utilizável; nenhum precisa de hardware.
+596 testes automáticos correm com `python -m pytest -q tests`. Os testes da sandbox são saltados, a dizer porquê, num equipamento sem sandbox utilizável; nenhum precisa de hardware.
 
 A CI executa `HYDRA_UMC_CI=1 python tools/ci_validate.py`, que verifica o manifesto, os documentos, os oito README e as imagens.
 
