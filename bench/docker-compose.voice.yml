@@ -1,0 +1,34 @@
+# HYDRA-UMC-DEV-SERVER - bench/docker-compose.voice.yml: the voice bench ("hydra-bench-voice")
+# Copyright (C) 2026 JuanenRac (Electro Hobby 3D) <electrohobby3d@gmail.com>
+# GPL-3.0-or-later - see LICENSE
+#
+# The speech-to-action gateway as a real container, built from its own Dockerfile in its sibling checkout (../../HYDRA-UMC-VOICE-UI next to this
+# repository) and published on the loopback interface of the host only. The image binds beyond loopback inside its network, so the gateway refuses to
+# start without a bearer token: the bench gives it one.
+# The scenarios of `python -m hydra_umc_dev_server.voice_bench` speak HTTP to it.
+#
+# Required before the start (the stack refuses to start without it): VOICE_BENCH_TOKEN (at least 16 characters).
+#
+# Usage (from this folder):
+#   export VOICE_BENCH_TOKEN=$(openssl rand -hex 16)
+#   docker compose -f docker-compose.voice.yml up --build --detach --wait --wait-timeout 600
+#   python -m hydra_umc_dev_server.voice_bench
+#   docker compose -f docker-compose.voice.yml down --volumes --remove-orphans
+#
+# The manual workflow "Voice bench" does exactly this on a CI runner.
+
+name: hydra-bench-voice
+
+services:
+  voice:
+    build:
+      context: ../../HYDRA-UMC-VOICE-UI
+    environment:
+      HYDRA_UMC_VOICE_UI_TOKEN: "${VOICE_BENCH_TOKEN:?set VOICE_BENCH_TOKEN to a secret of at least 16 characters}"
+    ports:
+      - "127.0.0.1:8091:8091"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request as u; u.urlopen('http://127.0.0.1:8091/health', timeout=4)"]
+      interval: 5s
+      timeout: 6s
+      retries: 12

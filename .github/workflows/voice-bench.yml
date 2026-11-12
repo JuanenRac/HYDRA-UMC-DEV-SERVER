@@ -1,0 +1,46 @@
+# =============================================================================
+# HYDRA-UMC-DEV-SERVER - the voice bench: the speech-to-action gateway as a real container, driven by the scenarios of voice_bench.py
+# Copyright (C) 2026 JuanenRac (Electro Hobby 3D) <electrohobby3d@gmail.com>
+# GPL-3.0-or-later - see LICENSE
+# =============================================================================
+name: Voice bench
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  bench:
+    name: Start the gateway container and run the scenarios
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Check out the bench
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.12"
+      - name: Fetch the sibling repository the container builds from
+        run: git clone --quiet --depth 1 "https://github.com/JuanenRac/HYDRA-UMC-VOICE-UI.git" "../HYDRA-UMC-VOICE-UI"
+      - name: Start the container
+        working-directory: bench
+        run: |
+          echo "VOICE_BENCH_TOKEN=$(openssl rand -hex 16)" > .env
+          docker compose -f docker-compose.voice.yml up --build --detach --wait --wait-timeout 600
+      - name: Run the scenarios
+        working-directory: bench
+        run: |
+          set -a; . ./.env; set +a
+          PYTHONPATH=../src python -m hydra_umc_dev_server.voice_bench --wait 60
+      - name: Show the logs when it failed
+        if: ${{ failure() }}
+        working-directory: bench
+        run: docker compose -f docker-compose.voice.yml logs --no-color --tail 80
+      - name: Stop the container
+        if: ${{ always() }}
+        working-directory: bench
+        run: docker compose -f docker-compose.voice.yml down --volumes --remove-orphans
