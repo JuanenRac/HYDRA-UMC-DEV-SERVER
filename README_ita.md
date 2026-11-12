@@ -221,6 +221,8 @@ La rotta di salute dell'API locale risponde solo `{"status": "ok"}` senza il tok
 
 **HYDRA-UMC-DEV-SERVER** è l'host di sviluppo dell'ecosistema: esegue attività di compilazione e test limitate e ammesse in aree di lavoro isolate e coordina i candidati di riparazione con `HYDRA-UMC-OPS-AGENT`. Non approva mai le proprie attività e non distribuisce nulla; la consegna a un nodo passa sempre da `HYDRA-UMC-UPDATER`.
 
+> **Piattaforma:** dove questo README dice CM5, intende il banco pilota che funziona oggi; la piattaforma di destinazione di HYDRA-UMC è un NVIDIA Jetson Orin NX da 16 GB, un progetto non costruito né provato.
+
 ## 🏛️ Architettura
 
 <p align="center">

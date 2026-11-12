@@ -224,6 +224,8 @@ Die Gesundheitsroute der lokalen API antwortet ohne Token nur mit `{"status": "o
 
 **HYDRA-UMC-DEV-SERVER** ist der Entwicklungsrechner des Ökosystems: Er führt begrenzte, freigegebene Build- und Testaufgaben in isolierten Arbeitsbereichen aus und stimmt Reparaturkandidaten mit `HYDRA-UMC-OPS-AGENT` ab. Er genehmigt nie seine eigenen Aufgaben und liefert nichts aus; die Auslieferung an einen Knoten läuft immer über `HYDRA-UMC-UPDATER`.
 
+> **Plattform:** Wo dieses README CM5 sagt, ist der Pilotprüfstand gemeint, der heute läuft; die Zielplattform von HYDRA-UMC ist ein NVIDIA Jetson Orin NX 16 GB, ein Entwurf, der weder gebaut noch getestet wurde.
+
 ## 🏛️ Architektur
 
 <p align="center">

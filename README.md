@@ -211,6 +211,8 @@ The health route of the local API answers only `{"status": "ok"}` without the to
 
 **HYDRA-UMC-DEV-SERVER** is the development host of the ecosystem: it runs bounded, allow-listed build and test tasks in isolated workspaces and coordinates repair candidates with `HYDRA-UMC-OPS-AGENT`. It never approves its own tasks and deploys nothing; delivery to a node always goes through `HYDRA-UMC-UPDATER`.
 
+> **Platform:** where this README says CM5, it means the pilot bench that runs today; the target platform of HYDRA-UMC is an NVIDIA Jetson Orin NX 16 GB, a design that has not been built or tested.
+
 ## 🏛️ Architecture
 
 <p align="center">

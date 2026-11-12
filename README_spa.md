@@ -215,6 +215,8 @@ La ruta de salud de la API local responde solo `{"status": "ok"}` sin el token; 
 
 **HYDRA-UMC-DEV-SERVER** es el equipo de desarrollo del ecosistema: ejecuta tareas de compilación y pruebas acotadas y permitidas en espacios de trabajo aislados y coordina candidatos de reparación con `HYDRA-UMC-OPS-AGENT`. Nunca aprueba sus propias tareas y no despliega nada; la entrega a un nodo pasa siempre por `HYDRA-UMC-UPDATER`.
 
+> **Plataforma:** donde este README dice CM5, se refiere al banco piloto que funciona hoy; la plataforma objetivo de HYDRA-UMC es una NVIDIA Jetson Orin NX de 16 GB, un diseño que no se ha construido ni probado.
+
 ## 🏛️ Arquitectura
 
 <p align="center">

@@ -146,6 +146,8 @@ $ hydra-umc-dev-server inventory scan --root ..
 
 **HYDRA-UMC-DEV-SERVER** 是生态系统的开发主机：它在隔离的工作区中运行受限的、在允许列表内的构建和测试任务，并与 `HYDRA-UMC-OPS-AGENT` 协调修复候选。它从不批准自己的任务，也不部署任何东西；向节点交付始终经过 `HYDRA-UMC-UPDATER`。
 
+> **平台：** 本 README 中的 CM5 指的是目前正在运行的试验台；HYDRA-UMC 的目标平台是 NVIDIA Jetson Orin NX 16 GB，这是尚未制造或测试的设计。
+
 ## 🏛️ 架构
 
 <p align="center">

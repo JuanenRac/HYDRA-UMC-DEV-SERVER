@@ -221,6 +221,8 @@ La route de santé de l'API locale ne répond que `{"status": "ok"}` sans le jet
 
 **HYDRA-UMC-DEV-SERVER** est l'hôte de développement de l'écosystème : il exécute des tâches de compilation et de test bornées et autorisées dans des espaces de travail isolés et coordonne les candidats de réparation avec `HYDRA-UMC-OPS-AGENT`. Il n'approuve jamais ses propres tâches et ne déploie rien ; la livraison vers un nœud passe toujours par `HYDRA-UMC-UPDATER`.
 
+> **Plateforme :** là où ce README dit CM5, il s'agit du banc pilote qui fonctionne aujourd'hui ; la plateforme visée par HYDRA-UMC est un NVIDIA Jetson Orin NX 16 Go, une conception ni construite ni testée.
+
 ## 🏛️ Architecture
 
 <p align="center">
