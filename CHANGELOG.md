@@ -1,8 +1,10 @@
 # Changelog
 
+## [Unreleased]
+
 All notable changes to this project are documented here.
 
-## [Unreleased]
+## [0.2.5] - A second container bench drives the data lake: `bench/docker-compose.data.yml` builds the data lake from its sibling checkout and publishes it on the loopback interface only; `compose_bench.py --suite data` (the swarm suite stays the default) runs five scenari
 
 - **A second container bench drives the data lake:** `bench/docker-compose.data.yml` builds the data lake from its sibling checkout and publishes it on the loopback interface only; `compose_bench.py --suite data` (the swarm suite stays the default) runs five scenarios against it: the health route, a write refused without the token or with a wrong one, three samples written with the token and read back, the average of two samples, and malformed samples answered with a client error and never a server fault. The manual workflow `data-bench.yml` starts the container on a CI runner and runs them; the scenarios are tested here against a stand-in of the data lake (11 tests).
 

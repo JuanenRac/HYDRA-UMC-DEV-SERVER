@@ -37,7 +37,7 @@ GPL-3.0-or-later - see LICENSE
 
 | | |
 |---|---|
-| バージョン | `0.2.4` |
+| バージョン | `0.2.5` |
 | 成熟度 | 機能する |
 | テスト | 560 (`python -m pytest -q tests`) |
 | 技術 | Python 3.11+ / JSON Schema / systemd (host role, Linux only) / SQLite (durable task/state journal, from DS05 onward) |
