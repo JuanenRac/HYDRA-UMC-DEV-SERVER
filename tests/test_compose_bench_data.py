@@ -56,6 +56,8 @@ class _Handler(BaseHTTPRequestHandler):
             wanted = query.get("sourceId", [""])[0]
             return self._send(200, {"samples": [s for s in self.server.samples if s["sourceId"] == wanted]})
         if url.path == "/aggregate":
+            if int(query.get("end", ["0"])[0]) - int(query.get("start", ["0"])[0]) > 100000 * int(query.get("bucketMs", ["1"])[0]):
+                return self._send(400, {"error": "the range holds more than 100000 buckets"})
             kind = query.get("kind", [""])[0]
             values = [s["fields"]["value"] for s in self.server.samples if s["kind"] == kind]
             return self._send(200, {"buckets": [{"avg": sum(values) / len(values)}] if values else []})
@@ -80,7 +82,7 @@ class _Handler(BaseHTTPRequestHandler):
         if not valid:
             return self._send(500 if self.server.mode == "crash-on-bad-input" else 400, {"error": "sample"})
         self.server.samples.append(body)
-        self._send(200, {"ok": True})
+        self._send(202, {"written": 1})
 
 
 @pytest.fixture

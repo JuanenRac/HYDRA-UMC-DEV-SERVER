@@ -139,7 +139,7 @@ def scenario_data_ingest_and_read_back(cell: Cell, run_id: str) -> str:
     for index, value in enumerate((40.5, 41.5, 42.5)):
         sample = {"sourceId": source, "kind": "bench_probe", "timestamp": 1_700_000_000_000 + index * 1000, "fields": {"value": value}}
         status, body = cell.post("/ingest", sample)
-        assert status in (200, 201), f"ingest answered {status}: {body}"
+        assert status in (200, 201, 202), f"ingest answered {status}: {body}"
     status, body = cell.get(f"/query?sourceId={source}")
     assert status == 200, f"query answered {status}: {body}"
     samples = body.get("samples", body) if isinstance(body, dict) else body
@@ -151,7 +151,7 @@ def scenario_data_aggregate(cell: Cell, run_id: str) -> str:
     source = f"bench-agg-{run_id}"
     for index, value in enumerate((10.0, 20.0)):
         cell.post("/ingest", {"sourceId": source, "kind": "bench_agg", "timestamp": 1_700_000_000_000 + index * 1000, "fields": {"value": value}})
-    status, body = cell.get("/aggregate?kind=bench_agg&field=value&bucketMs=60000&start=0&end=1800000000000&agg=avg")
+    status, body = cell.get("/aggregate?kind=bench_agg&field=value&bucketMs=60000&start=1700000000000&end=1700000120000&agg=avg")
     assert status == 200, f"aggregate answered {status}: {body}"
     assert "15" in json.dumps(body), f"the average of 10 and 20 should be 15, got {body}"
     return "the average of two stored samples is computed by the data lake"
