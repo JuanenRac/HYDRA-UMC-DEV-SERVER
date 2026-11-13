@@ -1,0 +1,215 @@
+# =============================================================================
+# HYDRA-UMC-DEV-SERVER - Documentation corpus bundle (build here, sign locally)
+# Copyright (C) 2026 JuanenRac (Electro Hobby 3D) <electrohobby3d@gmail.com>
+# GPL-3.0-or-later - see LICENSE
+# =============================================================================
+# Clones the PUBLIC repositories listed in configs/corpus-repos.json, builds the documentation index of HYDRA-UMC-DOCS-QA as one bundle file TWICE
+# (two directories, two hash seeds) and stops unless both files are identical, then uploads it with SHA256SUMS, the commit of every repository and a
+# build manifest as one artifact with a build-provenance attestation.
+#
+# It holds no key and signs nothing: the bundle is UNSIGNED. The release signature (FILE.sha256 and FILE.sig) is made on the maintainer's machine,
+# from this artifact, with the release key that never leaves it; the signed files travel with the image and the service checks them with the public key.
+# A pull request that touches this workflow or the build code runs it as a check (no attestation); the real build is started by hand.
+
+name: Corpus bundle
+
+on:
+  workflow_dispatch:
+    inputs:
+      release:
+        description: "Release the corpus belongs to, for example 0.3.0"
+        type: string
+        required: true
+      pin:
+        description: "Run id of an earlier corpus build whose commits are fetched again (empty: the tip of every repository)"
+        type: string
+        required: false
+        default: ""
+  pull_request:
+    paths:
+      - ".github/workflows/corpus-bundle.yml"
+      - "src/hydra_umc_dev_server/corpus_build.py"
+      - "configs/corpus-repos.json"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: corpus-bundle-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build the bundle twice and compare
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      contents: read
+      id-token: write
+      attestations: write
+      actions: read
+    env:
+      RELEASE: ${{ inputs.release || '0.0.0' }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Only the owner starts a build
+        if: ${{ github.event_name == 'workflow_dispatch' }}
+        shell: bash
+        env:
+          ACTOR: ${{ github.actor }}
+          OWNER: ${{ github.repository_owner }}
+        run: |
+          set -euo pipefail
+          [ "$ACTOR" = "$OWNER" ] || { echo "::error::only the owner of the repository starts a build"; exit 1; }
+
+      - name: Check the inputs
+        shell: bash
+        env:
+          PIN: ${{ inputs.pin }}
+        run: |
+          set -euo pipefail
+          [[ "$RELEASE" =~ ^[0-9]+(\.[0-9]+){1,3}$ ]] || { echo "::error::the release is not a version such as 0.3.0"; exit 1; }
+          [[ -z "$PIN" || "$PIN" =~ ^[0-9]{1,20}$ ]] || { echo "::error::the pin must be a run id"; exit 1; }
+
+      - name: Check out this repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Check out the indexer (HYDRA-UMC-DOCS-QA, main)
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: ${{ github.repository_owner }}/HYDRA-UMC-DOCS-QA
+          ref: main
+          path: docs-qa
+          persist-credentials: false
+
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.12"
+
+      - name: Fetch the pins of the earlier build
+        if: ${{ inputs.pin != '' }}
+        shell: bash
+        env:
+          PIN: ${{ inputs.pin }}
+        run: |
+          set -euo pipefail
+          gh run download "$PIN" --repo "$GITHUB_REPOSITORY" --pattern 'corpus-bundle-*' --dir pins
+          cp "$(ls pins/*/corpus-*.sources.json | head -n 1)" pins.json
+
+      - name: Build the bundle twice and compare
+        shell: bash
+        run: |
+          set -euo pipefail
+          pin=()
+          [ -f pins.json ] && pin=(--pin pins.json)
+          PYTHONPATH=src python -m hydra_umc_dev_server.corpus_build --release "$RELEASE" --config configs/corpus-repos.json \
+            --workspace "$RUNNER_TEMP/repos" --out out --docs-qa docs-qa "${pin[@]}" | tee "$RUNNER_TEMP/build.txt"
+          grep -q '^CORPUS_BUILD=PASS' "$RUNNER_TEMP/build.txt"
+
+      - name: Write SHA256SUMS and the build manifest
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd out
+          sha256sum *.json > SHA256SUMS
+          python3 - <<'PY'
+          import json, os
+          files = []
+          for line in open("SHA256SUMS", encoding="utf-8"):
+              digest, name = line.strip().split("  ", 1)
+              files.append({"name": name, "sha256": digest, "bytes": os.path.getsize(name)})
+          json.dump({
+              "schema": "hydra-build/1", "repository": os.environ["GITHUB_REPOSITORY"], "project": "docs-corpus", "version": os.environ["RELEASE"],
+              "commit": os.environ["GITHUB_SHA"], "built_on": "github-actions", "run_id": os.environ["GITHUB_RUN_ID"],
+              "run_url": f"{os.environ['GITHUB_SERVER_URL']}/{os.environ['GITHUB_REPOSITORY']}/actions/runs/{os.environ['GITHUB_RUN_ID']}",
+              "toolchain": "hydra_umc_dev_server.corpus_build with HYDRA-UMC-DOCS-QA bundle; built twice in two directories under two hash seeds with the same bytes",
+              "bundle_format": "hydra-umc-docs-qa-bundle/1 (unsigned; the release signature is FILE.sha256 and FILE.sig made locally)",
+              "reproducible": True, "signed": False, "files": files,
+          }, open("build-manifest.json", "w", encoding="utf-8"), indent=2)
+          PY
+          cat SHA256SUMS
+          { echo "### Documentation corpus $RELEASE (unsigned)"; sed 's/^/- /' SHA256SUMS; } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Attest the provenance of the files
+        if: ${{ github.event_name == 'workflow_dispatch' }}
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-path: |
+            out/corpus-*.json
+            out/SHA256SUMS
+
+      - name: Upload the build
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: corpus-bundle-${{ env.RELEASE }}
+          path: out/*
+          if-no-files-found: error
+          retention-days: ${{ github.event_name == 'workflow_dispatch' && 30 || 3 }}
+
+  verify:
+    name: Verify the artifact as a stranger would
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      attestations: read
+    env:
+      RELEASE: ${{ inputs.release || '0.0.0' }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Check out this repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Check out the indexer (HYDRA-UMC-DOCS-QA, main)
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: ${{ github.repository_owner }}/HYDRA-UMC-DOCS-QA
+          ref: main
+          path: docs-qa
+          persist-credentials: false
+
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.12"
+
+      - name: Download the build
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: corpus-bundle-${{ env.RELEASE }}
+          path: build
+
+      - name: Check hashes, manifest, that it loads, and the attestation
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd build
+          sha256sum -c SHA256SUMS
+          python3 - <<'PY'
+          import json, os, sys
+          manifest = json.load(open("build-manifest.json", encoding="utf-8"))
+          assert manifest["signed"] is False and manifest["reproducible"] is True, "unexpected manifest"
+          sources = json.load(open(f"corpus-{os.environ['RELEASE']}.sources.json", encoding="utf-8"))
+          assert sources["signed"] is False and all(len(r["commit"]) == 40 for r in sources["repositories"]), "unexpected sources"
+          sys.path.insert(0, os.path.join(os.environ["GITHUB_WORKSPACE"], "docs-qa", "src"))
+          from hydra_umc_docs_qa.bundle import load_bundle
+          loaded = load_bundle(f"corpus-{os.environ['RELEASE']}.json", allow_unsigned=True)
+          assert loaded.release == os.environ["RELEASE"] and loaded.signed is False and loaded.documents, "the bundle does not load as an unsigned corpus"
+          print("manifest ok:", manifest["version"], len(loaded.documents), "documents,", len(sources["repositories"]), "repositories")
+          PY
+      - name: Check the attestation
+        if: ${{ github.event_name == 'workflow_dispatch' }}
+        shell: bash
+        env:
+          SIGNER: ${{ github.repository }}/.github/workflows/corpus-bundle.yml
+        run: |
+          set -euo pipefail
+          cd build
+          for file in corpus-*.json SHA256SUMS; do
+            gh attestation verify "$file" --repo "$GITHUB_REPOSITORY" --signer-workflow "$SIGNER" --source-digest "$GITHUB_SHA" >/dev/null
+            echo "attestation ok: $file"
+          done
