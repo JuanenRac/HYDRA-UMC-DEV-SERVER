@@ -1,6 +1,6 @@
 # Changelog
 
-## [Unreleased]
+## [0.2.6] - More container benches and a rotated trust store
 
 All notable changes to this project are documented here.
 
