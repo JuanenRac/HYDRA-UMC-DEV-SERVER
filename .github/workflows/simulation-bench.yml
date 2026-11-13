@@ -1,0 +1,72 @@
+# =============================================================================
+# HYDRA-UMC-DEV-SERVER - Simulation bench and coverage
+# Copyright (C) 2026 JuanenRac (Electro Hobby 3D) <electrohobby3d@gmail.com>
+# GPL-3.0-or-later - see LICENSE
+#
+# The simulation bench runs the real sender of scenario outcomes against a stand-in for HYDRA-UMC-SERVER (login, refusals, redirects, hang-ups),
+# the real staging of a repository with git on a repository made on the runner, the concurrency gate and the signed-token checks. It needs no
+# container and no network. The coverage job measures the statement coverage and fails under its floor (raise COVERAGE_FLOOR when the measured
+# value rises).
+# =============================================================================
+name: Simulation bench
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  COVERAGE_FLOOR: "88"
+
+jobs:
+  simulation:
+    name: Stand-in server, real git staging and token checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Set up Python
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.12"
+      - name: Install the package with its test extra
+        run: python -m pip install ".[dev]"
+      - name: Run the scenarios
+        run: |
+          PYTHONPATH=src python -m pytest tests/test_scenario_ingest.py tests/test_scenario_ingest_server_faults.py \
+            tests/test_taskflow_edges.py tests/test_server_identity.py tests/test_server_identity_tokens.py \
+            tests/test_system_host_inspector.py -q
+          echo "SIMULATION_SCENARIOS=OK"
+  coverage:
+    name: Coverage with a floor
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Set up Python
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.12"
+      - name: Install the package, its test extra and coverage
+        run: python -m pip install ".[dev]" coverage
+      - name: Run the tests under coverage and enforce the floor
+        run: |
+          PYTHONPATH=src python -m coverage run --source=src/hydra_umc_dev_server -m pytest tests -q
+          python -m coverage report --skip-covered | tee cover.txt
+          python -m coverage report --fail-under="$COVERAGE_FLOOR" > /dev/null
+          {
+            echo "### Coverage"
+            echo
+            echo '```'
+            cat cover.txt
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
