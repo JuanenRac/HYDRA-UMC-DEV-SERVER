@@ -1,5 +1,9 @@
 # Changelog
 
+## [Unreleased]
+
+- **More tests for the signed tokens, the scenario sender, the staging of a repository and the host inspector, a simulation bench and a coverage floor:** 61 new tests try every way a signed token of the server can be wrong (including a fixed-seed mutation run), play a stand-in server that logs in, refuses, redirects and hangs up against the real scenario sender, stage a repository with a real git made on the runner, exercise the concurrency gate and the end of a workspace, and drive the real read-only host inspector. A `Simulation bench` workflow runs those scenarios without a container, and a coverage job fails when the statement coverage falls under its floor.
+
 ## [0.2.6] - More container benches and a rotated trust store
 
 All notable changes to this project are documented here.
