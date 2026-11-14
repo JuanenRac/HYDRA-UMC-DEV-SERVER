@@ -42,7 +42,7 @@ class TaskRunCommandTests(unittest.TestCase):
         self.addCleanup(self._tmp.cleanup)
         self.root = Path(self._tmp.name)
         self.base = str(self.root / "ws")
-        self.policy = write_json(self.root / "policy.json", {"allow_deploy": False, "max_concurrent_tasks": 1, "allowed_commands": ["true", "false"]})
+        self.policy = write_json(self.root / "policy.json", {"allow_deploy": False, "max_concurrent_tasks": 1, "allowed_commands": ["true", "false"], "sandbox": "none"})  # the sandbox has its own tests; a runner may forbid bubblewrap
 
     def recipe(self, command, task_id="cov-task-0001"):
         return write_json(self.root / f"{task_id}.json", {"task_id": task_id, "repo": "R", "revision": "v0.0.4", "command": command, "timeout_seconds": 30, "input_paths": []})
