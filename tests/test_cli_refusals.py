@@ -6,7 +6,9 @@
 """Every command of the command line, given a file that is not there, a file that is not the document it names, or a folder that holds nothing,
 answers with a non-zero exit code and a line on the error output - never with a traceback. A fixed-seed run feeds random bytes to the commands
 that read a document."""
+import json
 import random
+from pathlib import Path
 
 import pytest
 
@@ -114,3 +116,82 @@ def test_documents_of_random_bytes_never_make_a_command_raise(tmp_path, capsys):
         ):
             assert main(argv) == 1, argv
             capsys.readouterr()
+
+
+# ------------------------------------------------------------------ the refusals that need a good document first
+CONFIGS = Path(__file__).resolve().parent.parent / "configs"
+
+
+def test_the_same_task_with_another_recipe_is_a_conflict(tmp_path, capsys):
+    db = str(tmp_path / "queue.sqlite")
+    recipe = json.loads((CONFIGS / "task-recipe.example.json").read_text(encoding="utf-8"))
+    first = tmp_path / "first.json"
+    first.write_text(json.dumps(recipe), encoding="utf-8")
+    recipe["command"] = ["pytest", "-x"]
+    other = tmp_path / "other.json"
+    other.write_text(json.dumps(recipe), encoding="utf-8")
+    assert main(["queue", "enqueue", str(first), "--db", db, "--base-fingerprint", "b1"]) == 0
+    capsys.readouterr()
+    assert main(["queue", "enqueue", str(other), "--db", db, "--base-fingerprint", "b1"]) == 1
+    assert "already exists with a different recipe" in capsys.readouterr().err
+
+
+def test_a_worker_is_refused_a_relative_workspace_and_a_missing_policy(tmp_path, capsys):
+    db = str(tmp_path / "queue.sqlite")
+    policy = str(CONFIGS / "task-policy.example.json")
+    assert main(["queue", "work", "--db", db, "--policy", policy, "--workspace-base", "relative/base", "--max-tasks", "1"]) == 1
+    assert "must be an absolute path" in capsys.readouterr().err
+    assert main(["queue", "work", "--db", db, "--policy", str(tmp_path / "missing.json"), "--workspace-base", str(tmp_path / "ws")]) == 1
+    capsys.readouterr()
+
+
+def test_a_worker_with_nothing_queued_stops_at_once(tmp_path, capsys):
+    db = str(tmp_path / "queue.sqlite")
+    base = tmp_path / "workspaces"
+    assert main(["queue", "work", "--db", db, "--policy", str(CONFIGS / "task-policy.example.json"), "--workspace-base", str(base), "--max-tasks", "1"]) == 0
+    assert json.loads(capsys.readouterr().out) == {"tasks": []}
+
+
+def test_a_candidate_needs_exactly_one_way_to_be_trusted(tmp_path, capsys):
+    candidate = tmp_path / "candidate.json"
+    candidate.write_text(json.dumps({"candidate_id": "c1", "for_incident_id": "INC-1", "for_base_fingerprint": "b", "for_target": "t", "patch_ref": "abc1234", "signature": "00"}), encoding="utf-8")
+    secret = tmp_path / "secret"
+    secret.write_text("s3cret-for-the-test", encoding="utf-8")
+    common = ["--incident", "INC-1", "--base", "b", "--target", "t"]
+    code = main(["repair", "check-candidate", str(candidate), *common])
+    err = capsys.readouterr().err
+    assert code == 1 and ("exactly one" in err or "INVALID" in err)
+    assert main(["repair", "check-candidate", str(candidate), "--secret-file", str(secret), "--trust-store", str(tmp_path / "s.json"), *common]) == 1
+    assert "exactly one" in capsys.readouterr().err
+    assert main(["repair", "check-candidate", str(candidate), "--secret-file", str(secret), "--signer", "ops", *common]) in (1,)
+    capsys.readouterr()
+
+
+def test_reporting_an_outcome_while_the_ingest_is_off_sends_nothing(tmp_path, capsys):
+    outcome = tmp_path / "outcome.json"
+    outcome.write_text("{}", encoding="utf-8")
+    code = main(["repair", "report-outcome", str(outcome), "--config", str(CONFIGS / "scenario-ingest.example.json")])
+    assert code == 1
+    assert "OFF" in capsys.readouterr().err
+
+
+def test_a_registry_of_something_else_than_secrets_is_refused(tmp_path, capsys):
+    registry = tmp_path / "registry.json"
+    registry.write_text(json.dumps({"node-a": 7}), encoding="utf-8")
+    message = tmp_path / "message.json"
+    message.write_text(json.dumps({"x": 1}), encoding="utf-8")
+    code = main(["incident", "verify", str(message), "--policy", str(CONFIGS / "incident-transport.example.json"),
+                 "--registry", str(registry), "--authenticated-as", "node-a"])
+    assert code == 1
+    capsys.readouterr()
+
+
+def test_the_trust_store_of_the_examples_lists_and_a_broken_one_is_refused(tmp_path, capsys):
+    assert main(["trust", "list", str(CONFIGS / "trust-store.example.json")]) == 0
+    assert "trusted" in capsys.readouterr().out
+    broken = tmp_path / "store.json"
+    broken.write_text("[1, 2]", encoding="utf-8")
+    assert main(["trust", "list", str(broken)]) == 1
+    assert "INVALID" in capsys.readouterr().err
+    assert main(["trust", "revoke", str(broken), "ops"]) == 1
+    capsys.readouterr()
