@@ -76,7 +76,7 @@ def scan_project_manifests(root: Path) -> ManifestScanResult:
             continue
         try:
             raw = manifest_path.read_text(encoding="utf-8")
-        except OSError as exc:
+        except (OSError, UnicodeDecodeError) as exc:  # bytes that are not UTF-8 are a manifest that cannot be read, not a crash
             issues.append(ManifestScanIssue(path=str(manifest_path), reason=f"could not read: {exc}"))
             continue
         try:

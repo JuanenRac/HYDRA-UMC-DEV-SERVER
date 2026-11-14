@@ -261,7 +261,7 @@ def load_json_document(path: Path) -> dict[str, Any]:
     ecosystem's other config loaders already use."""
     try:
         raw = path.read_text(encoding="utf-8")
-    except OSError as exc:
+    except (OSError, UnicodeDecodeError) as exc:  # bytes that are not UTF-8 are a document that cannot be read
         raise ConfigValidationError(f"could not read {path}: {exc}") from exc
     try:
         data = json.loads(raw)

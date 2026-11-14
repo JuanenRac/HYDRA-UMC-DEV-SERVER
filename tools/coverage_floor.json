@@ -1,0 +1,10 @@
+[
+  {
+    "stack": "python",
+    "floor": 91,
+    "source": "src/hydra_umc_dev_server",
+    "tests": "tests",
+    "pythonpath": "src",
+    "measured": "91.2 % of statements and branches (the coverage job, Ubuntu 24.04, Python 3.12); the floor is the measured figure rounded down"
+  }
+]

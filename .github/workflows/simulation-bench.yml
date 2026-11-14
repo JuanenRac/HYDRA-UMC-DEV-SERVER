@@ -5,8 +5,8 @@
 #
 # The simulation bench runs the real sender of scenario outcomes against a stand-in for HYDRA-UMC-SERVER (login, refusals, redirects, hang-ups),
 # the real staging of a repository with git on a repository made on the runner, the concurrency gate and the signed-token checks. It needs no
-# container and no network. The coverage job measures the statement coverage and fails under its floor (raise COVERAGE_FLOOR when the measured
-# value rises).
+# container and no network. The coverage job measures line and branch coverage and fails under the floor of tools/coverage_floor.json (raise it in
+# the change that adds the tests, to the figure the job printed, rounded down).
 # =============================================================================
 name: Simulation bench
 
@@ -17,9 +17,6 @@ on:
 
 permissions:
   contents: read
-
-env:
-  COVERAGE_FLOOR: "88"
 
 jobs:
   simulation:
@@ -45,7 +42,7 @@ jobs:
           echo "SIMULATION_SCENARIOS=OK"
   coverage:
     name: Coverage with a floor
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04  # a job that measures against a floor does not move with ubuntu-latest (the branch count of the report changes)
     timeout-minutes: 30
     steps:
       - name: Check out repository
@@ -58,11 +55,12 @@ jobs:
           python-version: "3.12"
       - name: Install the package, its test extra and coverage
         run: python -m pip install ".[dev]" coverage
-      - name: Run the tests under coverage and enforce the floor
+      - name: Run the tests under line and branch coverage and enforce the floor of tools/coverage_floor.json
         run: |
-          PYTHONPATH=src python -m coverage run --source=src/hydra_umc_dev_server -m pytest tests -q
-          python -m coverage report --skip-covered | tee cover.txt
-          python -m coverage report --fail-under="$COVERAGE_FLOOR" > /dev/null
+          PYTHONPATH=src python -m coverage run --branch --source=src/hydra_umc_dev_server -m pytest tests -q
+          python -m coverage report --skip-covered -m | tee cover.txt
+          python -m coverage json -o cover.json
+          python tools/check_coverage_floor.py cover.json | tee -a cover.txt
           {
             echo "### Coverage"
             echo
