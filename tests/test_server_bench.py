@@ -58,7 +58,7 @@ class _Handler(BaseHTTPRequestHandler):
         elif not self._authorized():
             self._send(401, {"error": "No token provided"})
         elif self.path == "/api/settings":
-            self._send(200, {} if self.server.mode == "empty" else {"controllers": []})
+            self._send(200, {"error": "boom"} if self.server.mode == "broken" else {})
         else:
             self._send(200, [])
 
@@ -112,10 +112,11 @@ def test_a_login_that_lets_a_wrong_password_in_is_a_failure(served) -> None:
     assert results["server_refuses_a_wrong_password"].status == "fail"
 
 
-def test_settings_without_controllers_are_a_failure(served) -> None:
-    results = _by_name(run(served("empty")))
+def test_a_fresh_installation_with_empty_settings_passes_and_an_error_answer_is_a_failure(served) -> None:
+    assert _by_name(run(served()))["server_administrator_reads_the_settings"].status == "pass"
+    results = _by_name(run(served("broken")))
     assert results["server_administrator_reads_the_settings"].status == "fail"
-    assert "controllers" in results["server_administrator_reads_the_settings"].detail
+    assert "error" in results["server_administrator_reads_the_settings"].detail
 
 
 def test_a_server_that_fails_on_an_unknown_robot_is_a_failure(served) -> None:
