@@ -4,13 +4,19 @@
 # GPL-3.0-or-later - see LICENSE
 # =============================================================================
 # It runs by hand, once a week, on a pull request that changes the bench, and as a reusable workflow (workflow_call) for the pull requests of the server.
-# It builds the image of the server from the Dockerfile of its main branch (or from the branch of the pull request when the server calls it) and
+# It builds the image of the server from the Dockerfile of its main branch, or from the commit given in `server_ref` when the server calls it from a pull request, and
 # keeps every secret out of the image: the key and the password of the first administrator are made for the run.
 name: Server bench
 
 on:
   workflow_dispatch:
   workflow_call:
+    inputs:
+      server_ref:
+        description: "The commit of HYDRA-UMC-SERVER to build (the head of the pull request that calls the workflow); main when it is not given"
+        type: string
+        required: false
+        default: main
   schedule:
     - cron: "17 4 * * 1"
   pull_request:
@@ -38,7 +44,14 @@ jobs:
         with:
           python-version: "3.12"
       - name: Fetch the sibling repository the container builds from
-        run: git clone --quiet --depth 1 "https://github.com/JuanenRac/HYDRA-UMC-SERVER.git" "../HYDRA-UMC-SERVER"
+        env:
+          SERVER_REF: ${{ inputs.server_ref || 'main' }}
+        run: |
+          git clone --quiet --depth 1 "https://github.com/JuanenRac/HYDRA-UMC-SERVER.git" "../HYDRA-UMC-SERVER"
+          cd ../HYDRA-UMC-SERVER
+          git fetch --quiet --depth 1 origin "$SERVER_REF"
+          git checkout --quiet FETCH_HEAD
+          git log -1 --format='server bench builds %H'
       - name: Start the container
         working-directory: bench
         run: |
