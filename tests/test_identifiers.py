@@ -53,7 +53,7 @@ class IdentifierTests(unittest.TestCase):
                 self.assertTrue(is_identifier(text))
 
     def test_a_trailing_newline_and_other_tricks_are_refused(self):
-        # `$` in the old pattern accepted a trailing newline
+        # `$` in a pattern would accept a trailing newline
         for text in ("run-1\n", "", "-x", ".x", "a/b", "a..b", "a b", "x" * 129, None):
             with self.subTest(text=text):
                 self.assertFalse(is_identifier(text))
