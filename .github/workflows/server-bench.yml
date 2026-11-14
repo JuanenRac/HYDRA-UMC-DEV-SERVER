@@ -39,6 +39,7 @@ jobs:
         with:
           repository: JuanenRac/HYDRA-UMC-DEV-SERVER
           ref: ${{ github.repository == 'JuanenRac/HYDRA-UMC-DEV-SERVER' && github.sha || 'main' }}
+          path: HYDRA-UMC-DEV-SERVER
           persist-credentials: false
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
@@ -47,13 +48,13 @@ jobs:
         env:
           SERVER_REF: ${{ inputs.server_ref || 'main' }}
         run: |
-          git clone --quiet --depth 1 "https://github.com/JuanenRac/HYDRA-UMC-SERVER.git" "../HYDRA-UMC-SERVER"
-          cd ../HYDRA-UMC-SERVER
+          git clone --quiet --depth 1 "https://github.com/JuanenRac/HYDRA-UMC-SERVER.git" HYDRA-UMC-SERVER
+          cd HYDRA-UMC-SERVER
           git fetch --quiet --depth 1 origin "$SERVER_REF"
           git checkout --quiet FETCH_HEAD
           git log -1 --format='server bench builds %H'
       - name: Start the container
-        working-directory: bench
+        working-directory: HYDRA-UMC-DEV-SERVER/bench
         run: |
           {
             echo "SERVER_BENCH_JWT_SECRET=$(openssl rand -hex 32)"
@@ -61,15 +62,15 @@ jobs:
           } > .env
           docker compose -f docker-compose.server.yml --env-file .env up --build --detach --wait --wait-timeout 900
       - name: Run the scenarios
-        working-directory: bench
+        working-directory: HYDRA-UMC-DEV-SERVER/bench
         run: |
           set -a; . ./.env; set +a
           PYTHONPATH=../src python -m hydra_umc_dev_server.server_bench --wait 60
       - name: Show the logs when it failed
         if: ${{ failure() }}
-        working-directory: bench
+        working-directory: HYDRA-UMC-DEV-SERVER/bench
         run: docker compose -f docker-compose.server.yml --env-file .env logs --no-color --tail 80
       - name: Stop the container
         if: ${{ always() }}
-        working-directory: bench
+        working-directory: HYDRA-UMC-DEV-SERVER/bench
         run: docker compose -f docker-compose.server.yml --env-file .env down --volumes --remove-orphans
