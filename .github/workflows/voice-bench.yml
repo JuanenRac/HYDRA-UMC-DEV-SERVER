@@ -7,6 +7,8 @@ name: Voice bench
 
 on:
   workflow_dispatch:
+  schedule:
+    - cron: "7 4 * * 1"  # weekly, on a minute of its own so that the benches do not queue behind each other
 
 permissions:
   contents: read
