@@ -260,7 +260,7 @@ class RealChildWithLargeOutputTests(unittest.TestCase):
         result = self._run("import sys; sys.stdout.write('o' * 2_000_000 + 'END-OUT'); sys.stderr.write('e' * 2_000_000 + 'END-ERR')")
         self.assertEqual(result.outcome, OUTCOME_COMPLETED)
         self.assertEqual(result.exit_code, 0)
-        self.assertLess(time.monotonic() - started, 30)  # it used to hang until the 60 s timeout
+        self.assertLess(time.monotonic() - started, 30)  # it ends well before the 60 s timeout
         self.assertTrue(result.stdout_tail.endswith("END-OUT"))
         self.assertTrue(result.stderr_tail.endswith("END-ERR"))
 
