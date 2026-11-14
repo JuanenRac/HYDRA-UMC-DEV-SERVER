@@ -1,0 +1,38 @@
+# HYDRA-UMC-DEV-SERVER - bench/docker-compose.server.yml: the server bench ("hydra-bench-server")
+# Copyright (C) 2026 JuanenRac (Electro Hobby 3D) <electrohobby3d@gmail.com>
+# GPL-3.0-or-later - see LICENSE
+#
+# HYDRA-UMC-SERVER as a real container, built from its own Dockerfile (scripts/Dockerfile) in its sibling checkout (../../HYDRA-UMC-SERVER next to this repository) and
+# published on the loopback interface of the host only. No secret is in the image or in this file: the signing key of the tokens and the password of the
+# first administrator are given by the environment when the stack starts, and the stack refuses to start without them. The scenarios of
+# `python -m hydra_umc_dev_server.server_bench` speak HTTP to it. This is a bench of Actions: it does not change how the server is installed on the CM5.
+#
+# Required before the start: SERVER_BENCH_JWT_SECRET (at least 32 characters) and SERVER_BENCH_ADMIN_PASSWORD (at least 16 characters).
+#
+# Usage (from this folder):
+#   export SERVER_BENCH_JWT_SECRET=$(openssl rand -hex 32) SERVER_BENCH_ADMIN_PASSWORD=$(openssl rand -hex 16)
+#   docker compose -f docker-compose.server.yml up --build --detach --wait --wait-timeout 600
+#   python -m hydra_umc_dev_server.server_bench
+#   docker compose -f docker-compose.server.yml down --volumes --remove-orphans
+#
+# The workflow "Server bench" does exactly this on a CI runner.
+
+name: hydra-bench-server
+
+services:
+  server:
+    build:
+      context: ../../HYDRA-UMC-SERVER
+      dockerfile: scripts/Dockerfile
+    environment:
+      PORT: "3000"
+      JWT_SECRET: "${SERVER_BENCH_JWT_SECRET:?set SERVER_BENCH_JWT_SECRET to a secret of at least 32 characters}"
+      HYDRA_UMC_BOOTSTRAP_ADMIN_USERNAME: "${SERVER_BENCH_ADMIN_USERNAME:-bench-admin}"
+      HYDRA_UMC_BOOTSTRAP_ADMIN_PASSWORD: "${SERVER_BENCH_ADMIN_PASSWORD:?set SERVER_BENCH_ADMIN_PASSWORD to a password of at least 16 characters}"
+    ports:
+      - "127.0.0.1:18200:3000"
+    volumes:
+      - server-data:/app/data
+
+volumes:
+  server-data:

@@ -1,0 +1,62 @@
+# =============================================================================
+# HYDRA-UMC-DEV-SERVER - the server bench: HYDRA-UMC-SERVER as a real container, driven by the scenarios of server_bench.py
+# Copyright (C) 2026 JuanenRac (Electro Hobby 3D) <electrohobby3d@gmail.com>
+# GPL-3.0-or-later - see LICENSE
+# =============================================================================
+# It runs by hand, once a week, on a pull request that changes the bench, and as a reusable workflow (workflow_call) for the pull requests of the server.
+# It builds the image of the server from the Dockerfile of its main branch (or from the branch of the pull request when the server calls it) and
+# keeps every secret out of the image: the key and the password of the first administrator are made for the run.
+name: Server bench
+
+on:
+  workflow_dispatch:
+  workflow_call:
+  schedule:
+    - cron: "17 4 * * 1"
+  pull_request:
+    paths:
+      - "bench/docker-compose.server.yml"
+      - "src/hydra_umc_dev_server/server_bench.py"
+      - ".github/workflows/server-bench.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  bench:
+    name: Start the server container and run the scenarios
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Check out the bench (always this repository, also when another repository calls the workflow)
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: JuanenRac/HYDRA-UMC-DEV-SERVER
+          ref: ${{ github.repository == 'JuanenRac/HYDRA-UMC-DEV-SERVER' && github.sha || 'main' }}
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.12"
+      - name: Fetch the sibling repository the container builds from
+        run: git clone --quiet --depth 1 "https://github.com/JuanenRac/HYDRA-UMC-SERVER.git" "../HYDRA-UMC-SERVER"
+      - name: Start the container
+        working-directory: bench
+        run: |
+          {
+            echo "SERVER_BENCH_JWT_SECRET=$(openssl rand -hex 32)"
+            echo "SERVER_BENCH_ADMIN_PASSWORD=$(openssl rand -hex 16)"
+          } > .env
+          docker compose -f docker-compose.server.yml --env-file .env up --build --detach --wait --wait-timeout 900
+      - name: Run the scenarios
+        working-directory: bench
+        run: |
+          set -a; . ./.env; set +a
+          PYTHONPATH=../src python -m hydra_umc_dev_server.server_bench --wait 60
+      - name: Show the logs when it failed
+        if: ${{ failure() }}
+        working-directory: bench
+        run: docker compose -f docker-compose.server.yml --env-file .env logs --no-color --tail 80
+      - name: Stop the container
+        if: ${{ always() }}
+        working-directory: bench
+        run: docker compose -f docker-compose.server.yml --env-file .env down --volumes --remove-orphans
