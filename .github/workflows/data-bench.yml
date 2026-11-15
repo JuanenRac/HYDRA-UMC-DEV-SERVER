@@ -7,6 +7,8 @@ name: Data bench
 
 on:
   workflow_dispatch:
+  schedule:
+    - cron: "47 3 * * 1"  # weekly, on a minute of its own so that the benches do not queue behind each other
 
 permissions:
   contents: read
