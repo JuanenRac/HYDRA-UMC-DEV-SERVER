@@ -2,6 +2,7 @@
 
 ## [Unreleased]
 
+- **Tests of the defensive branches of the plugins and of the bench with stand-ins:** the registration rules of the three kinds, a root that is not a directory, a plugin that cannot be read, a module without `register`, results that raise or are not JSON, the kill of a process group and the scrubbed environment of the child (`tests/test_plugins_defensive_branches.py`); the scenario that carries a certified command to the simulated robot, in every way it can end, against stand-ins for the twin and the bridge (`tests/test_bench_certified_command_doubles.py`); and the refusals of the four simulated services and the wait of the bridge bench for its rig (`tests/test_bench_simulated_services_edges.py`, 34 tests). The coverage floor does not change.
 
 ## [0.2.7]
 
