@@ -189,6 +189,15 @@ class CheckCandidateTests(unittest.TestCase):
         self.assertFalse(check_candidate(_candidate(), "wrong", incident_id=_INC, base_fingerprint=_BASE, target=_TARGET).accepted)
         self.assertIn("different incident", check_candidate(_candidate(for_incident_id="INC-9"), _CAND_SECRET, incident_id=_INC, base_fingerprint=_BASE, target=_TARGET).reason)
 
+    def test_a_key_that_names_ed25519_but_is_not_a_public_key_is_never_a_shared_secret(self):
+        public = "ed25519-public:" + "ab" * 32
+        for garbled in ("\ufeff" + public, public.upper(), "x" + public, "ED25519-PUBLIC:" + "ab" * 32, "ed25519 " + "ab" * 32):
+            check = check_candidate(_candidate(), garbled, incident_id=_INC, base_fingerprint=_BASE, target=_TARGET)
+            self.assertFalse(check.accepted, garbled)
+            self.assertIn("not a well-formed public key", check.reason)
+        # a well-formed public key is still handled as a public key (a candidate signed with a secret does not verify against it)
+        self.assertFalse(check_candidate(_candidate(), public, incident_id=_INC, base_fingerprint=_BASE, target=_TARGET).accepted)
+
 
 if __name__ == "__main__":
     unittest.main()
