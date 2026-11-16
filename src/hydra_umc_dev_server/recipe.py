@@ -85,7 +85,9 @@ def argument_problems(command: tuple[str, ...], policy: TaskPolicy) -> list[str]
         listed = patterns is not None and any(fnmatch.fnmatchcase(arg, pattern) for pattern in patterns)
         if arg.startswith("-") and not listed:  # an option the policy names itself is the operator's decision
             for option in denied:
-                if arg == option or arg.startswith(option + "=") or (not option.startswith("--") and len(option) == 2 and arg.startswith(option) and len(arg) > 2 and not arg.startswith("--")):
+                # a short option may be grouped with others (`-xc`, `-Ic`, `-ec`): any single-dash group that holds its letter is the option
+                grouped = not option.startswith("--") and len(option) == 2 and not arg.startswith("--") and option[1] in arg[1:]
+                if arg == option or arg.startswith(option + "=") or grouped:
                     if option == "-p" and (arg == "-p" and index + 1 < len(args) and args[index + 1].startswith("no:") or arg.startswith("-pno:")):
                         break
                     problems.append(f"the option {head!r} is not allowed for {key!r} (it loads code or configuration the recipe did not declare)")

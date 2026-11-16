@@ -219,6 +219,12 @@ def is_public_key(text: str) -> bool:
     return text.strip().startswith(PUBLIC_PREFIX)
 
 
+def looks_like_a_garbled_public_key(text: str) -> bool:
+    """True for a text that names an Ed25519 key but is not written as a public key (a byte-order mark, capital letters or a stray character in front):
+    taken as a shared secret it would be a secret that everybody who knows the public key knows."""
+    return "ed25519" in text.lower() and not is_public_key(text)
+
+
 def canonical_bytes(body: dict[str, Any]) -> bytes:
     return json.dumps(body, sort_keys=True, separators=(",", ":")).encode("utf-8")
 

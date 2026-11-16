@@ -140,6 +140,18 @@ class ArgumentAllowListTests(unittest.TestCase):
         self.assertEqual(argument_problems(("pytest", "-q", "-x", "tests/test_a.py", "-p", "no:cacheprovider"), policy), [])
         self.assertEqual(argument_problems(("pytest", "-pno:cacheprovider"), policy), [])
 
+    def test_grouped_short_options_do_not_hide_the_inline_code_option(self):
+        policy = _policy()
+        for command, args in (("bash", "-xc"), ("sh", "-ec"), ("python", "-Ic"), ("python3", "-uc"), ("bash", "-lc"), ("pytest", "-qc"), ("pytest", "-xo")):
+            self.assertTrue(argument_problems((command, args, "code"), policy), (command, args))
+        # the same letters in a group of another tool, or no group at all, are not touched
+        self.assertEqual(argument_problems(("python", "-u", "check.py"), policy), [])
+        self.assertEqual(argument_problems(("pytest", "-qx", "tests"), policy), [])
+        self.assertEqual(argument_problems(("pytest", "-qpno:cacheprovider"), policy) != [], True)
+        # an option the policy names itself is the operator's decision
+        listed = _policy(allowed_arguments={"python": ["-Ic", "code"]})
+        self.assertEqual(argument_problems(("python", "-Ic", "code"), listed), [])
+
     def test_paths_outside_the_workspace_are_refused_in_plain_and_option_values(self):
         policy = _policy()
         for args in (["/etc/passwd"], ["../x"], ["a/../../x"], ["~/x"], ["--log-file=/tmp/x"], ["--out=../x"], ["C:/Users/x"], ["a\\..\\x"]):

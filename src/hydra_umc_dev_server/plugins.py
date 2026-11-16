@@ -18,8 +18,11 @@ its own and the server hands it no credential. By default (`isolation="process"`
 every call runs in a separate Python process that is started in isolated mode, in an empty
 temporary directory, with a scrubbed environment and limits on its CPU time and on the size
 of the files it writes, and that is killed when the call overruns; the module is handed to
-it as the bytes that were approved, so it sees nothing of the API process (its token, its
-memory) and cannot import files next to it. A plugin therefore keeps no state from one call
+it as the bytes that were approved, so it cannot read the memory or the environment of the API
+process and cannot import files next to it. It is NOT a sandbox of the system: the process has the
+permissions of the service user, so it can read what that user can read (a token file, keys) and it
+has the network; what keeps a plugin in check is that it runs only after the SHA-256 of its manifest and
+module was approved. A plugin therefore keeps no state from one call
 to the next. With `isolation="thread"` it runs in the SAME process as the API, which makes it
 trusted code: enable only what you have read. In both modes the module that runs is the
 very bytes whose SHA-256 you approved (the digest covers the manifest and the module). A generator returns its

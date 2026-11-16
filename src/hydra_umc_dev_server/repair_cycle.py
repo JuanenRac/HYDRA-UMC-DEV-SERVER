@@ -42,7 +42,7 @@ from datetime import datetime, timezone
 from typing import Any, Protocol, runtime_checkable
 
 from .config import ConfigValidationError, _require_str
-from .signing import is_public_key, sign_body, signature_matches
+from .signing import is_public_key, looks_like_a_garbled_public_key, sign_body, signature_matches
 
 STATE_NOT_STARTED = "not-started"
 STATE_BLOCKED = "blocked"
@@ -379,6 +379,8 @@ def check_candidate(
     target: str,
 ) -> CandidateCheck:
     """The gate `receive_candidate` applies, usable without a live cycle."""
+    if looks_like_a_garbled_public_key(candidate_secret):
+        return CandidateCheck(False, "the key names ed25519 but is not a well-formed public key: it is not used as a shared secret")
     if not candidate.signature_ok(candidate_secret):
         return CandidateCheck(False, "signature does not verify - tampered or unsigned")
     if candidate.for_incident_id != incident_id:
