@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [0.2.8] - Stricter recipe options, a safer public-key check and more tests
+
 - **Tests of the limits of the plugin registry, of every failure of the two chain scenarios of the bench and of the wait for an answer of the bridge rig (19 tests):** `tests/test_plugins_limits_and_parameters.py` covers a `provides` list that is empty, repeated, unknown or not a list, an isolation mode that does not exist and the one the environment names, enabling a plugin that is already enabled, the generator parameters that are not an object, not JSON or longer than the limit, the ceiling of parallel process calls (refused without starting anything, and the slot given back) and the ceiling of threads that overran; `tests/test_bench_chain_failures.py` runs `chain_to_dispatch` and `breach_stops_the_chain` with the steps replaced and checks each way they fail, and the wait of `bridge_bench` for an answer that comes after other topics, never or too late. The plugin module is now covered to 99 percent of its lines and branches and the bridge bench to its last line of `main`; the lines of the bench that start real binaries stay uncovered on purpose. Evidence: simulator.
 
 - **A recipe cannot get inline code through grouped short options:** the list of options that load code compared whole arguments, so `bash -xc '...'`, `sh -ec '...'`, `python -Ic '...'` or `python3 -uc '...'` passed when the policy allowed the tool and gave no list of allowed arguments. A single-dash group that holds the letter of a denied short option is refused now (an option the policy names itself is still the operator's decision), with tests for the groups.
