@@ -19,10 +19,12 @@ every call runs in a separate Python process that is started in isolated mode, i
 temporary directory, with a scrubbed environment and limits on its CPU time and on the size
 of the files it writes, and that is killed when the call overruns; the module is handed to
 it as the bytes that were approved, so it cannot read the memory or the environment of the API
-process and cannot import files next to it. It is NOT a sandbox of the system: the process has the
-permissions of the service user, so it can read what that user can read (a token file, keys) and it
-has the network; what keeps a plugin in check is that it runs only after the SHA-256 of its manifest and
-module was approved. A plugin therefore keeps no state from one call
+process and cannot import files next to it. Where the host has a working bubblewrap the process is also put in a sandbox of the system
+(`HYDRA_DEV_SERVER_PLUGIN_SANDBOX`: `auto` by default, `required` or `off`; see
+`sandbox.PluginSandbox`): the home of the service user is not there and there is no network.
+Without it the process has the permissions of the service user, so it can read what that user can
+read (a token file, keys) and it has the network. In every case a plugin runs only after the
+SHA-256 of its manifest and module was approved. A plugin therefore keeps no state from one call
 to the next. With `isolation="thread"` it runs in the SAME process as the API, which makes it
 trusted code: enable only what you have read. In both modes the module that runs is the
 very bytes whose SHA-256 you approved (the digest covers the manifest and the module). A generator returns its
@@ -63,6 +65,9 @@ import types
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Callable
+
+from .config import ConfigValidationError
+from .sandbox import PluginSandbox, SandboxUnavailableError
 
 PLUGIN_API_VERSION = 1
 MANIFEST_NAME = "plugin.json"
@@ -212,7 +217,11 @@ class _Registration:
 
 
 class PluginRegistry:
-    def __init__(self, isolation: str | None = None) -> None:
+    def __init__(self, isolation: str | None = None, sandbox: PluginSandbox | None = None) -> None:
+        try:
+            self.sandbox = PluginSandbox.from_environment() if sandbox is None else sandbox
+        except ConfigValidationError as exc:
+            raise PluginError(str(exc)) from exc
         if isolation is None:
             isolation = os.environ.get("HYDRA_DEV_SERVER_PLUGIN_ISOLATION", "process").strip().lower() or "process"
         if isolation not in ISOLATIONS:
@@ -297,7 +306,7 @@ class PluginRegistry:
         try:
             registration = _Registration(record.manifest.provides)
             if self.isolation == "process":
-                names = _register_in_child(entry_bytes, record.manifest)
+                names = _register_in_child(entry_bytes, record.manifest, self.sandbox)
                 for kind, target in (("checks", registration.checks), ("reports", registration.reports), ("generators", registration.generators)):
                     for item in names.get(kind, []):
                         target[item] = _isolated_proxy(record, kind, item)
@@ -346,7 +355,7 @@ class PluginRegistry:
             if not self._slots.acquire(blocking=False):
                 return {"status": "error", "error": f"{MAX_PARALLEL_RUNS} plugin calls are already running; try again in a moment"}
             try:
-                return _run_isolated(record.source, record.manifest, kind, item, args, timeout, label, shape)
+                return _run_isolated(record.source, record.manifest, kind, item, args, timeout, label, shape, self.sandbox)
             finally:
                 self._slots.release()
         with self._lock:
@@ -527,7 +536,7 @@ def _kill_group(proc: "subprocess.Popen[bytes]") -> None:
         pass
 
 
-def _call_child(entry_bytes: bytes, manifest: PluginManifest, action: str, kind: str, item: str, args: tuple, timeout: float) -> dict:
+def _call_child(entry_bytes: bytes, manifest: PluginManifest, action: str, kind: str, item: str, args: tuple, timeout: float, sandbox: PluginSandbox | None = None) -> dict:
     """One isolated call; returns the decoded answer, or {"error": ...} (a timeout starts with "timeout")."""
     try:
         request = json.dumps({
@@ -538,11 +547,18 @@ def _call_child(entry_bytes: bytes, manifest: PluginManifest, action: str, kind:
         return {"error": f"the module cannot be handed to the isolated process: {exc}"}
     with tempfile.TemporaryDirectory(prefix="hydra-plugin-") as scratch:
         kwargs: dict = {"start_new_session": True} if os.name == "posix" else {}
+        command: tuple[str, ...] = (sys.executable, "-I", "-c", _CHILD_PROGRAM)
+        environment = _child_environment(scratch)
+        if sandbox is not None:
+            try:
+                command, environment = sandbox.wrap(command, cwd=scratch, env=environment)
+            except SandboxUnavailableError as exc:
+                return {"error": str(exc)}
         try:
-            proc = subprocess.Popen(  # noqa: S603 - the interpreter running this server, a fixed program
-                [sys.executable, "-I", "-c", _CHILD_PROGRAM],
+            proc = subprocess.Popen(  # noqa: S603 - the interpreter running this server (inside bwrap when there is one), a fixed program
+                list(command),
                 stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
-                cwd=scratch, env=_child_environment(scratch), **kwargs,
+                cwd=scratch, env=environment, **kwargs,
             )
         except OSError as exc:
             return {"error": f"the isolated process could not be started: {exc}"}
@@ -565,8 +581,8 @@ def _call_child(entry_bytes: bytes, manifest: PluginManifest, action: str, kind:
     return decoded if isinstance(decoded, dict) else {"error": "the isolated process answered the wrong shape"}
 
 
-def _register_in_child(entry_bytes: bytes, manifest: PluginManifest) -> dict:
-    answer = _call_child(entry_bytes, manifest, "register", "", "", (), CHECK_TIMEOUT_SECONDS)
+def _register_in_child(entry_bytes: bytes, manifest: PluginManifest, sandbox: PluginSandbox | None = None) -> dict:
+    answer = _call_child(entry_bytes, manifest, "register", "", "", (), CHECK_TIMEOUT_SECONDS, sandbox)
     if "error" in answer:
         raise PluginError(str(answer["error"]))
     names = answer.get("names")
@@ -586,8 +602,8 @@ def _isolated_proxy(record: PluginRecord, kind: str, item: str) -> Callable:
     return proxy
 
 
-def _run_isolated(entry_bytes: bytes, manifest: PluginManifest, kind: str, item: str, args: tuple, timeout: float, label: str, shape: Callable[[object], dict]) -> dict:
-    answer = _call_child(entry_bytes, manifest, "run", kind, item, args, timeout)
+def _run_isolated(entry_bytes: bytes, manifest: PluginManifest, kind: str, item: str, args: tuple, timeout: float, label: str, shape: Callable[[object], dict], sandbox: PluginSandbox | None = None) -> dict:
+    answer = _call_child(entry_bytes, manifest, "run", kind, item, args, timeout, sandbox)
     if "error" in answer:
         message = str(answer["error"])
         if message.startswith("timeout"):

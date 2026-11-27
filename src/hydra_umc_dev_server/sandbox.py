@@ -34,6 +34,9 @@ from __future__ import annotations
 
 import os
 import shutil
+import subprocess
+import sys
+import tempfile
 from dataclasses import dataclass, field
 from typing import Any, Callable
 
@@ -196,3 +199,72 @@ class SandboxedLauncher:
             return self._inner.spawn(argv, cwd=cwd, env=env)
         # the wrapper itself needs a PATH to be found; the task gets its own through --setenv
         return self._inner.spawn(wrapped, cwd=cwd, env={"PATH": os.environ.get("PATH", "/usr/local/bin:/usr/bin:/bin")})
+
+
+PLUGIN_SANDBOX_MODES = ("auto", "required", "off")
+
+
+def _interpreter_paths() -> tuple[str, ...]:
+    """What a sandboxed Python needs to read outside the system directories (a virtual environment)."""
+    found = (sys.prefix, sys.base_prefix, os.path.dirname(os.path.realpath(sys.executable)))
+    return tuple(dict.fromkeys(p for p in found if not any(p == d or p.startswith(d + "/") for d in _SYSTEM_RO_DIRS)))
+
+
+def _probe_sandbox(argv: tuple[str, ...]) -> bool:
+    try:
+        return subprocess.run(argv, capture_output=True, timeout=20, check=False).returncode == 0  # noqa: S603 - bwrap and this interpreter
+    except (OSError, subprocess.SubprocessError):
+        return False
+
+
+class PluginSandbox:
+    """The operating-system sandbox of the plugin processes, chosen once on first use.
+
+    `auto` (the default) runs them under bubblewrap when it is installed AND a trial run works on this host (a kernel may refuse the namespaces it needs),
+    and without a sandbox otherwise; `required` refuses to run a plugin without it; `off` never wraps. Only bubblewrap is used: killing a call that overruns
+    kills what runs inside it, which a transient systemd unit would not. `used` is `bubblewrap` or `none` once resolved.
+    """
+
+    def __init__(
+        self, mode: str = "auto", *, network: bool = False, read_only_paths: tuple[str, ...] = (),
+        which: Callable[[str], str | None] = shutil.which, os_name: str | None = None, probe: Callable[[tuple[str, ...]], bool] = _probe_sandbox,
+    ) -> None:
+        if mode not in PLUGIN_SANDBOX_MODES:
+            raise ConfigValidationError(f"the plugin sandbox must be one of {PLUGIN_SANDBOX_MODES}, not {mode!r}")
+        self.mode = mode
+        self._spec = SandboxSpec(mode="bubblewrap", network=network, read_only_paths=tuple(read_only_paths))
+        self._which = which
+        self._os_name = os_name
+        self._probe = probe
+        self.used: str | None = None
+
+    @classmethod
+    def from_environment(cls, environ: Any = None) -> "PluginSandbox":
+        env = os.environ if environ is None else environ
+        return cls(
+            env.get("HYDRA_DEV_SERVER_PLUGIN_SANDBOX", "").strip().lower() or "auto",
+            network=env.get("HYDRA_DEV_SERVER_PLUGIN_SANDBOX_NETWORK", "").strip() == "1",
+            read_only_paths=tuple(p for p in env.get("HYDRA_DEV_SERVER_PLUGIN_SANDBOX_READ_ONLY", "").split(os.pathsep) if p),
+        )
+
+    def _argv(self, argv: tuple[str, ...], cwd: str, env: dict[str, str]) -> tuple[str, ...]:
+        spec = SandboxSpec(mode="bubblewrap", network=self._spec.network, read_only_paths=self._spec.read_only_paths + _interpreter_paths())
+        return bubblewrap_argv(argv, cwd=cwd, env=env, spec=spec)
+
+    def _resolve(self) -> str:
+        if self.used is None:
+            used = "none"
+            if self.mode != "off" and (os.name if self._os_name is None else self._os_name) == "posix" and self._which("bwrap"):
+                with tempfile.TemporaryDirectory(prefix="hydra-plugin-probe-") as scratch:
+                    if self._probe(self._argv((sys.executable, "-I", "-c", "pass"), scratch, {"PATH": "/usr/bin:/bin"})):
+                        used = "bubblewrap"
+            self.used = used
+        return self.used
+
+    def wrap(self, argv: tuple[str, ...], *, cwd: str, env: dict[str, str]) -> tuple[tuple[str, ...], dict[str, str]]:
+        """The command and environment to start; raises SandboxUnavailableError when one is required and there is none."""
+        if self._resolve() == "bubblewrap":
+            return self._argv(argv, cwd, env), {"PATH": os.environ.get("PATH", "/usr/local/bin:/usr/bin:/bin")}
+        if self.mode == "required":
+            raise SandboxUnavailableError("a sandbox is required for plugins (HYDRA_DEV_SERVER_PLUGIN_SANDBOX=required) and bubblewrap does not work on this host")
+        return argv, env

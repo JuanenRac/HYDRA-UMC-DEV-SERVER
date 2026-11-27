@@ -2,9 +2,9 @@
 
 A plugin adds named items to the development server: **checks**, **reports**
 and **generators**. It is a directory with two files, `plugin.json` and one
-Python module. By default every call runs in its own Python process (see
-"Isolation" below), so a plugin sees nothing of the API process; enable only
-what you have read all the same.
+Python module. By default every call runs in its own Python process, in a
+sandbox of the system where the host has one (see "Isolation" below); enable
+only what you have read all the same.
 
 ## Manifest (`plugin.json`)
 
@@ -127,8 +127,15 @@ needs to keep state between calls).
   module is handed to it as the bytes that were approved, not as a path, so it cannot import a
   file next to it and a file changed after the approval is never run. What it returns follows a
   marker, so anything it prints cannot be taken for the answer. At most four calls run at once.
-  A plugin keeps no state from one call to the next, and the process has the permissions of the
-  service user: it is isolation from the API process, not an operating-system sandbox.
+  A plugin keeps no state from one call to the next.
+- **sandbox of the process** (`HYDRA_DEV_SERVER_PLUGIN_SANDBOX`): `auto` (default) puts the plugin
+  process inside bubblewrap when `bwrap` is installed and a trial run works on the host: the system
+  is read-only, the home of the service user does not exist, `/tmp` holds only the directory of the
+  call and there is no network. On a host without it the process has the permissions of the service
+  user and the network, as before: it is then isolation from the API process only. `required` refuses
+  to run a plugin without the sandbox; `off` never uses it. `HYDRA_DEV_SERVER_PLUGIN_SANDBOX_NETWORK=1`
+  gives the network back and `HYDRA_DEV_SERVER_PLUGIN_SANDBOX_READ_ONLY` lists more paths (separated
+  as in `PATH`) a plugin may read. The thread isolation below is never sandboxed.
 - **thread**: the module runs in the API process (trusted code), still from the approved bytes
   and not from the file read a second time. A call that overruns cannot be cancelled; such calls
   are counted and no new call starts once eight are still running.
