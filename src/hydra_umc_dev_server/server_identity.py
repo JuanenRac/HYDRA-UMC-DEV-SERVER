@@ -67,12 +67,19 @@ class Identity:
 
 
 def load_identity_key(path: str) -> bytes:
-    """Read the verification key from a file. Raises ValueError (the message never holds the key)."""
+    """Read the verification key from a file. Raises ValueError (the message never holds the key).
+
+    The byte order mark that some editors of Windows put in front of UTF-8 text is not part of the key; any other encoding is refused, never guessed.
+    """
     try:
-        with open(path, encoding="utf-8") as handle:
+        with open(path, encoding="utf-8-sig") as handle:
             key = handle.read().strip()
     except OSError as error:
         raise ValueError(f"cannot read the identity key file: {error.strerror or 'unreadable'}") from error
+    except UnicodeDecodeError:
+        raise ValueError("cannot read the identity key file: it is not UTF-8 text") from None  # the message of the codec quotes a byte of the key
+    if "\x00" in key:  # UTF-16 with no byte order mark decodes as UTF-8 with a NUL beside every character
+        raise ValueError("cannot read the identity key file: it is not UTF-8 text")
     if len(key) < MIN_KEY_LENGTH:
         raise ValueError(f"the identity key must have at least {MIN_KEY_LENGTH} characters")
     return key.encode("utf-8")
