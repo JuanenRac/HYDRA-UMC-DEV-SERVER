@@ -2,6 +2,7 @@
 
 ## [Unreleased]
 
+- **Token and password files saved with a byte order mark are read:** a file written by an editor of Windows as "UTF-8 with BOM" kept the mark in front of the secret, so the credential was refused or could not be sent in a header. The mark is dropped now; a file in another encoding (UTF-16) is refused with a clear message. The same holds for the identity key file of the server (shared module of the SDK).
 - **A plugin process runs inside bubblewrap where the host has it:** the home of the service user is not there and there is no network (`HYDRA_DEV_SERVER_PLUGIN_SANDBOX`: `auto` by default, which keeps the old behaviour on a host without a working bubblewrap; `required` refuses to run a plugin without it; `off`). `HYDRA_DEV_SERVER_PLUGIN_SANDBOX_NETWORK=1` gives a plugin the network back and `HYDRA_DEV_SERVER_PLUGIN_SANDBOX_READ_ONLY` names more paths it may read. Tests with stand-ins for the host.
 ## [0.2.8] - Stricter recipe options, a safer public-key check and more tests
 

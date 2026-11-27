@@ -769,7 +769,7 @@ def _cmd_plugin_run(args: argparse.Namespace) -> int:
 def _read_api_token(args: argparse.Namespace) -> str:
     """The API token comes from a file or the environment, never from argv."""
     if args.token_file:
-        return Path(args.token_file).read_text(encoding="utf-8").strip()
+        return Path(args.token_file).read_text(encoding="utf-8-sig").strip()
     return os.environ.get("HYDRA_UMC_DEV_SERVER_TOKEN", "").strip()
 
 
